@@ -368,6 +368,24 @@ app.get("/api/merchant/products", async (request) => {
   return { products: result.rows };
 });
 
+app.get("/api/merchant/orders", async (request) => {
+  const user = requireTenantUser(request);
+  const result = await pool.query(`SELECT * FROM orders WHERE tenant_id = $1 ORDER BY created_at DESC`, [user.tenantId]);
+  return { orders: result.rows };
+});
+
+app.get("/api/merchant/payment-providers", async (request) => {
+  const user = requireTenantUser(request);
+  const result = await pool.query(
+    `SELECT id, provider, mode, public_config, is_enabled, updated_at
+     FROM tenant_payment_credentials
+     WHERE tenant_id = $1
+     ORDER BY updated_at DESC`,
+    [user.tenantId],
+  );
+  return { providers: result.rows };
+});
+
 app.get("/api/store/:tenantSlug/products", async (request) => {
   const params = z.object({ tenantSlug: z.string() }).parse(request.params);
   const result = await pool.query(
