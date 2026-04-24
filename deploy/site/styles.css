@@ -506,6 +506,119 @@ tr:last-child td {
   gap: 10px;
 }
 
+.storefront-shell {
+  border: 1px solid var(--line);
+  border-radius: 32px;
+  padding: 22px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, .86), rgba(8, 47, 73, .42));
+  box-shadow: var(--shadow);
+}
+
+.storefront-hero {
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, .8fr);
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.storefront-hero h2 {
+  margin: 8px 0;
+  font-size: clamp(30px, 4vw, 54px);
+}
+
+.storefront-search {
+  display: grid;
+  gap: 10px;
+}
+
+.category-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0 20px;
+}
+
+.category-pills button {
+  padding: 9px 12px;
+  color: #dbeafe;
+  background: rgba(30, 41, 59, .82);
+}
+
+.category-pills button.active {
+  color: #082f49;
+  background: linear-gradient(135deg, var(--accent), #bae6fd);
+}
+
+.storefront-grid {
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+.store-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.store-product-card,
+.cart-panel,
+.product-detail {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(2, 6, 23, .38);
+}
+
+.store-product-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.store-product-card p {
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+
+.product-image {
+  min-height: 150px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at top, rgba(56, 189, 248, .24), rgba(15, 23, 42, .92));
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-image span {
+  font-size: 56px;
+  font-weight: 900;
+  color: #bae6fd;
+}
+
+.product-card-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.cart-panel {
+  padding: 18px;
+  align-self: start;
+  position: sticky;
+  top: 18px;
+}
+
+.product-detail {
+  padding: 14px;
+  color: #dbeafe;
+}
+
 .product-row {
   display: flex;
   align-items: center;
@@ -528,6 +641,9 @@ tr:last-child td {
   }
 
   .hero-panel,
+  .storefront-hero,
+  .storefront-grid,
+  .store-product-grid,
   .grid.two,
   .grid.three,
   .grid.four,

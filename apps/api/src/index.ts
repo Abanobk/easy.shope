@@ -83,6 +83,58 @@ function slugify(value: string) {
     .slice(0, 64);
 }
 
+async function expireOverdueSubscriptions() {
+  await pool.query(
+    `UPDATE tenants
+     SET status = 'expired'
+     WHERE subscription_expires_at IS NOT NULL
+       AND subscription_expires_at < now()
+       AND status NOT IN ('suspended', 'expired')`,
+  );
+}
+
+async function markSubscriptionInvoicePaid(invoiceId: string) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const invoice = await client.query(
+      `SELECT invoices.*, plans.duration_months
+       FROM platform_subscription_invoices invoices
+       JOIN plans ON plans.code = invoices.plan_code
+       WHERE invoices.id = $1
+       FOR UPDATE`,
+      [invoiceId],
+    );
+    const row = invoice.rows[0];
+    if (!row) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+    const updatedInvoice = await client.query(
+      `UPDATE platform_subscription_invoices
+       SET status = 'paid', provider_reference = coalesce(provider_reference, $2)
+       WHERE id = $1
+       RETURNING *`,
+      [invoiceId, `manual-paid-${Date.now()}`],
+    );
+    await client.query(
+      `UPDATE tenants
+       SET status = 'active',
+           plan_code = $2,
+           subscription_expires_at = greatest(coalesce(subscription_expires_at, now()), now()) + ($3::text || ' months')::interval
+       WHERE id = $1`,
+      [row.tenant_id, row.plan_code, row.duration_months],
+    );
+    await client.query("COMMIT");
+    return updatedInvoice.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function migrate() {
   await pool.query(`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`);
   await pool.query(`
@@ -229,6 +281,7 @@ async function migrate() {
      ON CONFLICT (email) DO NOTHING`,
     [env.platformOwnerEmail.toLowerCase(), ownerPasswordHash],
   );
+  await expireOverdueSubscriptions();
 }
 
 app.get("/health", async () => {
@@ -440,16 +493,69 @@ app.patch("/api/merchant/store", async (request) => {
   return { store: result.rows[0] };
 });
 
+app.get("/api/store/:tenantSlug", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string() }).parse(request.params);
+  await expireOverdueSubscriptions();
+  const [tenant, categories, products] = await Promise.all([
+    pool.query(`SELECT id, name_ar, name_en, slug, country, status, plan_code FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [
+      params.tenantSlug,
+    ]),
+    pool.query(
+      `SELECT categories.id, categories.name_ar, categories.name_en, categories.slug, count(products.id)::int AS products_count
+       FROM categories
+       JOIN tenants ON tenants.id = categories.tenant_id
+       LEFT JOIN products ON products.category_id = categories.id AND products.status = 'published'
+       WHERE tenants.slug = $1 AND tenants.status NOT IN ('suspended', 'expired')
+       GROUP BY categories.id
+       ORDER BY categories.sort_order, categories.created_at DESC`,
+      [params.tenantSlug],
+    ),
+    pool.query(
+      `SELECT products.*
+       FROM products JOIN tenants ON tenants.id = products.tenant_id
+       WHERE tenants.slug = $1 AND tenants.status NOT IN ('suspended', 'expired') AND products.status = 'published'
+       ORDER BY products.created_at DESC
+       LIMIT 12`,
+      [params.tenantSlug],
+    ),
+  ]);
+  if (!tenant.rows[0]) return reply.code(404).send({ message: "Store not found or subscription inactive" });
+  return { store: tenant.rows[0], categories: categories.rows, featuredProducts: products.rows };
+});
+
 app.get("/api/store/:tenantSlug/products", async (request) => {
   const params = z.object({ tenantSlug: z.string() }).parse(request.params);
+  const query = z.object({ q: z.string().optional(), category: z.string().optional() }).parse(request.query);
   const result = await pool.query(
     `SELECT products.*
      FROM products JOIN tenants ON tenants.id = products.tenant_id
-     WHERE tenants.slug = $1 AND products.status = 'published'
+     LEFT JOIN categories ON categories.id = products.category_id
+     WHERE tenants.slug = $1
+       AND tenants.status NOT IN ('suspended', 'expired')
+       AND products.status = 'published'
+       AND ($2::text IS NULL OR products.title_ar ILIKE '%' || $2 || '%' OR products.title_en ILIKE '%' || $2 || '%' OR products.description ILIKE '%' || $2 || '%')
+       AND ($3::text IS NULL OR categories.slug = $3)
      ORDER BY products.created_at DESC`,
-    [params.tenantSlug],
+    [params.tenantSlug, query.q ?? null, query.category ?? null],
   );
   return { products: result.rows };
+});
+
+app.get("/api/store/:tenantSlug/products/:productSlug", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string(), productSlug: z.string() }).parse(request.params);
+  const result = await pool.query(
+    `SELECT products.*, categories.name_ar AS category_name_ar, categories.name_en AS category_name_en
+     FROM products
+     JOIN tenants ON tenants.id = products.tenant_id
+     LEFT JOIN categories ON categories.id = products.category_id
+     WHERE tenants.slug = $1
+       AND tenants.status NOT IN ('suspended', 'expired')
+       AND products.slug = $2
+       AND products.status = 'published'`,
+    [params.tenantSlug, params.productSlug],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });
+  return { product: result.rows[0] };
 });
 
 app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
@@ -467,7 +573,8 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const tenantResult = await client.query(`SELECT * FROM tenants WHERE slug = $1 AND status <> 'suspended'`, [params.tenantSlug]);
+    await expireOverdueSubscriptions();
+    const tenantResult = await client.query(`SELECT * FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [params.tenantSlug]);
     const tenant = tenantResult.rows[0];
     if (!tenant) return reply.code(404).send({ message: "Store not found" });
 
@@ -551,6 +658,44 @@ app.post("/api/merchant/subscription-invoices", async (request, reply) => {
     [user.tenantId, plan.rows[0].code, plan.rows[0].price_cents],
   );
   return reply.code(201).send({ invoice: result.rows[0], payment: { provider: "easycash", status: "pending_integration" } });
+});
+
+app.get("/api/merchant/subscription-invoices", async (request) => {
+  const user = requireTenantUser(request);
+  const result = await pool.query(
+    `SELECT invoices.*, plans.name AS plan_name, plans.duration_months
+     FROM platform_subscription_invoices invoices
+     JOIN plans ON plans.code = invoices.plan_code
+     WHERE invoices.tenant_id = $1
+     ORDER BY invoices.created_at DESC
+     LIMIT 25`,
+    [user.tenantId],
+  );
+  return { invoices: result.rows };
+});
+
+app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, reply) => {
+  const user = requireTenantUser(request);
+  const params = z.object({ invoiceId: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(
+    `UPDATE platform_subscription_invoices
+     SET status = 'pending',
+         provider = 'easycash',
+         provider_reference = coalesce(provider_reference, $3)
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [params.invoiceId, user.tenantId, `easycash-checkout-${Date.now()}`],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Invoice not found" });
+  return {
+    invoice: result.rows[0],
+    payment: {
+      provider: "easycash",
+      status: "pending",
+      checkoutUrl: `/mock-easycash/checkout/${result.rows[0].id}`,
+      message: "EasyCash redirect placeholder until live credentials are connected.",
+    },
+  };
 });
 
 app.get("/api/admin/overview", async (request) => {
@@ -645,7 +790,11 @@ app.get("/api/admin/subscription-invoices", async (request) => {
 app.patch("/api/admin/subscription-invoices/:invoiceId/status", async (request) => {
   requirePlatformOwner(request);
   const params = z.object({ invoiceId: z.string().uuid() }).parse(request.params);
-  const body = z.object({ status: z.enum(["pending", "paid", "failed", "cancelled"]) }).parse(request.body);
+  const body = z.object({ status: z.enum(["pending", "paid", "expired", "failed", "cancelled"]) }).parse(request.body);
+  if (body.status === "paid") {
+    const invoice = await markSubscriptionInvoicePaid(params.invoiceId);
+    return { invoice };
+  }
   const result = await pool.query(`UPDATE platform_subscription_invoices SET status = $1 WHERE id = $2 RETURNING *`, [body.status, params.invoiceId]);
   return { invoice: result.rows[0] };
 });

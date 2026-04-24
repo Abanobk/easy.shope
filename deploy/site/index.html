@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042501" />
+  <link rel="stylesheet" href="/styles.css?v=2026042502" />
 </head>
 <body>
   <div class="app-shell">
@@ -141,6 +141,9 @@
               <div class="metric compact"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
               <div class="metric compact"><span>طلبات</span><strong id="catalog-orders-total">0</strong><small id="catalog-revenue-total">0.00 EGP</small></div>
             </div>
+            <h3>الطلبات</h3>
+            <ul id="orders" class="list"></ul>
+            <h3>آخر الطلبات</h3>
             <ul id="merchant-latest-orders" class="list"></ul>
           </article>
           <article class="panel">
@@ -189,33 +192,43 @@
       </section>
 
       <section class="view" id="view-storefront">
-        <div class="grid two">
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Public store</span>
-              <h2>معاينة المتجر</h2>
+        <article class="storefront-shell">
+          <div class="storefront-hero">
+            <div>
+              <span class="eyebrow">Public storefront</span>
+              <h2 id="storefront-title">متجر عام جاهز للبيع</h2>
+              <p id="storefront-subtitle">حمّل متجرًا بالـ slug، اعرض المنتجات، أضف للسلة، وأنشئ Checkout كامل.</p>
             </div>
-            <form id="storefront-form" class="form-stack">
-              <label>Store slug<input id="tenant-slug" placeholder="store slug"></label>
-              <button>تحميل المنتجات المنشورة</button>
+            <form id="storefront-form" class="storefront-search">
+              <input id="tenant-slug" placeholder="store slug">
+              <input id="storefront-query" placeholder="ابحث عن منتج">
+              <button>تحميل / بحث</button>
             </form>
-            <div id="storefront-products" class="product-picker"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Checkout</span>
-              <h2>إنشاء طلب تجريبي</h2>
+          </div>
+          <div id="storefront-categories" class="category-pills"></div>
+          <div class="grid storefront-grid">
+            <div>
+              <div id="storefront-products" class="store-product-grid"></div>
             </div>
-            <form id="order-form" class="form-stack">
-              <label>اسم العميل<input name="customerName" required></label>
-              <label>موبايل العميل<input name="customerPhone" required></label>
-              <label>Email<input name="customerEmail" type="email"></label>
-              <label>عنوان الشحن<textarea name="shippingAddress"></textarea></label>
-              <button>إنشاء طلب</button>
-            </form>
-            <ul id="orders" class="list"></ul>
-          </article>
-        </div>
+            <aside class="cart-panel">
+              <div class="panel-heading">
+                <span class="eyebrow">Cart</span>
+                <h2>السلة</h2>
+              </div>
+              <div id="product-detail" class="product-detail">اختر منتجًا لعرض التفاصيل.</div>
+              <ul id="cart-items" class="list"></ul>
+              <div class="status-line"><strong>الإجمالي</strong><span id="cart-total">0.00 EGP</span></div>
+              <form id="order-form" class="form-stack">
+                <label>اسم العميل<input name="customerName" required></label>
+                <label>موبايل العميل<input name="customerPhone" required></label>
+                <label>Email<input name="customerEmail" type="email"></label>
+                <label>عنوان الشحن<textarea name="shippingAddress"></textarea></label>
+                <button>Checkout وإنشاء الطلب</button>
+              </form>
+              <div id="checkout-result" class="hint-box">نتيجة الطلب ستظهر هنا.</div>
+            </aside>
+          </div>
+        </article>
       </section>
 
       <section class="view" id="view-payments">
@@ -240,13 +253,15 @@
               <span class="eyebrow">Platform billing</span>
               <h2>اشتراك التاجر للمنصة</h2>
             </div>
+            <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
             <form id="subscription-form" class="form-stack">
               <label>الخطة<select id="planCode" name="planCode"></select></label>
               <button>إنشاء فاتورة اشتراك</button>
             </form>
+            <ul id="subscription-invoices" class="list"></ul>
             <div class="hint-box">
               <strong>ملاحظة</strong>
-              <p>الدفع الحقيقي ينتظر وثائق EasyCash. الحالي يجهز الفاتورة والسجل فقط.</p>
+              <p>زر الدفع يجهز عملية EasyCash placeholder. السوبر أدمن يقدر يعلّم الفاتورة paid فيتم تجديد الاشتراك تلقائيًا.</p>
             </div>
           </article>
         </div>
@@ -295,6 +310,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042501"></script>
+  <script src="/app.js?v=2026042502"></script>
 </body>
 </html>

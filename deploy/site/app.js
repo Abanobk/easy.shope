@@ -2,6 +2,8 @@ const state = {
   token: localStorage.getItem("easyShopeToken") || "",
   tenantSlug: localStorage.getItem("easyShopeTenantSlug") || "",
   role: localStorage.getItem("easyShopeRole") || "",
+  cart: [],
+  storefrontCategory: "",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -16,6 +18,11 @@ function sumRows(rows, key = "count") {
 
 function statusCount(rows, status) {
   return Number((rows || []).find((row) => row.status === status)?.count || 0);
+}
+
+function queryString(params) {
+  const entries = Object.entries(params).filter(([, value]) => value);
+  return entries.length ? `?${new URLSearchParams(entries).toString()}` : "";
 }
 
 async function api(path, options = {}) {
@@ -143,17 +150,19 @@ async function createSubscriptionInvoice(event) {
   const form = new FormData(event.currentTarget);
   const data = await api("/api/merchant/subscription-invoices", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
   showMessage(`تم إنشاء فاتورة اشتراك: ${data.invoice.id}`);
+  await loadBillingData();
 }
 
 async function loadMerchantData() {
   if (!state.token || !state.tenantSlug || ["platform_owner", "platform_admin"].includes(state.role)) return;
-  const [dashboard, categories, products, orders, providers, plans] = await Promise.all([
+  const [dashboard, categories, products, orders, providers, plans, billing] = await Promise.all([
     api("/api/merchant/dashboard"),
     api("/api/merchant/categories"),
     api("/api/merchant/products"),
     api("/api/merchant/orders"),
     api("/api/merchant/payment-providers"),
     api("/api/plans"),
+    api("/api/merchant/subscription-invoices"),
   ]);
 
   $("merchant-products-total").textContent = dashboard.products.total;
@@ -174,6 +183,7 @@ async function loadMerchantData() {
   $("orders").innerHTML = orders.orders.map((item) => `<li><strong>${item.customer_name}</strong><span>${money(item.total_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد طلبات بعد.</li>";
   $("payment-providers").innerHTML = providers.providers.map((item) => `<li><strong>${item.provider}</strong><span>${item.mode} - ${item.is_enabled ? "enabled" : "disabled"}</span></li>`).join("") || "<li>لم يتم ربط دفع بعد.</li>";
   $("planCode").innerHTML = plans.plans.map((plan) => `<option value="${plan.code}">${plan.name} - ${money(plan.price_cents)}</option>`).join("");
+  renderBilling(dashboard.tenant, billing.invoices);
 }
 
 async function loadStorefront(event) {
@@ -185,28 +195,108 @@ async function loadStorefront(event) {
   }
   state.tenantSlug = slug;
   localStorage.setItem("easyShopeTenantSlug", slug);
-  const data = await api(`/api/store/${slug}/products`);
+  const store = await api(`/api/store/${slug}`);
+  const data = await api(`/api/store/${slug}/products${queryString({ q: $("storefront-query").value.trim(), category: state.storefrontCategory })}`);
+  $("storefront-title").textContent = store.store.name_ar || store.store.name_en;
+  $("storefront-subtitle").textContent = `${store.store.name_en} - ${store.store.country} - ${store.store.status}`;
+  $("storefront-categories").innerHTML =
+    [`<button class="${state.storefrontCategory ? "" : "active"}" data-store-category="">الكل</button>`]
+      .concat(store.categories.map((category) => `<button class="${state.storefrontCategory === category.slug ? "active" : ""}" data-store-category="${category.slug}">${category.name_ar} (${category.products_count})</button>`))
+      .join("");
   $("storefront-products").innerHTML =
     data.products
       .map(
-        (item) => `<label class="product-row"><input type="checkbox" value="${item.id}" data-title="${item.title_en}"> <span>${item.title_ar}</span> <code>${money(item.price_cents)}</code></label>`,
+        (item) => `<article class="store-product-card">
+          <div class="product-image">${item.image_url ? `<img src="${item.image_url}" alt="">` : `<span>${item.title_ar.slice(0, 1)}</span>`}</div>
+          <div><strong>${item.title_ar}</strong><p>${item.description || "منتج متاح في المتجر."}</p></div>
+          <div class="product-card-footer"><code>${money(item.price_cents)}</code><div class="row-actions">
+            <button data-view-product="${item.slug}">تفاصيل</button>
+            <button class="success-button" data-add-cart="${item.id}" data-title="${item.title_ar}" data-price="${item.price_cents}">أضف للسلة</button>
+          </div></div>
+        </article>`,
       )
       .join("") || "<p>لا توجد منتجات منشورة في هذا المتجر.</p>";
+  bindStorefrontActions();
 }
 
 async function placeOrder(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const slug = $("tenant-slug").value.trim();
-  const items = [...document.querySelectorAll("#storefront-products input:checked")].map((input) => ({
-    productId: input.value,
-    quantity: 1,
-  }));
+  const items = state.cart.map((item) => ({ productId: item.productId, quantity: item.quantity }));
   if (!items.length) return showMessage("اختر منتجًا واحدًا على الأقل.", true);
   const payload = { ...Object.fromEntries(form.entries()), items };
   const data = await api(`/api/store/${slug}/orders`, { method: "POST", body: JSON.stringify(payload) });
   showMessage(`تم إنشاء الطلب: ${data.order.id}`);
-  await loadMerchantData();
+  $("checkout-result").innerHTML = `<strong>تم إنشاء الطلب بنجاح</strong><p>رقم الطلب: ${data.order.id}</p><p>حالة الدفع: ${data.payment.status}</p>`;
+  state.cart = [];
+  renderCart();
+  if (!["platform_owner", "platform_admin"].includes(state.role)) await loadMerchantData();
+}
+
+function bindStorefrontActions() {
+  document.querySelectorAll("[data-store-category]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      state.storefrontCategory = button.dataset.storeCategory;
+      await loadStorefront();
+    });
+  });
+  document.querySelectorAll("[data-add-cart]").forEach((button) => {
+    button.addEventListener("click", () => addToCart(button.dataset.addCart, button.dataset.title, Number(button.dataset.price)));
+  });
+  document.querySelectorAll("[data-view-product]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const slug = $("tenant-slug").value.trim();
+      const data = await api(`/api/store/${slug}/products/${button.dataset.viewProduct}`);
+      $("product-detail").innerHTML = `<strong>${data.product.title_ar}</strong><p>${data.product.description || "لا يوجد وصف."}</p><p>${money(data.product.price_cents)} - ${data.product.stock_quantity} في المخزون</p>`;
+    });
+  });
+}
+
+function addToCart(productId, title, priceCents) {
+  const existing = state.cart.find((item) => item.productId === productId);
+  if (existing) existing.quantity += 1;
+  else state.cart.push({ productId, title, priceCents, quantity: 1 });
+  renderCart();
+}
+
+function renderCart() {
+  $("cart-items").innerHTML =
+    state.cart
+      .map(
+        (item) => `<li><strong>${item.title} x ${item.quantity}</strong><span>${money(item.priceCents * item.quantity)} <button class="mini-button" data-remove-cart="${item.productId}">حذف</button></span></li>`,
+      )
+      .join("") || "<li>السلة فارغة.</li>";
+  $("cart-total").textContent = money(state.cart.reduce((total, item) => total + item.priceCents * item.quantity, 0));
+  document.querySelectorAll("[data-remove-cart]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.cart = state.cart.filter((item) => item.productId !== button.dataset.removeCart);
+      renderCart();
+    });
+  });
+}
+
+async function loadBillingData() {
+  if (!state.token || ["platform_owner", "platform_admin"].includes(state.role)) return;
+  const [store, invoices] = await Promise.all([api("/api/merchant/store"), api("/api/merchant/subscription-invoices")]);
+  renderBilling(store.store, invoices.invoices);
+}
+
+function renderBilling(store, invoices) {
+  $("subscription-status").innerHTML = `<strong>${store.status}</strong><p>الخطة: ${store.plan_code} - ينتهي: ${store.subscription_expires_at || "غير محدد"}</p>`;
+  $("subscription-invoices").innerHTML =
+    invoices
+      .map(
+        (invoice) => `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}</strong><span>${invoice.status} <button class="mini-button" data-pay-invoice="${invoice.id}">دفع EasyCash</button></span></li>`,
+      )
+      .join("") || "<li>لا توجد فواتير اشتراك بعد.</li>";
+  document.querySelectorAll("[data-pay-invoice]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const data = await api(`/api/merchant/subscription-invoices/${button.dataset.payInvoice}/pay`, { method: "POST", body: JSON.stringify({}) });
+      showMessage(`تم تجهيز دفع EasyCash: ${data.payment.status}`);
+      await loadBillingData();
+    });
+  });
 }
 
 async function loadAdmin() {
@@ -261,6 +351,7 @@ async function loadAdmin() {
             <td>${invoice.status}</td>
             <td><div class="row-actions">
               <button class="success-button" data-invoice-status="${invoice.id}:paid">Paid</button>
+              <button data-invoice-status="${invoice.id}:expired">Expired</button>
               <button class="danger-button" data-invoice-status="${invoice.id}:failed">Failed</button>
             </div></td>
           </tr>`,
@@ -347,6 +438,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
   $("order-form").addEventListener("submit", placeOrder);
+  renderCart();
   $("logout").addEventListener("click", () => {
     localStorage.removeItem("easyShopeToken");
     localStorage.removeItem("easyShopeTenantSlug");
