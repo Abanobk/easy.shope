@@ -55,7 +55,8 @@ git push -u origin main
 - `docker-compose.yml` يشغل Nginx على المنفذ المحلي `8098`.
 - `deploy/site/index.html` صفحة اختبار.
 - `/health` يرجع `ok`.
-- Cloudflare route الحالي: `shope.easytecheg.net` → `https://192.168.1.53:8098`.
+- Cloudflare route المطلوب: `shope.easytecheg.net` → `http://192.168.1.53:8098`.
+  - ملاحظة: الحاوية الداخلية Nginx تعمل HTTP على `8098`، وCloudflare يوفر HTTPS للزائر خارجيًا.
 
 بعد نجاح الـ workflow، تحقق من السيرفر:
 
@@ -80,7 +81,7 @@ https://shope.easytecheg.net
 ## الدومين والنفق (مرجع)
 
 - Cloudflare Tunnel `marichia` → `192.168.1.53`
-- متجر الاختبار الحالي (الاسم المصحح): `shope.easytecheg.net` → `https://192.168.1.53:8098`
+- متجر الاختبار الحالي (الاسم المصحح): `shope.easytecheg.net` → `http://192.168.1.53:8098`
 - الدومين القديم به خطأ إملائي ويُترك مؤقتًا فقط إن احتجت توافقًا: `esyhope.easytecheg.net` → `https://192.168.1.53:8099`
 - SSH للنشر: `ssh-deploy.easytecheg.net` → `tcp://192.168.1.53:22`
 
