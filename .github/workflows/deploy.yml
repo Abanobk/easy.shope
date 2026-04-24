@@ -62,7 +62,7 @@ jobs:
           set -euo pipefail
           test -n "${SSH_USER:-}" || { echo "Missing secret SSH_USER"; exit 1; }
           test -n "${DEPLOY_PATH:-}" || { echo "Missing secret DEPLOY_PATH"; exit 1; }
-          tar -czf /tmp/easy-shope-deploy.tgz docker-compose.yml deploy
+          tar -czf /tmp/easy-shope-deploy.tgz docker-compose.yml .env.example deploy apps
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
             "${SSH_USER}@${SSH_HOST}" \
             "set -euo pipefail; mkdir -p \"${DEPLOY_PATH}\""
@@ -79,4 +79,4 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
             "${SSH_USER}@${SSH_HOST}" \
-            "set -euo pipefail; cd \"${DEPLOY_PATH}\"; (docker compose version >/dev/null 2>&1 || docker-compose version >/dev/null 2>&1) || { echo 'Docker Compose is not available on TrueNAS shell'; exit 1; }; if docker compose version >/dev/null 2>&1; then docker compose up -d --remove-orphans; else docker-compose up -d --remove-orphans; fi; for i in \$(seq 1 20); do curl -fsS http://127.0.0.1:8098/health && break; sleep 1; done; curl -fsS http://127.0.0.1:8098/health; printf '%s %s\n' \"\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\" \"${GITHUB_SHA}\" | tee \"${DEPLOY_PATH}/phase1_last_deploy.txt\" >/dev/null"
+            "set -euo pipefail; cd \"${DEPLOY_PATH}\"; test -f .env || cp .env.example .env; (docker compose version >/dev/null 2>&1 || docker-compose version >/dev/null 2>&1) || { echo 'Docker Compose is not available on TrueNAS shell'; exit 1; }; if docker compose version >/dev/null 2>&1; then docker compose up -d --build --remove-orphans; else docker-compose up -d --build --remove-orphans; fi; for i in \$(seq 1 40); do curl -fsS http://127.0.0.1:8098/api/health && break; sleep 2; done; curl -fsS http://127.0.0.1:8098/api/health; printf '%s %s\n' \"\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\" \"${GITHUB_SHA}\" | tee \"${DEPLOY_PATH}/phase2_last_deploy.txt\" >/dev/null"

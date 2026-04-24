@@ -71,10 +71,48 @@ curl -fsS http://127.0.0.1:8098/health
 https://shope.easytecheg.net
 ```
 
+## المرحلة 2 — أساس المنتج الحقيقي
+
+الـ stack الحالي أصبح:
+
+- `web`: Nginx على `8098` يقدم الواجهة ويعمل proxy إلى `/api`.
+- `api`: Fastify/TypeScript على `3000`.
+- `postgres`: قاعدة البيانات الأساسية.
+- `redis`: جاهز للمهام والجلسات لاحقًا.
+
+Endpoints مبدئية:
+
+- `GET /api/health`
+- `POST /api/auth/register-merchant`
+- `POST /api/auth/login`
+- `GET /api/me`
+- `GET /api/plans`
+- `POST /api/merchant/categories`
+- `GET /api/merchant/categories`
+- `POST /api/merchant/products`
+- `GET /api/merchant/products`
+- `GET /api/store/:tenantSlug/products`
+- `POST /api/store/:tenantSlug/orders`
+- `POST /api/merchant/payment-providers/easycash`
+- `POST /api/merchant/subscription-invoices`
+- `GET /api/admin/overview`
+- `GET /api/admin/tenants`
+- `PATCH /api/admin/tenants/:tenantId/status`
+
+سوبر أدمن افتراضي يتولد عند تشغيل الـ API من `.env` على السيرفر:
+
+```text
+PLATFORM_OWNER_EMAIL=owner@easyshope.local
+PLATFORM_OWNER_PASSWORD=ChangeMe123!
+```
+
+غيّر هذه القيم في `/root/easy-shope/.env` قبل الاعتماد عليها في الإنتاج.
+
 ### البنية الحالية
 
 - `.github/workflows/deploy.yml` — نشر عبر Tailscale + SSH بعد كل دفع على `main` (ويمكن تشغيله يدويًا من **Run workflow**).
 - `docker-compose.yml` — خدمة Nginx التجريبية على `8098`.
+- `apps/api/` — Backend API.
 - `deploy/site/` — ملفات الصفحة الثابتة.
 - `deploy/nginx/conf.d/` — إعداد Nginx.
 

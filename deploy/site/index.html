@@ -5,20 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope</title>
   <style>
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #0f172a; color: #f8fafc; display: grid; min-height: 100vh; place-items: center; }
-    main { max-width: 720px; padding: 48px 24px; text-align: center; }
-    .badge { display: inline-block; padding: 8px 14px; border-radius: 999px; background: #1e293b; color: #93c5fd; margin-bottom: 24px; }
-    h1 { font-size: clamp(36px, 7vw, 72px); margin: 0 0 16px; }
-    p { font-size: 20px; line-height: 1.8; color: #cbd5e1; }
-    code { color: #86efac; }
+    :root { color-scheme: dark; --bg: #0f172a; --panel: #111c32; --muted: #94a3b8; --text: #f8fafc; --accent: #38bdf8; --ok: #86efac; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: radial-gradient(circle at top, #172554, var(--bg)); color: var(--text); min-height: 100vh; }
+    main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0; }
+    .hero { display: grid; gap: 24px; align-items: center; grid-template-columns: 1.1fr .9fr; }
+    .badge { display: inline-block; padding: 8px 14px; border-radius: 999px; background: #1e293b; color: #93c5fd; margin-bottom: 20px; }
+    h1 { font-size: clamp(40px, 7vw, 84px); line-height: 1; margin: 0 0 18px; }
+    p { font-size: 19px; line-height: 1.85; color: #cbd5e1; margin: 0 0 20px; }
+    code { color: var(--ok); }
+    .panel { background: rgba(15, 23, 42, .72); border: 1px solid rgba(148, 163, 184, .18); border-radius: 28px; padding: 24px; box-shadow: 0 24px 80px rgba(0,0,0,.25); }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 28px; }
+    .card { background: rgba(30, 41, 59, .75); border: 1px solid rgba(148, 163, 184, .14); border-radius: 20px; padding: 18px; }
+    .card strong { display: block; margin-bottom: 8px; color: #e2e8f0; }
+    .status { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; color: var(--muted); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #64748b; display: inline-block; margin-left: 8px; }
+    .dot.ok { background: var(--ok); box-shadow: 0 0 24px rgba(134,239,172,.45); }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    a { color: inherit; text-decoration: none; }
+    .button { border-radius: 14px; padding: 13px 18px; background: var(--accent); color: #082f49; font-weight: 700; }
+    .button.secondary { background: #1e293b; color: #e2e8f0; }
+    @media (max-width: 820px) { .hero, .grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <main>
-    <div class="badge">Phase 1 Online</div>
-    <h1>Easy Shope</h1>
-    <p>تم نشر صفحة اختبار حقيقية من GitHub Actions إلى TrueNAS عبر Tailscale، وتعمل عبر Cloudflare Tunnel.</p>
-    <p>Health check: <code>/health</code></p>
+    <section class="hero">
+      <div>
+        <div class="badge">Phase 2 Foundation</div>
+        <h1>Easy Shope</h1>
+        <p>منصة SaaS للمتاجر المتعددة: تسجيل تجار، لوحة تحكم، منتجات، طلبات، اشتراكات، ودفع لكل متجر. النشر الآن يعمل من GitHub إلى TrueNAS عبر Tailscale.</p>
+        <div class="actions">
+          <a class="button" href="/api/health">API Health</a>
+          <a class="button secondary" href="/health">Web Health</a>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>حالة النظام</h2>
+        <div class="status"><span><span class="dot" id="api-dot"></span>Backend API</span><code id="api-status">checking...</code></div>
+        <div class="status"><span><span class="dot ok"></span>Web</span><code>ok</code></div>
+        <div class="grid">
+          <div class="card"><strong>Tenancy</strong><span>كل تاجر معزول بـ tenant_id.</span></div>
+          <div class="card"><strong>Catalog</strong><span>منتجات وتصنيفات ومخزون.</span></div>
+          <div class="card"><strong>Orders</strong><span>طلبات وسلة وcheckout.</span></div>
+          <div class="card"><strong>Payments</strong><span>EasyCash للمنصة ولكل تاجر.</span></div>
+        </div>
+      </div>
+    </section>
   </main>
+  <script>
+    fetch('/api/health')
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('API error')))
+      .then((data) => {
+        document.getElementById('api-status').textContent = data.ok ? 'ok' : 'error';
+        document.getElementById('api-dot').classList.toggle('ok', Boolean(data.ok));
+      })
+      .catch(() => {
+        document.getElementById('api-status').textContent = 'offline';
+      });
+  </script>
 </body>
 </html>
