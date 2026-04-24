@@ -1,0 +1,10 @@
+services:
+  web:
+    image: nginx:1.27-alpine
+    container_name: easy-shope-web
+    restart: unless-stopped
+    ports:
+      - "8098:80"
+    volumes:
+      - ./deploy/site:/usr/share/nginx/html:ro
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro

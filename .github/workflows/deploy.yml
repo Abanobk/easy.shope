@@ -1,7 +1,7 @@
-# Phase 0: SSH to TrueNAS from GitHub Actions.
+# Deploy to TrueNAS from GitHub Actions.
 # Uses Tailscale so the runner can reach the NAS Tailscale IP (e.g. 100.92.194.111).
 # Cloudflare ssh-deploy hostname often times out from GitHub's network; Tailscale avoids that.
-name: Deploy (Phase 0)
+name: Deploy
 
 on:
   push:
@@ -30,6 +30,9 @@ jobs:
           echo "Verifying key fingerprint (public side only):"
           ssh-keygen -l -f ~/.ssh/deploy_key || { echo "SSH_PRIVATE_KEY is not a valid OpenSSH private key. Re-copy from: cat ~/.ssh/github_deploy_easyshope"; exit 1; }
 
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
@@ -50,7 +53,7 @@ jobs:
           fi
           chmod 644 ~/.ssh/known_hosts
 
-      - name: Remote deploy marker
+      - name: Upload deploy bundle
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -59,11 +62,15 @@ jobs:
           set -euo pipefail
           test -n "${SSH_USER:-}" || { echo "Missing secret SSH_USER"; exit 1; }
           test -n "${DEPLOY_PATH:-}" || { echo "Missing secret DEPLOY_PATH"; exit 1; }
+          tar -czf /tmp/easy-shope-deploy.tgz docker-compose.yml deploy
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
             "${SSH_USER}@${SSH_HOST}" \
-            "set -euo pipefail; mkdir -p \"${DEPLOY_PATH}\"; printf '%s %s\\n' \"\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\" \"${GITHUB_SHA}\" | tee \"${DEPLOY_PATH}/phase0_last_deploy.txt\" >/dev/null"
+            "set -euo pipefail; mkdir -p \"${DEPLOY_PATH}\""
+          cat /tmp/easy-shope-deploy.tgz | ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
+            "${SSH_USER}@${SSH_HOST}" \
+            "set -euo pipefail; tar -xzf - -C \"${DEPLOY_PATH}\""
 
-      - name: Show remote marker (no secrets)
+      - name: Run docker compose on TrueNAS
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -72,4 +79,4 @@ jobs:
           set -euo pipefail
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
             "${SSH_USER}@${SSH_HOST}" \
-            "wc -c \"${DEPLOY_PATH}/phase0_last_deploy.txt\" && head -n1 \"${DEPLOY_PATH}/phase0_last_deploy.txt\""
+            "set -euo pipefail; cd \"${DEPLOY_PATH}\"; (docker compose version >/dev/null 2>&1 || docker-compose version >/dev/null 2>&1) || { echo 'Docker Compose is not available on TrueNAS shell'; exit 1; }; if docker compose version >/dev/null 2>&1; then docker compose up -d --remove-orphans; else docker-compose up -d --remove-orphans; fi; printf '%s %s\n' \"\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\" \"${GITHUB_SHA}\" | tee \"${DEPLOY_PATH}/phase1_last_deploy.txt\" >/dev/null; curl -fsS http://127.0.0.1:8098/health"

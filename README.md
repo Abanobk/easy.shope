@@ -2,7 +2,7 @@
 
 منصة متاجر متعددة المستأجرين (مشابهة لفكرة Shopify) — Flutter + backend لاحقًا.
 
-## المرحلة 0 — النشر الآلي (مكتمل الهيكل)
+## المرحلة 0 — النشر الآلي (مكتمل)
 
 الهدف: التأكد أن **GitHub Actions** يتصل بـ TrueNAS عبر **SSH** ويكتب ملف نشر على السيرفر.
 
@@ -44,18 +44,44 @@ git remote add origin https://github.com/Abanobk/easy.shope.git
 git push -u origin main
 ```
 
-بعد أول `push` إلى `main`، راقب تبويب **Actions** في GitHub. عند النجاح يظهر على السيرفر الملف:
+بعد أول `push` إلى `main`، راقب تبويب **Actions** في GitHub. عند نجاح المرحلة 0 ظهر على السيرفر الملف:
 
 `$DEPLOY_PATH/phase0_last_deploy.txt`
 
+## المرحلة 1 — تطبيق تجريبي على TrueNAS
+
+الهدف: نشر خدمة فعلية على TrueNAS بدل ملف marker فقط.
+
+- `docker-compose.yml` يشغل Nginx على المنفذ المحلي `8098`.
+- `deploy/site/index.html` صفحة اختبار.
+- `/health` يرجع `ok`.
+- Cloudflare route الحالي: `shope.easytecheg.net` → `https://192.168.1.53:8098`.
+
+بعد نجاح الـ workflow، تحقق من السيرفر:
+
+```bash
+cat /root/easy-shope/phase1_last_deploy.txt
+curl -fsS http://127.0.0.1:8098/health
+```
+
+ثم افتح:
+
+```text
+https://shope.easytecheg.net
+```
+
 ### البنية الحالية
 
-- `.github/workflows/deploy.yml` — نشر عبر SSH بعد كل دفع على `main` (ويمكن تشغيله يدويًا من **Run workflow**).
+- `.github/workflows/deploy.yml` — نشر عبر Tailscale + SSH بعد كل دفع على `main` (ويمكن تشغيله يدويًا من **Run workflow**).
+- `docker-compose.yml` — خدمة Nginx التجريبية على `8098`.
+- `deploy/site/` — ملفات الصفحة الثابتة.
+- `deploy/nginx/conf.d/` — إعداد Nginx.
 
 ## الدومين والنفق (مرجع)
 
 - Cloudflare Tunnel `marichia` → `192.168.1.53`
-- متجر الاختبار الحالي: `esyhope.easytecheg.net` → `https://192.168.1.53:8099`
+- متجر الاختبار الحالي (الاسم المصحح): `shope.easytecheg.net` → `https://192.168.1.53:8098`
+- الدومين القديم به خطأ إملائي ويُترك مؤقتًا فقط إن احتجت توافقًا: `esyhope.easytecheg.net` → `https://192.168.1.53:8099`
 - SSH للنشر: `ssh-deploy.easytecheg.net` → `tcp://192.168.1.53:22`
 
 لا ترفع مفاتيح أو `.env` إلى هذا المستودع العام.
