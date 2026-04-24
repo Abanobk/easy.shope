@@ -10,6 +10,14 @@ function money(cents) {
   return `${(Number(cents || 0) / 100).toFixed(2)} EGP`;
 }
 
+function sumRows(rows, key = "count") {
+  return (rows || []).reduce((total, row) => total + Number(row[key] || 0), 0);
+}
+
+function statusCount(rows, status) {
+  return Number((rows || []).find((row) => row.status === status)?.count || 0);
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -103,6 +111,23 @@ async function createProduct(event) {
   await loadMerchantData();
 }
 
+async function saveStoreSettings(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const payload = Object.fromEntries([...form.entries()].filter(([, value]) => String(value).trim()));
+  const data = await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify(payload) });
+  showMessage("تم حفظ إعدادات المتجر.");
+  fillStoreSettings(data.store);
+  await refreshMe();
+}
+
+function fillStoreSettings(store) {
+  if (!store) return;
+  $("store-name-ar").value = store.name_ar || "";
+  $("store-name-en").value = store.name_en || "";
+  $("store-country").value = store.country || "";
+}
+
 async function saveEasyCash(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
@@ -122,7 +147,8 @@ async function createSubscriptionInvoice(event) {
 
 async function loadMerchantData() {
   if (!state.token || !state.tenantSlug || ["platform_owner", "platform_admin"].includes(state.role)) return;
-  const [categories, products, orders, providers, plans] = await Promise.all([
+  const [dashboard, categories, products, orders, providers, plans] = await Promise.all([
+    api("/api/merchant/dashboard"),
     api("/api/merchant/categories"),
     api("/api/merchant/products"),
     api("/api/merchant/orders"),
@@ -130,6 +156,19 @@ async function loadMerchantData() {
     api("/api/plans"),
   ]);
 
+  $("merchant-products-total").textContent = dashboard.products.total;
+  $("merchant-products-published").textContent = `${dashboard.products.published} منشور`;
+  $("merchant-categories-total").textContent = dashboard.categories.total;
+  $("merchant-orders-total").textContent = dashboard.revenue.count;
+  $("merchant-revenue-total").textContent = money(dashboard.revenue.total_cents);
+  $("catalog-products-total").textContent = dashboard.products.total;
+  $("catalog-products-published").textContent = `${dashboard.products.published} منشور`;
+  $("catalog-orders-total").textContent = dashboard.revenue.count;
+  $("catalog-revenue-total").textContent = money(dashboard.revenue.total_cents);
+  fillStoreSettings(dashboard.tenant);
+  $("merchant-latest-orders").innerHTML =
+    dashboard.latestOrders.map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} - ${order.status}</span></li>`).join("") ||
+    "<li>لا توجد طلبات حديثة.</li>";
   $("categories").innerHTML = categories.categories.map((item) => `<li><strong>${item.name_ar}</strong><span>${item.name_en}</span></li>`).join("") || "<li>لا توجد تصنيفات بعد.</li>";
   $("products").innerHTML = products.products.map((item) => `<li><strong>${item.title_ar}</strong><span>${money(item.price_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد منتجات بعد.</li>";
   $("orders").innerHTML = orders.orders.map((item) => `<li><strong>${item.customer_name}</strong><span>${money(item.total_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد طلبات بعد.</li>";
@@ -173,14 +212,99 @@ async function placeOrder(event) {
 async function loadAdmin() {
   if (!state.token) return;
   try {
-    const [overview, tenants] = await Promise.all([api("/api/admin/overview"), api("/api/admin/tenants")]);
-    $("admin-overview").textContent = JSON.stringify(overview, null, 2);
-    $("admin-tenants").innerHTML =
-      tenants.tenants.map((tenant) => `<li><strong>${tenant.name_en}</strong><span>${tenant.slug} - ${tenant.status}</span></li>`).join("") ||
-      "<li>لا توجد متاجر بعد.</li>";
+    const [overview, tenants, plans, invoices] = await Promise.all([
+      api("/api/admin/overview"),
+      api("/api/admin/tenants"),
+      api("/api/admin/plans"),
+      api("/api/admin/subscription-invoices"),
+    ]);
+    $("admin-tenants-total").textContent = sumRows(overview.tenants);
+    $("admin-tenants-active").textContent = `${statusCount(overview.tenants, "active")} active`;
+    $("admin-orders-total").textContent = overview.orders.count;
+    $("admin-revenue-total").textContent = money(overview.orders.total_cents);
+    $("admin-invoices-total").textContent = sumRows(overview.subscriptionInvoices);
+    $("admin-invoices-paid").textContent = `${statusCount(overview.subscriptionInvoices, "paid")} paid`;
+    $("admin-tenants-table").innerHTML =
+      tenants.tenants
+        .map(
+          (tenant) => `<tr>
+            <td><strong>${tenant.name_en}</strong><br><small>${tenant.slug}</small></td>
+            <td>${tenant.status}</td>
+            <td>${tenant.plan_code}</td>
+            <td>${tenant.products_count} منتجات / ${tenant.orders_count} طلب / ${money(tenant.revenue_cents)}</td>
+            <td><div class="row-actions">
+              <button class="success-button" data-tenant-status="${tenant.id}:active">تفعيل</button>
+              <button class="danger-button" data-tenant-status="${tenant.id}:suspended">تعليق</button>
+              <button data-tenant-extend="${tenant.id}">+ شهر</button>
+            </div></td>
+          </tr>`,
+        )
+        .join("") || `<tr><td colspan="5">لا توجد متاجر بعد.</td></tr>`;
+    $("admin-plans").innerHTML = plans.plans
+      .map(
+        (plan) => `<div class="plan-card">
+          <div><strong>${plan.name}</strong><br><small>${plan.duration_months} شهر - ${plan.is_active ? "active" : "inactive"}</small></div>
+          <div class="row-actions">
+            <input type="number" value="${(plan.price_cents / 100).toFixed(2)}" data-plan-price="${plan.code}">
+            <button data-plan-save="${plan.code}">حفظ</button>
+          </div>
+        </div>`,
+      )
+      .join("");
+    $("admin-invoices-table").innerHTML =
+      invoices.invoices
+        .map(
+          (invoice) => `<tr>
+            <td><strong>${invoice.tenant_name}</strong><br><small>${invoice.tenant_slug}</small></td>
+            <td>${invoice.plan_code}</td>
+            <td>${money(invoice.amount_cents)}</td>
+            <td>${invoice.status}</td>
+            <td><div class="row-actions">
+              <button class="success-button" data-invoice-status="${invoice.id}:paid">Paid</button>
+              <button class="danger-button" data-invoice-status="${invoice.id}:failed">Failed</button>
+            </div></td>
+          </tr>`,
+        )
+        .join("") || `<tr><td colspan="5">لا توجد فواتير بعد.</td></tr>`;
+    bindAdminActions();
   } catch {
-    $("admin-overview").textContent = "سجل دخول كسوبر أدمن لعرض هذا القسم.";
+    $("admin-tenants-table").innerHTML = `<tr><td colspan="5">سجل دخول كسوبر أدمن لعرض هذا القسم.</td></tr>`;
   }
+}
+
+function bindAdminActions() {
+  document.querySelectorAll("[data-tenant-status]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [tenantId, status] = button.dataset.tenantStatus.split(":");
+      await api(`/api/admin/tenants/${tenantId}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+      showMessage(`تم تحديث حالة المتجر إلى ${status}.`);
+      await loadAdmin();
+    });
+  });
+  document.querySelectorAll("[data-tenant-extend]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await api(`/api/admin/tenants/${button.dataset.tenantExtend}/extend`, { method: "POST", body: JSON.stringify({ months: 1 }) });
+      showMessage("تم تمديد الاشتراك شهرًا.");
+      await loadAdmin();
+    });
+  });
+  document.querySelectorAll("[data-plan-save]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const code = button.dataset.planSave;
+      const input = document.querySelector(`[data-plan-price="${code}"]`);
+      await api(`/api/admin/plans/${code}`, { method: "PATCH", body: JSON.stringify({ priceCents: Math.round(Number(input.value) * 100) }) });
+      showMessage("تم تحديث الخطة.");
+      await loadAdmin();
+    });
+  });
+  document.querySelectorAll("[data-invoice-status]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [invoiceId, status] = button.dataset.invoiceStatus.split(":");
+      await api(`/api/admin/subscription-invoices/${invoiceId}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+      showMessage(`تم تحديث الفاتورة إلى ${status}.`);
+      await loadAdmin();
+    });
+  });
 }
 
 async function bootstrap() {
@@ -218,6 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("login-form").addEventListener("submit", login);
   $("category-form").addEventListener("submit", createCategory);
   $("product-form").addEventListener("submit", createProduct);
+  $("store-settings-form").addEventListener("submit", saveStoreSettings);
   $("easycash-form").addEventListener("submit", saveEasyCash);
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);

@@ -261,12 +261,24 @@ button,
   font-size: 24px;
 }
 
+.metric.compact strong {
+  font-size: 30px;
+}
+
+.merchant-summary {
+  margin-top: 20px;
+}
+
 .grid.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .grid.three {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .panel {
@@ -293,6 +305,10 @@ button,
 }
 
 .span-2 {
+  grid-column: 1 / -1;
+}
+
+.span-2.panel {
   grid-column: 1 / -1;
 }
 
@@ -400,6 +416,90 @@ pre {
   padding: 12px 14px;
 }
 
+.list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, .28);
+}
+
+table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  vertical-align: middle;
+}
+
+th {
+  color: #bae6fd;
+  font-size: 13px;
+  background: rgba(14, 165, 233, .08);
+}
+
+td {
+  color: #dbeafe;
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row-actions button,
+.mini-button {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.danger-button {
+  color: #450a0a;
+  background: linear-gradient(135deg, #fca5a5, #fecaca);
+}
+
+.success-button {
+  color: #052e16;
+  background: linear-gradient(135deg, #86efac, #bbf7d0);
+}
+
+.plan-list {
+  display: grid;
+  gap: 12px;
+}
+
+.plan-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(2, 6, 23, .36);
+}
+
+.plan-card input {
+  max-width: 140px;
+}
+
 .product-picker {
   margin-top: 16px;
   display: grid;
@@ -430,6 +530,7 @@ pre {
   .hero-panel,
   .grid.two,
   .grid.three,
+  .grid.four,
   .metric-grid,
   .form-grid {
     grid-template-columns: 1fr;

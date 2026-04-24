@@ -386,6 +386,60 @@ app.get("/api/merchant/payment-providers", async (request) => {
   return { providers: result.rows };
 });
 
+app.get("/api/merchant/dashboard", async (request) => {
+  const user = requireTenantUser(request);
+  const [tenant, products, categories, orders, revenue, latestOrders] = await Promise.all([
+    pool.query(`SELECT * FROM tenants WHERE id = $1`, [user.tenantId]),
+    pool.query(
+      `SELECT
+         count(*)::int AS total,
+         count(*) FILTER (WHERE status = 'published')::int AS published,
+         coalesce(sum(stock_quantity), 0)::int AS stock
+       FROM products WHERE tenant_id = $1`,
+      [user.tenantId],
+    ),
+    pool.query(`SELECT count(*)::int AS total FROM categories WHERE tenant_id = $1`, [user.tenantId]),
+    pool.query(`SELECT status, count(*)::int AS count FROM orders WHERE tenant_id = $1 GROUP BY status`, [user.tenantId]),
+    pool.query(`SELECT count(*)::int AS count, coalesce(sum(total_cents), 0)::int AS total_cents FROM orders WHERE tenant_id = $1`, [user.tenantId]),
+    pool.query(`SELECT * FROM orders WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 6`, [user.tenantId]),
+  ]);
+  return {
+    tenant: tenant.rows[0],
+    products: products.rows[0],
+    categories: categories.rows[0],
+    ordersByStatus: orders.rows,
+    revenue: revenue.rows[0],
+    latestOrders: latestOrders.rows,
+  };
+});
+
+app.get("/api/merchant/store", async (request) => {
+  const user = requireTenantUser(request);
+  const result = await pool.query(`SELECT * FROM tenants WHERE id = $1`, [user.tenantId]);
+  return { store: result.rows[0] };
+});
+
+app.patch("/api/merchant/store", async (request) => {
+  const user = requireTenantUser(request);
+  const body = z
+    .object({
+      nameAr: z.string().min(2).optional(),
+      nameEn: z.string().min(2).optional(),
+      country: z.string().min(2).optional(),
+    })
+    .parse(request.body);
+  const result = await pool.query(
+    `UPDATE tenants
+     SET name_ar = coalesce($2, name_ar),
+         name_en = coalesce($3, name_en),
+         country = coalesce($4, country)
+     WHERE id = $1
+     RETURNING *`,
+    [user.tenantId, body.nameAr ?? null, body.nameEn ?? null, body.country ?? null],
+  );
+  return { store: result.rows[0] };
+});
+
 app.get("/api/store/:tenantSlug/products", async (request) => {
   const params = z.object({ tenantSlug: z.string() }).parse(request.params);
   const result = await pool.query(
@@ -501,17 +555,32 @@ app.post("/api/merchant/subscription-invoices", async (request, reply) => {
 
 app.get("/api/admin/overview", async (request) => {
   requirePlatformOwner(request);
-  const [tenants, orders, invoices] = await Promise.all([
+  const [tenants, orders, invoices, products, customers] = await Promise.all([
     pool.query(`SELECT status, count(*)::int AS count FROM tenants GROUP BY status`),
     pool.query(`SELECT count(*)::int AS count, coalesce(sum(total_cents), 0)::int AS total_cents FROM orders`),
     pool.query(`SELECT status, count(*)::int AS count, coalesce(sum(amount_cents), 0)::int AS total_cents FROM platform_subscription_invoices GROUP BY status`),
+    pool.query(`SELECT count(*)::int AS count FROM products`),
+    pool.query(`SELECT count(*)::int AS count FROM customers`),
   ]);
-  return { tenants: tenants.rows, orders: orders.rows[0], subscriptionInvoices: invoices.rows };
+  return { tenants: tenants.rows, orders: orders.rows[0], subscriptionInvoices: invoices.rows, products: products.rows[0], customers: customers.rows[0] };
 });
 
 app.get("/api/admin/tenants", async (request) => {
   requirePlatformOwner(request);
-  const result = await pool.query(`SELECT * FROM tenants ORDER BY created_at DESC`);
+  const result = await pool.query(
+    `SELECT tenants.*,
+            coalesce(product_counts.total, 0)::int AS products_count,
+            coalesce(order_counts.total, 0)::int AS orders_count,
+            coalesce(order_counts.revenue_cents, 0)::int AS revenue_cents
+     FROM tenants
+     LEFT JOIN (
+       SELECT tenant_id, count(*) AS total FROM products GROUP BY tenant_id
+     ) product_counts ON product_counts.tenant_id = tenants.id
+     LEFT JOIN (
+       SELECT tenant_id, count(*) AS total, sum(total_cents) AS revenue_cents FROM orders GROUP BY tenant_id
+     ) order_counts ON order_counts.tenant_id = tenants.id
+     ORDER BY tenants.created_at DESC`,
+  );
   return { tenants: result.rows };
 });
 
@@ -521,6 +590,64 @@ app.patch("/api/admin/tenants/:tenantId/status", async (request) => {
   const body = z.object({ status: z.enum(["trial", "active", "suspended", "expired"]) }).parse(request.body);
   const result = await pool.query(`UPDATE tenants SET status = $1 WHERE id = $2 RETURNING *`, [body.status, params.tenantId]);
   return { tenant: result.rows[0] };
+});
+
+app.post("/api/admin/tenants/:tenantId/extend", async (request) => {
+  requirePlatformOwner(request);
+  const params = z.object({ tenantId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ months: z.number().int().positive().max(60), planCode: z.string().optional() }).parse(request.body);
+  const result = await pool.query(
+    `UPDATE tenants
+     SET status = 'active',
+         plan_code = coalesce($3, plan_code),
+         subscription_expires_at = greatest(coalesce(subscription_expires_at, now()), now()) + ($1::text || ' months')::interval
+     WHERE id = $2
+     RETURNING *`,
+    [body.months, params.tenantId, body.planCode ?? null],
+  );
+  return { tenant: result.rows[0] };
+});
+
+app.get("/api/admin/plans", async (request) => {
+  requirePlatformOwner(request);
+  const result = await pool.query(`SELECT * FROM plans ORDER BY duration_months`);
+  return { plans: result.rows };
+});
+
+app.patch("/api/admin/plans/:code", async (request) => {
+  requirePlatformOwner(request);
+  const params = z.object({ code: z.string().min(1) }).parse(request.params);
+  const body = z.object({ name: z.string().min(1).optional(), priceCents: z.number().int().nonnegative().optional(), isActive: z.boolean().optional() }).parse(request.body);
+  const result = await pool.query(
+    `UPDATE plans
+     SET name = coalesce($2, name),
+         price_cents = coalesce($3, price_cents),
+         is_active = coalesce($4, is_active)
+     WHERE code = $1
+     RETURNING *`,
+    [params.code, body.name ?? null, body.priceCents ?? null, body.isActive ?? null],
+  );
+  return { plan: result.rows[0] };
+});
+
+app.get("/api/admin/subscription-invoices", async (request) => {
+  requirePlatformOwner(request);
+  const result = await pool.query(
+    `SELECT invoices.*, tenants.name_en AS tenant_name, tenants.slug AS tenant_slug
+     FROM platform_subscription_invoices invoices
+     JOIN tenants ON tenants.id = invoices.tenant_id
+     ORDER BY invoices.created_at DESC
+     LIMIT 100`,
+  );
+  return { invoices: result.rows };
+});
+
+app.patch("/api/admin/subscription-invoices/:invoiceId/status", async (request) => {
+  requirePlatformOwner(request);
+  const params = z.object({ invoiceId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ status: z.enum(["pending", "paid", "failed", "cancelled"]) }).parse(request.body);
+  const result = await pool.query(`UPDATE platform_subscription_invoices SET status = $1 WHERE id = $2 RETURNING *`, [body.status, params.invoiceId]);
+  return { invoice: result.rows[0] };
 });
 
 await migrate();

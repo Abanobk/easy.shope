@@ -86,6 +86,12 @@
             <p>اختبر التسجيل والمنتجات والطلبات، ثم نستبدل الواجهة المؤقتة بتطبيق Flutter كامل.</p>
           </article>
         </div>
+        <div class="grid four merchant-summary" id="merchant-summary">
+          <div class="metric compact"><span>منتجات</span><strong id="merchant-products-total">0</strong><small id="merchant-products-published">0 منشور</small></div>
+          <div class="metric compact"><span>تصنيفات</span><strong id="merchant-categories-total">0</strong><small>كتالوج المتجر</small></div>
+          <div class="metric compact"><span>طلبات</span><strong id="merchant-orders-total">0</strong><small>إجمالي الطلبات</small></div>
+          <div class="metric compact"><span>مبيعات</span><strong id="merchant-revenue-total">0.00 EGP</strong><small>تجريبي</small></div>
+        </div>
       </section>
 
       <section class="view" id="view-onboarding">
@@ -125,6 +131,31 @@
       </section>
 
       <section class="view" id="view-catalog">
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Merchant dashboard</span>
+              <h2>ملخص أداء المتجر</h2>
+            </div>
+            <div class="grid two">
+              <div class="metric compact"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
+              <div class="metric compact"><span>طلبات</span><strong id="catalog-orders-total">0</strong><small id="catalog-revenue-total">0.00 EGP</small></div>
+            </div>
+            <ul id="merchant-latest-orders" class="list"></ul>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Store settings</span>
+              <h2>إعدادات المتجر</h2>
+            </div>
+            <form id="store-settings-form" class="form-grid">
+              <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
+              <label>Store name English<input id="store-name-en" name="nameEn"></label>
+              <label class="span-2">البلد<input id="store-country" name="country"></label>
+              <button class="span-2">حفظ بيانات المتجر</button>
+            </form>
+          </article>
+        </div>
         <div class="grid two">
           <article class="panel">
             <div class="panel-heading">
@@ -222,20 +253,43 @@
       </section>
 
       <section class="view" id="view-admin">
+        <div class="grid four" id="admin-kpis">
+          <div class="metric compact"><span>التجار</span><strong id="admin-tenants-total">0</strong><small id="admin-tenants-active">0 active</small></div>
+          <div class="metric compact"><span>الطلبات</span><strong id="admin-orders-total">0</strong><small>كل المتاجر</small></div>
+          <div class="metric compact"><span>المبيعات</span><strong id="admin-revenue-total">0.00 EGP</strong><small>إجمالي الطلبات</small></div>
+          <div class="metric compact"><span>الفواتير</span><strong id="admin-invoices-total">0</strong><small id="admin-invoices-paid">0 paid</small></div>
+        </div>
         <div class="grid two">
           <article class="panel">
             <div class="panel-heading">
               <span class="eyebrow">Platform owner</span>
-              <h2>إحصائيات عامة</h2>
+              <h2>التجار والمتاجر</h2>
             </div>
-            <pre id="admin-overview">سجل دخول كسوبر أدمن لعرض الإحصائيات.</pre>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>المتجر</th><th>الحالة</th><th>الخطة</th><th>الأداء</th><th>إجراءات</th></tr></thead>
+                <tbody id="admin-tenants-table"><tr><td colspan="5">سجل دخول كسوبر أدمن.</td></tr></tbody>
+              </table>
+            </div>
           </article>
           <article class="panel">
             <div class="panel-heading">
-              <span class="eyebrow">Tenants</span>
-              <h2>التجار والمتاجر</h2>
+              <span class="eyebrow">Plans</span>
+              <h2>خطط الاشتراك</h2>
             </div>
-            <ul id="admin-tenants" class="list"></ul>
+            <div id="admin-plans" class="plan-list"></div>
+          </article>
+          <article class="panel span-2">
+            <div class="panel-heading">
+              <span class="eyebrow">Invoices</span>
+              <h2>فواتير اشتراك المنصة</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>المتجر</th><th>الخطة</th><th>القيمة</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+                <tbody id="admin-invoices-table"><tr><td colspan="5">لا توجد فواتير بعد.</td></tr></tbody>
+              </table>
+            </div>
           </article>
         </div>
       </section>
