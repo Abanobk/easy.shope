@@ -3,151 +3,244 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Easy Shope</title>
-  <style>
-    :root { color-scheme: dark; --bg: #0f172a; --panel: #111c32; --muted: #94a3b8; --text: #f8fafc; --accent: #38bdf8; --ok: #86efac; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: radial-gradient(circle at top, #172554, var(--bg)); color: var(--text); min-height: 100vh; }
-    main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0; }
-    .hero { display: grid; gap: 24px; align-items: center; grid-template-columns: 1.1fr .9fr; margin-bottom: 28px; }
-    .badge { display: inline-block; padding: 8px 14px; border-radius: 999px; background: #1e293b; color: #93c5fd; margin-bottom: 20px; }
-    h1 { font-size: clamp(40px, 7vw, 84px); line-height: 1; margin: 0 0 18px; }
-    p { font-size: 19px; line-height: 1.85; color: #cbd5e1; margin: 0 0 20px; }
-    code { color: var(--ok); }
-    .panel { background: rgba(15, 23, 42, .72); border: 1px solid rgba(148, 163, 184, .18); border-radius: 28px; padding: 24px; box-shadow: 0 24px 80px rgba(0,0,0,.25); }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 28px; }
-    .card { background: rgba(30, 41, 59, .75); border: 1px solid rgba(148, 163, 184, .14); border-radius: 20px; padding: 18px; }
-    .card strong { display: block; margin-bottom: 8px; color: #e2e8f0; }
-    .status { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; color: var(--muted); }
-    .dot { width: 12px; height: 12px; border-radius: 50%; background: #64748b; display: inline-block; margin-left: 8px; }
-    .dot.ok { background: var(--ok); box-shadow: 0 0 24px rgba(134,239,172,.45); }
-    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-    a { color: inherit; text-decoration: none; }
-    .button { border-radius: 14px; padding: 13px 18px; background: var(--accent); color: #082f49; font-weight: 700; }
-    .button.secondary { background: #1e293b; color: #e2e8f0; }
-    .modules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-    form { display: grid; gap: 10px; margin-top: 14px; }
-    input, select, textarea { width: 100%; border: 1px solid rgba(148,163,184,.22); background: #0f172a; color: var(--text); border-radius: 12px; padding: 12px; }
-    button { border: 0; border-radius: 12px; padding: 12px 16px; background: var(--accent); color: #082f49; cursor: pointer; font-weight: 800; }
-    ul { margin: 14px 0 0; padding: 0 18px 0 0; color: #cbd5e1; line-height: 1.8; }
-    pre { overflow: auto; direction: ltr; text-align: left; background: #020617; border-radius: 14px; padding: 14px; color: #dbeafe; }
-    .message { position: sticky; top: 12px; z-index: 10; margin-bottom: 18px; padding: 12px 16px; border-radius: 14px; background: rgba(30,41,59,.9); border: 1px solid rgba(148,163,184,.18); }
-    .message.ok { color: var(--ok); }
-    .message.error { color: #fca5a5; }
-    .product-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px; border-radius: 12px; background: #0f172a; margin-top: 8px; }
-    @media (max-width: 920px) { .hero, .grid, .modules { grid-template-columns: 1fr; } }
-  </style>
+  <title>Easy Shope Platform</title>
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <main>
-    <section class="hero">
-      <div>
-        <div class="badge">Phase 2 Foundation</div>
-        <h1>Easy Shope</h1>
-        <p>منصة SaaS للمتاجر المتعددة: تسجيل تجار، لوحة تحكم، منتجات، طلبات، اشتراكات، ودفع لكل متجر. هذه واجهة تأسيسية مؤقتة إلى أن نستبدلها بتطبيق Flutter الكامل.</p>
-        <div class="actions">
-          <a class="button" href="/api/health">API Health</a>
-          <a class="button secondary" href="/health">Web Health</a>
-          <button id="logout" type="button">خروج</button>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">ES</div>
+        <div>
+          <strong>Easy Shope</strong>
+          <span>Commerce OS</span>
         </div>
       </div>
-      <div class="panel">
-        <h2>حالة النظام</h2>
-        <div class="status"><span>المستخدم الحالي</span><code id="current-user">guest</code></div>
-        <div class="status"><span><span class="dot" id="api-dot"></span>Backend API</span><code id="api-status">checking...</code></div>
-        <div class="status"><span><span class="dot ok"></span>Web</span><code>ok</code></div>
-        <div class="grid">
-          <div class="card"><strong>Tenancy</strong><span>كل تاجر معزول بـ tenant_id.</span></div>
-          <div class="card"><strong>Catalog</strong><span>منتجات وتصنيفات ومخزون.</span></div>
-          <div class="card"><strong>Orders</strong><span>طلبات وسلة وcheckout.</span></div>
-          <div class="card"><strong>Payments</strong><span>EasyCash للمنصة ولكل تاجر.</span></div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="overview">نظرة عامة</button>
+        <button class="nav-item" data-view="onboarding">تسجيل / دخول</button>
+        <button class="nav-item" data-view="catalog">الكتالوج</button>
+        <button class="nav-item" data-view="storefront">المتجر والطلبات</button>
+        <button class="nav-item" data-view="payments">الدفع والاشتراكات</button>
+        <button class="nav-item" data-view="admin">سوبر أدمن</button>
+      </nav>
+      <div class="sidebar-card">
+        <span class="eyebrow">Deployment</span>
+        <strong>TrueNAS + Tailscale</strong>
+        <p>كل push على main ينشر النظام على السيرفر تلقائيًا.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <span class="eyebrow">Shopify-style SaaS</span>
+          <h1>منصة متاجر متعددة التجار</h1>
         </div>
-      </div>
-    </section>
-    <div id="message" class="message">جاهز للعمل.</div>
-    <section class="modules">
-      <div class="panel">
-        <h2>تسجيل تاجر جديد</h2>
-        <form id="register-form">
-          <input name="name" placeholder="اسم التاجر" required>
-          <input name="email" type="email" placeholder="البريد" required>
-          <input name="phone" placeholder="رقم الموبايل" required>
-          <input name="password" type="password" placeholder="كلمة المرور" value="ChangeMe123!" required>
-          <input name="storeNameAr" placeholder="اسم المتجر عربي" required>
-          <input name="storeNameEn" placeholder="Store name English" required>
-          <input name="country" placeholder="البلد" value="Egypt" required>
-          <button>إنشاء المتجر</button>
-        </form>
-      </div>
-      <div class="panel">
-        <h2>تسجيل الدخول</h2>
-        <form id="login-form">
-          <input name="email" type="email" placeholder="البريد" required>
-          <input name="password" type="password" placeholder="كلمة المرور" required>
-          <button>دخول</button>
-        </form>
-      </div>
-      <div class="panel">
-        <h2>التصنيفات</h2>
-        <form id="category-form">
-          <input name="nameAr" placeholder="اسم التصنيف عربي" required>
-          <input name="nameEn" placeholder="Category English" required>
-          <button>إضافة تصنيف</button>
-        </form>
-        <ul id="categories"></ul>
-      </div>
-      <div class="panel">
-        <h2>المنتجات</h2>
-        <form id="product-form">
-          <input name="titleAr" placeholder="اسم المنتج عربي" required>
-          <input name="titleEn" placeholder="Product English" required>
-          <textarea name="description" placeholder="الوصف"></textarea>
-          <input name="price" type="number" step="0.01" placeholder="السعر" required>
-          <input name="stockQuantity" type="number" placeholder="المخزون" value="10">
-          <select name="status"><option value="draft">Draft</option><option value="published">Published</option></select>
-          <button>إضافة منتج</button>
-        </form>
-        <ul id="products"></ul>
-      </div>
-      <div class="panel">
-        <h2>إعدادات EasyCash</h2>
-        <form id="easycash-form">
-          <select name="mode"><option value="test">Test</option><option value="live">Live</option></select>
-          <input name="merchantId" placeholder="Merchant ID" required>
-          <input name="apiKey" placeholder="API Key" required>
-          <input name="secret" placeholder="Secret" required>
-          <label><input name="enabled" type="checkbox"> تفعيل</label>
-          <button>حفظ إعدادات الدفع</button>
-        </form>
-        <ul id="payment-providers"></ul>
-        <form id="subscription-form">
-          <select id="planCode" name="planCode"></select>
-          <button>إنشاء فاتورة اشتراك للمنصة</button>
-        </form>
-      </div>
-      <div class="panel">
-        <h2>المتجر العام والطلبات</h2>
-        <form id="storefront-form">
-          <input id="tenant-slug" placeholder="store slug">
-          <button>تحميل منتجات المتجر</button>
-        </form>
-        <div id="storefront-products"></div>
-        <form id="order-form">
-          <input name="customerName" placeholder="اسم العميل" required>
-          <input name="customerPhone" placeholder="موبايل العميل" required>
-          <input name="customerEmail" type="email" placeholder="Email">
-          <textarea name="shippingAddress" placeholder="عنوان الشحن"></textarea>
-          <button>إنشاء طلب</button>
-        </form>
-        <ul id="orders"></ul>
-      </div>
-      <div class="panel">
-        <h2>سوبر أدمن</h2>
-        <pre id="admin-overview">سجل دخول كسوبر أدمن لعرض الإحصائيات.</pre>
-        <ul id="admin-tenants"></ul>
-      </div>
-    </section>
-  </main>
+        <div class="topbar-actions">
+          <div class="user-pill">
+            <span id="api-dot" class="dot"></span>
+            <span id="api-status">API...</span>
+          </div>
+          <div class="user-pill" id="current-user">guest</div>
+          <button id="logout" class="ghost">خروج</button>
+        </div>
+      </header>
+
+      <div id="message" class="message">جاهز للعمل.</div>
+
+      <section class="view active" id="view-overview">
+        <div class="hero-panel">
+          <div>
+            <span class="badge">Phase 2 Foundation</span>
+            <h2>الأساس شغال: API + Database + Redis + Web</h2>
+            <p>هذه نسخة تأسيسية عملية تثبت تدفق النظام: تسجيل تاجر، إنشاء متجر، كتالوج، طلبات، دفع مبدئي، وسوبر أدمن. الواجهة النهائية ستتحول لاحقًا إلى Flutter احترافي.</p>
+            <div class="quick-actions">
+              <button data-jump="onboarding">ابدأ بتسجيل تاجر</button>
+              <button class="secondary" data-jump="catalog">إدارة المنتجات</button>
+              <a class="secondary-link" href="/api/health" target="_blank" rel="noreferrer">API health</a>
+            </div>
+          </div>
+          <div class="metric-grid">
+            <div class="metric"><span>Tenancy</span><strong>tenant_id</strong><small>عزل بيانات كل متجر</small></div>
+            <div class="metric"><span>Catalog</span><strong>Products</strong><small>تصنيفات، منتجات، مخزون</small></div>
+            <div class="metric"><span>Checkout</span><strong>Orders</strong><small>إنشاء طلبات مبدئي</small></div>
+            <div class="metric"><span>Billing</span><strong>EasyCash</strong><small>Placeholder جاهز للربط</small></div>
+          </div>
+        </div>
+
+        <div class="grid three">
+          <article class="panel">
+            <h3>حالة الخدمات</h3>
+            <div class="status-line"><span>Web</span><strong class="ok">online</strong></div>
+            <div class="status-line"><span>API</span><strong id="overview-api">checking</strong></div>
+            <div class="status-line"><span>Database</span><strong id="overview-db">checking</strong></div>
+          </article>
+          <article class="panel">
+            <h3>المتجر الحالي</h3>
+            <p>Slug المستخدم للتجربة:</p>
+            <code id="overview-slug">غير محدد</code>
+          </article>
+          <article class="panel">
+            <h3>الخطوة التالية</h3>
+            <p>اختبر التسجيل والمنتجات والطلبات، ثم نستبدل الواجهة المؤقتة بتطبيق Flutter كامل.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-onboarding">
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Merchant onboarding</span>
+              <h2>تسجيل تاجر جديد</h2>
+            </div>
+            <form id="register-form" class="form-grid">
+              <label>اسم التاجر<input name="name" required></label>
+              <label>البريد<input name="email" type="email" required></label>
+              <label>رقم الموبايل<input name="phone" required></label>
+              <label>كلمة المرور<input name="password" type="password" value="ChangeMe123!" required></label>
+              <label>اسم المتجر عربي<input name="storeNameAr" required></label>
+              <label>Store name English<input name="storeNameEn" required></label>
+              <label class="span-2">البلد<input name="country" value="Egypt" required></label>
+              <button class="span-2">إنشاء المتجر ولوحة التحكم</button>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Access</span>
+              <h2>تسجيل الدخول</h2>
+            </div>
+            <form id="login-form" class="form-stack">
+              <label>البريد<input name="email" type="email" required></label>
+              <label>كلمة المرور<input name="password" type="password" required></label>
+              <button>دخول</button>
+            </form>
+            <div class="hint-box">
+              <strong>سوبر أدمن افتراضي</strong>
+              <p>لو لم تغير بيانات `.env`: استخدم `owner@easyshope.local` و `ChangeMe123!`.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-catalog">
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Categories</span>
+              <h2>التصنيفات</h2>
+            </div>
+            <form id="category-form" class="form-stack">
+              <label>اسم التصنيف عربي<input name="nameAr" required></label>
+              <label>Category English<input name="nameEn" required></label>
+              <button>إضافة تصنيف</button>
+            </form>
+            <ul id="categories" class="list"></ul>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Products</span>
+              <h2>المنتجات</h2>
+            </div>
+            <form id="product-form" class="form-grid">
+              <label>اسم المنتج عربي<input name="titleAr" required></label>
+              <label>Product English<input name="titleEn" required></label>
+              <label class="span-2">الوصف<textarea name="description"></textarea></label>
+              <label>السعر<input name="price" type="number" step="0.01" required></label>
+              <label>المخزون<input name="stockQuantity" type="number" value="10"></label>
+              <label class="span-2">الحالة<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+              <button class="span-2">إضافة منتج</button>
+            </form>
+            <ul id="products" class="list"></ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-storefront">
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Public store</span>
+              <h2>معاينة المتجر</h2>
+            </div>
+            <form id="storefront-form" class="form-stack">
+              <label>Store slug<input id="tenant-slug" placeholder="store slug"></label>
+              <button>تحميل المنتجات المنشورة</button>
+            </form>
+            <div id="storefront-products" class="product-picker"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Checkout</span>
+              <h2>إنشاء طلب تجريبي</h2>
+            </div>
+            <form id="order-form" class="form-stack">
+              <label>اسم العميل<input name="customerName" required></label>
+              <label>موبايل العميل<input name="customerPhone" required></label>
+              <label>Email<input name="customerEmail" type="email"></label>
+              <label>عنوان الشحن<textarea name="shippingAddress"></textarea></label>
+              <button>إنشاء طلب</button>
+            </form>
+            <ul id="orders" class="list"></ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-payments">
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">EasyCash</span>
+              <h2>إعدادات دفع المتجر</h2>
+            </div>
+            <form id="easycash-form" class="form-stack">
+              <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+              <label>Merchant ID<input name="merchantId" required></label>
+              <label>API Key<input name="apiKey" required></label>
+              <label>Secret<input name="secret" required></label>
+              <label class="check"><input name="enabled" type="checkbox"> تفعيل</label>
+              <button>حفظ إعدادات الدفع</button>
+            </form>
+            <ul id="payment-providers" class="list"></ul>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Platform billing</span>
+              <h2>اشتراك التاجر للمنصة</h2>
+            </div>
+            <form id="subscription-form" class="form-stack">
+              <label>الخطة<select id="planCode" name="planCode"></select></label>
+              <button>إنشاء فاتورة اشتراك</button>
+            </form>
+            <div class="hint-box">
+              <strong>ملاحظة</strong>
+              <p>الدفع الحقيقي ينتظر وثائق EasyCash. الحالي يجهز الفاتورة والسجل فقط.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-admin">
+        <div class="grid two">
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Platform owner</span>
+              <h2>إحصائيات عامة</h2>
+            </div>
+            <pre id="admin-overview">سجل دخول كسوبر أدمن لعرض الإحصائيات.</pre>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <span class="eyebrow">Tenants</span>
+              <h2>التجار والمتاجر</h2>
+            </div>
+            <ul id="admin-tenants" class="list"></ul>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
   <script src="/app.js"></script>
 </body>
 </html>

@@ -28,6 +28,14 @@ function showMessage(message, isError = false) {
   $("message").className = isError ? "message error" : "message ok";
 }
 
+function setView(view) {
+  document.querySelectorAll(".view").forEach((element) => element.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
+  $(`view-${view}`)?.classList.add("active");
+  document.querySelector(`[data-view="${view}"]`)?.classList.add("active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 async function refreshMe() {
   if (!state.token) return;
   const me = await api("/api/me");
@@ -35,6 +43,7 @@ async function refreshMe() {
   localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
   $("current-user").textContent = `${me.name} (${me.role})`;
   $("tenant-slug").value = state.tenantSlug || "";
+  $("overview-slug").textContent = state.tenantSlug || "غير محدد";
 }
 
 async function registerMerchant(event) {
@@ -112,17 +121,20 @@ async function loadMerchantData() {
     api("/api/plans"),
   ]);
 
-  $("categories").innerHTML = categories.categories.map((item) => `<li>${item.name_ar} / ${item.name_en}</li>`).join("") || "<li>لا توجد تصنيفات بعد.</li>";
-  $("products").innerHTML = products.products.map((item) => `<li>${item.title_ar} - ${money(item.price_cents)} - ${item.status}</li>`).join("") || "<li>لا توجد منتجات بعد.</li>";
-  $("orders").innerHTML = orders.orders.map((item) => `<li>${item.customer_name} - ${money(item.total_cents)} - ${item.status}</li>`).join("") || "<li>لا توجد طلبات بعد.</li>";
-  $("payment-providers").innerHTML = providers.providers.map((item) => `<li>${item.provider} - ${item.mode} - ${item.is_enabled ? "enabled" : "disabled"}</li>`).join("") || "<li>لم يتم ربط دفع بعد.</li>";
+  $("categories").innerHTML = categories.categories.map((item) => `<li><strong>${item.name_ar}</strong><span>${item.name_en}</span></li>`).join("") || "<li>لا توجد تصنيفات بعد.</li>";
+  $("products").innerHTML = products.products.map((item) => `<li><strong>${item.title_ar}</strong><span>${money(item.price_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد منتجات بعد.</li>";
+  $("orders").innerHTML = orders.orders.map((item) => `<li><strong>${item.customer_name}</strong><span>${money(item.total_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد طلبات بعد.</li>";
+  $("payment-providers").innerHTML = providers.providers.map((item) => `<li><strong>${item.provider}</strong><span>${item.mode} - ${item.is_enabled ? "enabled" : "disabled"}</span></li>`).join("") || "<li>لم يتم ربط دفع بعد.</li>";
   $("planCode").innerHTML = plans.plans.map((plan) => `<option value="${plan.code}">${plan.name} - ${money(plan.price_cents)}</option>`).join("");
 }
 
 async function loadStorefront(event) {
   event?.preventDefault();
   const slug = $("tenant-slug").value.trim();
-  if (!slug) return showMessage("اكتب slug المتجر أولًا.", true);
+  if (!slug) {
+    $("storefront-products").innerHTML = "<p>بعد تسجيل التاجر سيظهر slug المتجر هنا تلقائيًا.</p>";
+    return;
+  }
   state.tenantSlug = slug;
   localStorage.setItem("easyShopeTenantSlug", slug);
   const data = await api(`/api/store/${slug}/products`);
@@ -163,11 +175,15 @@ async function loadAdmin() {
 async function bootstrap() {
   try {
     const health = await api("/api/health");
-    $("api-status").textContent = health.ok ? "ok" : "error";
+    $("api-status").textContent = health.ok ? "API online" : "API error";
+    $("overview-api").textContent = health.ok ? "online" : "error";
+    $("overview-api").className = health.ok ? "ok" : "";
+    $("overview-db").textContent = health.db === false ? "checking" : "online";
+    $("overview-db").className = "ok";
     $("api-dot").classList.toggle("ok", Boolean(health.ok));
     await refreshMe();
     await loadMerchantData();
-    await loadStorefront();
+    if (state.tenantSlug) await loadStorefront();
     await loadAdmin();
   } catch (error) {
     showMessage(error.message, true);
@@ -175,6 +191,12 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".nav-item").forEach((button) => {
+    button.addEventListener("click", () => setView(button.dataset.view));
+  });
+  document.querySelectorAll("[data-jump]").forEach((button) => {
+    button.addEventListener("click", () => setView(button.dataset.jump));
+  });
   $("register-form").addEventListener("submit", registerMerchant);
   $("login-form").addEventListener("submit", login);
   $("category-form").addEventListener("submit", createCategory);
