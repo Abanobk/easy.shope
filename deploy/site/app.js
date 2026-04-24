@@ -175,7 +175,9 @@ async function loadAdmin() {
   try {
     const [overview, tenants] = await Promise.all([api("/api/admin/overview"), api("/api/admin/tenants")]);
     $("admin-overview").textContent = JSON.stringify(overview, null, 2);
-    $("admin-tenants").innerHTML = tenants.tenants.map((tenant) => `<li>${tenant.name_en} - ${tenant.slug} - ${tenant.status}</li>`).join("");
+    $("admin-tenants").innerHTML =
+      tenants.tenants.map((tenant) => `<li><strong>${tenant.name_en}</strong><span>${tenant.slug} - ${tenant.status}</span></li>`).join("") ||
+      "<li>لا توجد متاجر بعد.</li>";
   } catch {
     $("admin-overview").textContent = "سجل دخول كسوبر أدمن لعرض هذا القسم.";
   }
@@ -196,6 +198,10 @@ async function bootstrap() {
       if (state.tenantSlug) await loadStorefront();
     }
     await loadAdmin();
+    if (["platform_owner", "platform_admin"].includes(state.role)) {
+      setView("admin");
+      showMessage("تم فتح لوحة السوبر أدمن.");
+    }
   } catch (error) {
     showMessage(error.message, true);
   }
