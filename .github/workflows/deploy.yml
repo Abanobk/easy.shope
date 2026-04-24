@@ -24,8 +24,11 @@ jobs:
           test -n "${SSH_PRIVATE_KEY:-}" || { echo "Missing secret SSH_PRIVATE_KEY"; exit 1; }
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          # Strip CR (browser/Windows paste) and ensure trailing newline — fixes many "error in libcrypto" cases
+          printf '%s\n' "${SSH_PRIVATE_KEY}" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          echo "Verifying key fingerprint (public side only):"
+          ssh-keygen -l -f ~/.ssh/deploy_key || { echo "SSH_PRIVATE_KEY is not a valid OpenSSH private key. Re-copy from: cat ~/.ssh/github_deploy_easyshope"; exit 1; }
 
       - name: Connect Tailscale
         uses: tailscale/github-action@v2

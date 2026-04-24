@@ -15,7 +15,7 @@
 | Secret | الوصف |
 |--------|--------|
 | `TAILSCALE_AUTHKEY` | مفتاح **Reusable / Ephemeral** من [Tailscale admin → Keys](https://login.tailscale.com/admin/settings/keys) (صلاحيات تسمح للأجهزة الجديدة بالوصول للـ NAS حسب ACL عندك) |
-| `SSH_PRIVATE_KEY` | المفتاح الخاص كاملًا (PEM) لمستخدم النشر |
+| `SSH_PRIVATE_KEY` | المفتاح الخاص كاملًا (`-----BEGIN OPENSSH PRIVATE KEY-----` … `END`) من `cat ~/.ssh/github_deploy_easyshope` — لصق من Terminal؛ لو ظهر `error in libcrypto` أعد اللصق أو احذف أي `\r` (لا تلصق ملف `.pub` هنا) |
 | `SSH_USER` | اسم المستخدم على TrueNAS (مثل `root`) |
 | `SSH_HOST` | **عنوان Tailscale للـ NAS** (مثل `100.92.194.111` — من `ip -4 addr show tailscale0` على TrueNAS) |
 | `DEPLOY_PATH` | مسار مجلد على السيرفر (مثل `/root/easy-shope`) |
