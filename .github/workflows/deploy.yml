@@ -1,4 +1,6 @@
-# Phase 0: verify GitHub Actions can SSH into TrueNAS (e.g. via ssh-deploy.easytecheg.net)
+# Phase 0: SSH to TrueNAS from GitHub Actions.
+# Uses Tailscale so the runner can reach the NAS Tailscale IP (e.g. 100.92.194.111).
+# Cloudflare ssh-deploy hostname often times out from GitHub's network; Tailscale avoids that.
 name: Deploy (Phase 0)
 
 on:
@@ -25,6 +27,11 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
+      - name: Connect Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
       - name: Trust host key
         env:
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -35,7 +42,7 @@ jobs:
           if [ -n "${SSH_KNOWN_HOSTS:-}" ]; then
             echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
           else
-            echo "SSH_KNOWN_HOSTS not set; using ssh-keyscan (add secret for stricter trust)"
+            echo "SSH_KNOWN_HOSTS not set; using ssh-keyscan after Tailscale"
             ssh-keyscan -H -T 30 "$SSH_HOST" >> ~/.ssh/known_hosts || true
           fi
           chmod 644 ~/.ssh/known_hosts

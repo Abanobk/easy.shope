@@ -4,7 +4,9 @@
 
 ## المرحلة 0 — النشر الآلي (مكتمل الهيكل)
 
-الهدف: التأكد أن **GitHub Actions** يتصل بـ TrueNAS عبر **SSH** (عبر `ssh-deploy.easytecheg.net`) ويكتب ملف نشر على السيرفر.
+الهدف: التأكد أن **GitHub Actions** يتصل بـ TrueNAS عبر **SSH** ويكتب ملف نشر على السيرفر.
+
+**لماذا Tailscale؟** عدّاء GitHub على الإنترنت **لا يصلون** عادةً إلى عنوان Tailscale (`100.x`) ولا ي reliably يصلون إلى **Cloudflare TCP SSH** (`ssh-deploy…`) — غالبًا **Operation timed out**. الحل: الخطوة **Connect Tailscale** في الـ workflow تضيف العدّاء إلى شبكتك، ثم **`SSH_HOST`** = عنوان **TrueNAS على Tailscale** (مثل `100.92.194.111`).
 
 ### 1) أسرار GitHub
 
@@ -12,16 +14,17 @@
 
 | Secret | الوصف |
 |--------|--------|
+| `TAILSCALE_AUTHKEY` | مفتاح **Reusable / Ephemeral** من [Tailscale admin → Keys](https://login.tailscale.com/admin/settings/keys) (صلاحيات تسمح للأجهزة الجديدة بالوصول للـ NAS حسب ACL عندك) |
 | `SSH_PRIVATE_KEY` | المفتاح الخاص كاملًا (PEM) لمستخدم النشر |
-| `SSH_USER` | اسم المستخدم على TrueNAS (مثل `deploy` أو `root`) |
-| `SSH_HOST` | `ssh-deploy.easytecheg.net` |
-| `DEPLOY_PATH` | مسار مجلد على السيرفر (مثل `/home/deploy/easy-shope` أو مسار dataset) |
+| `SSH_USER` | اسم المستخدم على TrueNAS (مثل `root`) |
+| `SSH_HOST` | **عنوان Tailscale للـ NAS** (مثل `100.92.194.111` — من `ip -4 addr show tailscale0` على TrueNAS) |
+| `DEPLOY_PATH` | مسار مجلد على السيرفر (مثل `/root/easy-shope`) |
 
 اختياري لتحسين أمان التحقق من المضيف:
 
 | Secret | الوصف |
 |--------|--------|
-| `SSH_KNOWN_HOSTS` | مخرجات `ssh-keyscan ssh-deploy.easytecheg.net` (سطر أو أكثر) |
+| `SSH_KNOWN_HOSTS` | مخرجات `ssh-keyscan -H 100.92.194.111` من جهاز بعد Tailscale (أو بعد أول run ناجح) |
 
 ### 2) على TrueNAS
 
