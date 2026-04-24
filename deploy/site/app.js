@@ -1,6 +1,7 @@
 const state = {
   token: localStorage.getItem("easyShopeToken") || "",
   tenantSlug: localStorage.getItem("easyShopeTenantSlug") || "",
+  role: localStorage.getItem("easyShopeRole") || "",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -39,7 +40,9 @@ function setView(view) {
 async function refreshMe() {
   if (!state.token) return;
   const me = await api("/api/me");
+  state.role = me.role;
   state.tenantSlug = me.slug || state.tenantSlug;
+  localStorage.setItem("easyShopeRole", state.role);
   localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
   $("current-user").textContent = `${me.name} (${me.role})`;
   $("tenant-slug").value = state.tenantSlug || "";
@@ -54,11 +57,14 @@ async function registerMerchant(event) {
     body: JSON.stringify(Object.fromEntries(form.entries())),
   });
   state.token = data.token;
+  state.role = data.user.role;
   state.tenantSlug = data.tenant.slug;
   localStorage.setItem("easyShopeToken", state.token);
+  localStorage.setItem("easyShopeRole", state.role);
   localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
   showMessage("تم تسجيل التاجر وإنشاء المتجر.");
   await bootstrap();
+  setView("catalog");
 }
 
 async function login(event) {
@@ -66,9 +72,12 @@ async function login(event) {
   const form = new FormData(event.currentTarget);
   const data = await api("/api/auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
   state.token = data.token;
+  state.role = data.user.role;
   localStorage.setItem("easyShopeToken", state.token);
+  localStorage.setItem("easyShopeRole", state.role);
   showMessage("تم تسجيل الدخول.");
   await bootstrap();
+  setView(["platform_owner", "platform_admin"].includes(state.role) ? "admin" : "overview");
 }
 
 async function createCategory(event) {
@@ -112,7 +121,7 @@ async function createSubscriptionInvoice(event) {
 }
 
 async function loadMerchantData() {
-  if (!state.token) return;
+  if (!state.token || !state.tenantSlug || ["platform_owner", "platform_admin"].includes(state.role)) return;
   const [categories, products, orders, providers, plans] = await Promise.all([
     api("/api/merchant/categories"),
     api("/api/merchant/products"),
@@ -182,8 +191,10 @@ async function bootstrap() {
     $("overview-db").className = "ok";
     $("api-dot").classList.toggle("ok", Boolean(health.ok));
     await refreshMe();
-    await loadMerchantData();
-    if (state.tenantSlug) await loadStorefront();
+    if (!["platform_owner", "platform_admin"].includes(state.role)) {
+      await loadMerchantData();
+      if (state.tenantSlug) await loadStorefront();
+    }
     await loadAdmin();
   } catch (error) {
     showMessage(error.message, true);
@@ -208,6 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("logout").addEventListener("click", () => {
     localStorage.removeItem("easyShopeToken");
     localStorage.removeItem("easyShopeTenantSlug");
+    localStorage.removeItem("easyShopeRole");
     location.reload();
   });
   bootstrap();
