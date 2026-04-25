@@ -199,6 +199,7 @@ function paymobErrorMessage(payload: unknown): string {
 }
 
 function paymobField(obj: Record<string, unknown>, path: string) {
+  if (path === "order.id" && obj.order && typeof obj.order !== "object") return obj.order;
   return path.split(".").reduce<unknown>((current, key) => (current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined), obj);
 }
 
@@ -233,6 +234,19 @@ function paymobHmacMatches(obj: Record<string, unknown>, hmacSecret: string, rec
   return expected.length === received.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
 }
 
+function parseSubscriptionInvoiceReference(reference: string) {
+  if (!reference.startsWith("subscription_invoice:")) return "";
+  return reference.split(":")[1] || "";
+}
+
+function paymobTransactionState(obj: Record<string, unknown>) {
+  return {
+    success: obj.success === true || obj.success === "true",
+    pending: obj.pending === true || obj.pending === "true",
+    transactionId: String(obj.id || obj.transaction_id || obj.payment_key_claims || ""),
+  };
+}
+
 async function expireOverdueSubscriptions() {
   await pool.query(
     `UPDATE tenants
@@ -243,7 +257,7 @@ async function expireOverdueSubscriptions() {
   );
 }
 
-async function markSubscriptionInvoicePaid(invoiceId: string) {
+async function markSubscriptionInvoicePaid(invoiceId: string, providerReference?: string | null) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -266,10 +280,10 @@ async function markSubscriptionInvoicePaid(invoiceId: string) {
     }
     const updatedInvoice = await client.query(
       `UPDATE platform_subscription_invoices
-       SET status = 'paid', provider_reference = coalesce(provider_reference, $2)
+       SET status = 'paid', provider = 'paymob', provider_reference = coalesce($2, provider_reference)
        WHERE id = $1
        RETURNING *`,
-      [invoiceId, `manual-paid-${Date.now()}`],
+      [invoiceId, providerReference || `manual-paid-${Date.now()}`],
     );
     await client.query(
       `UPDATE tenants
@@ -1169,12 +1183,10 @@ app.post("/api/webhooks/paymob", async (request, reply) => {
   const query = (request.query ?? {}) as Record<string, unknown>;
   const receivedHmac = String(query.hmac || "");
   const orderId = String(obj.special_reference || obj.merchant_order_id || obj.order_id || "");
-  const success = obj.success === true || obj.success === "true";
-  const pending = obj.pending === true || obj.pending === "true";
-  const transactionId = String(obj.id || obj.transaction_id || obj.payment_key_claims || "");
+  const { success, pending, transactionId } = paymobTransactionState(obj);
   if (!orderId) return { ok: true, ignored: true };
   if (orderId.startsWith("subscription_invoice:")) {
-    const [, invoiceId] = orderId.split(":");
+    const invoiceId = parseSubscriptionInvoiceReference(orderId);
     if (!invoiceId) return { ok: true, ignored: true };
     const credentials = await pool.query(`SELECT encrypted_secret FROM platform_payment_credentials WHERE provider = 'paymob'`);
     const secret = credentials.rows[0] ? decodeSecret<{ hmacSecret?: string }>(credentials.rows[0].encrypted_secret) : null;
@@ -1182,7 +1194,7 @@ app.post("/api/webhooks/paymob", async (request, reply) => {
       return reply.code(401).send({ message: "Invalid Paymob webhook signature" });
     }
     if (success) {
-      await markSubscriptionInvoicePaid(invoiceId);
+      await markSubscriptionInvoicePaid(invoiceId, transactionId || null);
     } else {
       await pool.query(`UPDATE platform_subscription_invoices SET status = $1, provider = 'paymob', provider_reference = coalesce($3, provider_reference) WHERE id = $2`, [
         pending ? "pending" : "failed",
@@ -1216,6 +1228,40 @@ app.post("/api/webhooks/paymob", async (request, reply) => {
     [orderId, paymentStatus, orderStatus, transactionId || null],
   );
   return { ok: true };
+});
+
+app.post("/api/payments/paymob/return", async (request, reply) => {
+  const payload = z.record(z.string(), z.unknown()).parse(request.body);
+  const invoiceId = String(payload.subscription_invoice || parseSubscriptionInvoiceReference(String(payload.special_reference || payload.merchant_order_id || "")));
+  if (!invoiceId) return { ok: true, status: "ignored" };
+
+  const credentials = await pool.query(`SELECT encrypted_secret FROM platform_payment_credentials WHERE provider = 'paymob'`);
+  const secret = credentials.rows[0] ? decodeSecret<{ hmacSecret?: string }>(credentials.rows[0].encrypted_secret) : null;
+  if (secret?.hmacSecret) {
+    const receivedHmac = String(payload.hmac || "");
+    if (!paymobHmacMatches(payload, secret.hmacSecret, receivedHmac)) {
+      return reply.code(401).send({ message: "Invalid Paymob return signature" });
+    }
+  } else {
+    return { ok: true, status: "waiting_webhook", message: "Payment return received. Waiting for Paymob webhook because HMAC is not configured." };
+  }
+
+  const { success, pending, transactionId } = paymobTransactionState(payload);
+  if (success) {
+    const invoice = await markSubscriptionInvoicePaid(invoiceId, transactionId || null);
+    return { ok: true, status: "paid", invoice };
+  }
+
+  const result = await pool.query(
+    `UPDATE platform_subscription_invoices
+     SET status = $1,
+         provider = 'paymob',
+         provider_reference = coalesce($3, provider_reference)
+     WHERE id = $2
+     RETURNING *`,
+    [pending ? "pending" : "failed", invoiceId, transactionId || null],
+  );
+  return { ok: true, status: result.rows[0]?.status || "unknown", invoice: result.rows[0] };
 });
 
 app.post("/api/merchant/payment-providers/easycash", async (request) => {

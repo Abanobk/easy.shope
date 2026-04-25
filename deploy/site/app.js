@@ -634,8 +634,24 @@ async function handlePaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   if (params.has("subscription_invoice")) {
     setView("payments");
-    showMessage("رجعت من Paymob. لو الدفع تم بنجاح سيتم تحديث الاشتراك بعد وصول webhook.");
-    if (state.token && !["platform_owner", "platform_admin"].includes(state.role)) await loadBillingData();
+    showMessage("رجعت من Paymob. نتحقق من نتيجة الدفع الآن...");
+    try {
+      const payload = Object.fromEntries(params.entries());
+      const result = await api("/api/payments/paymob/return", { method: "POST", body: JSON.stringify(payload) });
+      if (result.status === "paid") {
+        showMessage("تم تأكيد الدفع وتفعيل الاشتراك تلقائيًا.");
+      } else if (result.status === "waiting_webhook") {
+        showMessage("وصل رجوع Paymob. سنحدث الاشتراك تلقائيًا بعد وصول webhook.");
+      } else {
+        showMessage(`حالة دفع Paymob: ${result.status}`);
+      }
+    } catch (error) {
+      showMessage(error.message, true);
+    }
+    if (state.token && !["platform_owner", "platform_admin"].includes(state.role)) {
+      await loadBillingData();
+      await refreshMe();
+    }
   }
   if (params.has("order")) {
     setView("storefront");
@@ -694,7 +710,7 @@ async function loadAdmin() {
             <td><strong>${invoice.tenant_name}</strong><br><small>${invoice.tenant_slug}</small></td>
             <td>${invoice.plan_code}</td>
             <td>${money(invoice.amount_cents)}</td>
-            <td>${invoice.status}</td>
+            <td>${invoice.status}<br><small>${invoice.provider || ""} ${invoice.provider_reference || ""}</small></td>
             <td><div class="row-actions">
               <button class="success-button" data-invoice-status="${invoice.id}:paid">Paid</button>
               <button data-invoice-status="${invoice.id}:expired">Expired</button>
