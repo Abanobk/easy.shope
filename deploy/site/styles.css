@@ -106,7 +106,7 @@ small {
 
 .nav {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .nav-item,
@@ -123,13 +123,29 @@ button,
 .nav-item {
   text-align: right;
   color: #cbd5e1;
-  background: transparent;
+  border: 1px solid rgba(148, 163, 184, .14);
+  background: rgba(15, 23, 42, .54);
+  display: grid;
+  gap: 5px;
 }
 
 .nav-item:hover,
 .nav-item.active {
-  background: rgba(56, 189, 248, .14);
+  border-color: rgba(56, 189, 248, .34);
+  background:
+    radial-gradient(circle at 10% 20%, rgba(56, 189, 248, .18), transparent 42%),
+    rgba(56, 189, 248, .10);
   color: #e0f2fe;
+}
+
+.nav-item strong,
+.nav-item small {
+  display: block;
+}
+
+.nav-item small {
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .nav-item[hidden],
@@ -146,6 +162,7 @@ button,
 }
 
 .sidebar-card {
+  display: none;
   margin-top: auto;
   padding: 18px;
   border-radius: 22px;
@@ -319,6 +336,124 @@ body[data-auth-mode="login"] .register-panel {
 .auth-switch {
   margin-top: 14px;
   width: 100%;
+}
+
+.merchant-workspace {
+  display: grid;
+  gap: 18px;
+}
+
+.workspace-switcher {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workspace-card {
+  min-height: 138px;
+  padding: 18px;
+  text-align: right;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 24px;
+  color: #dbeafe;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, .14), transparent 35%),
+    rgba(15, 23, 42, .72);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.workspace-card:hover,
+.workspace-card.active {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, .42);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, .28), transparent 38%),
+    linear-gradient(135deg, rgba(8, 47, 73, .86), rgba(15, 23, 42, .86));
+}
+
+.workspace-card span,
+.workspace-card small {
+  color: var(--muted);
+}
+
+.workspace-card strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 18px;
+}
+
+.workspace-content {
+  min-height: 520px;
+}
+
+.merchant-tab {
+  display: none;
+}
+
+.merchant-tab.active {
+  display: block;
+}
+
+.performance-grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.3fr .7fr;
+  gap: 16px;
+}
+
+.chart-card {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 18px;
+  background: rgba(2, 6, 23, .32);
+}
+
+.bar-chart {
+  display: grid;
+  gap: 16px;
+}
+
+.bar-chart div {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.bar-chart strong {
+  min-height: 18px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .88);
+  overflow: hidden;
+  position: relative;
+}
+
+.bar-chart strong::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--value, 10%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.insight-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.insight-list li {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  color: #dbeafe;
+  background: rgba(15, 23, 42, .52);
 }
 
 .metric-grid,
@@ -797,6 +932,8 @@ tr:last-child td {
   .store-product-grid,
   .billing-layout,
   .billing-form,
+  .workspace-switcher,
+  .performance-grid,
   .grid.two,
   .grid.three,
   .grid.four,

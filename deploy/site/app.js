@@ -117,6 +117,15 @@ function setOnboardingMode(mode = "register") {
   document.body.dataset.authMode = mode === "login" ? "login" : "register";
 }
 
+function setMerchantTab(tab = "overview") {
+  document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.merchantTab === tab);
+  });
+  document.querySelectorAll("[data-merchant-panel]").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
+  });
+}
+
 function setView(view) {
   updateNavigation();
   const navButton = document.querySelector(`[data-view="${view}"]`);
@@ -379,6 +388,11 @@ async function loadMerchantData() {
   $("catalog-products-published").textContent = `${dashboard.products.published} منشور`;
   $("catalog-orders-total").textContent = dashboard.revenue.count;
   $("catalog-revenue-total").textContent = money(dashboard.revenue.total_cents);
+  $("catalog-categories-total").textContent = dashboard.categories.total;
+  const maxChartValue = Math.max(Number(dashboard.products.total || 0), Number(dashboard.revenue.count || 0), Number(dashboard.revenue.total_cents || 0) / 100, 1);
+  $("chart-products-bar").style.setProperty("--value", `${Math.max(10, (Number(dashboard.products.total || 0) / maxChartValue) * 100)}%`);
+  $("chart-orders-bar").style.setProperty("--value", `${Math.max(10, (Number(dashboard.revenue.count || 0) / maxChartValue) * 100)}%`);
+  $("chart-revenue-bar").style.setProperty("--value", `${Math.max(10, ((Number(dashboard.revenue.total_cents || 0) / 100) / maxChartValue) * 100)}%`);
   fillStoreSettings(dashboard.tenant);
   $("merchant-latest-orders").innerHTML =
     dashboard.latestOrders.map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} - ${order.status}</span></li>`).join("") ||
@@ -851,6 +865,7 @@ async function bootstrap() {
 
 document.addEventListener("DOMContentLoaded", () => {
   setOnboardingMode("register");
+  setMerchantTab("overview");
   updateNavigation();
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -872,6 +887,9 @@ document.addEventListener("DOMContentLoaded", () => {
       setOnboardingMode(button.dataset.authMode);
       if (!button.dataset.jump) setView("onboarding");
     });
+  });
+  document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
+    button.addEventListener("click", () => setMerchantTab(button.dataset.merchantTab));
   });
   $("register-form").addEventListener("submit", registerMerchant);
   $("login-form").addEventListener("submit", login);

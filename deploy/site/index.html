@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042517" />
+  <link rel="stylesheet" href="/styles.css?v=2026042518" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -17,18 +17,13 @@
         </div>
       </div>
       <nav class="nav">
-        <button class="nav-item active" data-view="overview" data-scope="public">الرئيسية</button>
-        <button class="nav-item" data-view="onboarding" data-scope="public">إنشاء متجر / دخول</button>
-        <button class="nav-item" data-view="catalog" data-scope="merchant">لوحة المتجر</button>
-        <button class="nav-item" data-view="storefront" data-scope="merchant,customer">واجهة المتجر</button>
-        <button class="nav-item" data-view="payments" data-scope="merchant">الدفع والاشتراكات</button>
-        <button class="nav-item" data-view="admin" data-scope="admin">لوحة السوبر أدمن</button>
+        <button class="nav-item active" data-view="overview" data-scope="public"><strong>الرئيسية</strong><small>تعرف على المنصة</small></button>
+        <button class="nav-item" data-view="onboarding" data-scope="public"><strong>إنشاء متجر / دخول</strong><small>ابدأ أو ادخل لحسابك</small></button>
+        <button class="nav-item" data-view="catalog" data-scope="merchant"><strong>لوحة المتجر</strong><small>نظرة عامة وإدارة يومية</small></button>
+        <button class="nav-item" data-view="storefront" data-scope="merchant,customer"><strong>واجهة المتجر</strong><small>عرض المتجر العام</small></button>
+        <button class="nav-item" data-view="payments" data-scope="merchant"><strong>الدفع والاشتراكات</strong><small>Paymob والفواتير</small></button>
+        <button class="nav-item" data-view="admin" data-scope="admin"><strong>لوحة السوبر أدمن</strong><small>التجار والخطط والدفع</small></button>
       </nav>
-      <div class="sidebar-card">
-        <span class="eyebrow">Workspace</span>
-        <strong>لوحة منظمة حسب دورك</strong>
-        <p>ستظهر هنا الأقسام المناسبة لحسابك فقط.</p>
-      </div>
     </aside>
 
     <main class="main">
@@ -129,93 +124,140 @@
       </section>
 
       <section class="view" id="view-catalog">
-        <div class="grid two">
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Merchant dashboard</span>
-              <h2>ملخص أداء المتجر</h2>
-            </div>
-            <div class="grid two">
-              <div class="metric compact"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
-              <div class="metric compact"><span>طلبات</span><strong id="catalog-orders-total">0</strong><small id="catalog-revenue-total">0.00 EGP</small></div>
-            </div>
-            <h3>الطلبات</h3>
-            <ul id="orders" class="list"></ul>
-            <h3>آخر الطلبات</h3>
-            <ul id="merchant-latest-orders" class="list"></ul>
-          </article>
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Store settings</span>
-              <h2>إعدادات المتجر</h2>
-            </div>
-            <form id="store-settings-form" class="form-grid">
-              <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
-              <label>Store name English<input id="store-name-en" name="nameEn"></label>
-              <label class="span-2">البلد<input id="store-country" name="country"></label>
-              <button class="span-2">حفظ بيانات المتجر</button>
-            </form>
-          </article>
-          <article class="panel span-2">
-            <div class="panel-heading">
-              <span class="eyebrow">Team & Security</span>
-              <h2>الفريق والأمان</h2>
-            </div>
-            <div class="grid two">
-              <div>
-                <h3>موظفو المتجر</h3>
-                <form id="staff-form" class="form-grid">
-                  <label>اسم الموظف<input name="name" required></label>
-                  <label>البريد<input name="email" type="email" required></label>
-                  <label>موبايل<input name="phone"></label>
-                  <label>كلمة مرور مؤقتة<input name="password" type="password" minlength="8" required></label>
-                  <button class="span-2">إضافة موظف</button>
-                </form>
-                <ul id="staff-list" class="list"></ul>
+        <div class="merchant-workspace">
+          <div class="workspace-switcher">
+            <button class="workspace-card active" data-merchant-tab="overview"><span>نظرة عامة</span><strong>أداء المتجر</strong><small>مبيعات، طلبات، منتجات</small></button>
+            <button class="workspace-card" data-merchant-tab="orders"><span>الطلبات</span><strong>إدارة الطلبات</strong><small>متابعة وتجهيز الطلبات</small></button>
+            <button class="workspace-card" data-merchant-tab="catalog"><span>الكتالوج</span><strong>منتجات وتصنيفات</strong><small>إضافة وتنظيم المنتجات</small></button>
+            <button class="workspace-card" data-merchant-tab="settings"><span>الإعدادات</span><strong>بيانات المتجر</strong><small>الاسم والبلد والهوية</small></button>
+            <button class="workspace-card" data-merchant-tab="team"><span>الفريق</span><strong>الموظفون والأمان</strong><small>حسابات وكلمات مرور</small></button>
+          </div>
+
+          <div class="workspace-content">
+            <article class="panel merchant-tab active" data-merchant-panel="overview">
+              <div class="panel-heading">
+                <span class="eyebrow">Merchant dashboard</span>
+                <h2>نظرة عامة على أداء المتجر</h2>
               </div>
-              <div>
-                <h3>تغيير كلمة المرور</h3>
-                <form id="password-form" class="form-stack">
-                  <label>كلمة المرور الحالية<input name="currentPassword" type="password" required></label>
-                  <label>كلمة المرور الجديدة<input name="newPassword" type="password" minlength="8" required></label>
-                  <button>تحديث كلمة المرور</button>
-                </form>
-                <div class="hint-box">صاحب المتجر فقط يضيف الموظفين. الموظف يدخل بنفس شاشة تسجيل الدخول ويشاهد بيانات نفس المتجر.</div>
+              <div class="grid four">
+                <div class="metric compact"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
+                <div class="metric compact"><span>طلبات</span><strong id="catalog-orders-total">0</strong><small>إجمالي الطلبات</small></div>
+                <div class="metric compact"><span>مبيعات</span><strong id="catalog-revenue-total">0.00 EGP</strong><small>إجمالي الإيراد</small></div>
+                <div class="metric compact"><span>تصنيفات</span><strong id="catalog-categories-total">0</strong><small>تنظيم الكتالوج</small></div>
               </div>
-            </div>
-          </article>
-        </div>
-        <div class="grid two">
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Categories</span>
-              <h2>التصنيفات</h2>
-            </div>
-            <form id="category-form" class="form-stack">
-              <label>اسم التصنيف عربي<input name="nameAr" required></label>
-              <label>Category English<input name="nameEn" required></label>
-              <button>إضافة تصنيف</button>
-            </form>
-            <ul id="categories" class="list"></ul>
-          </article>
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Products</span>
-              <h2>المنتجات</h2>
-            </div>
-            <form id="product-form" class="form-grid">
-              <label>اسم المنتج عربي<input name="titleAr" required></label>
-              <label>Product English<input name="titleEn" required></label>
-              <label class="span-2">التصنيف<select id="product-category" name="categoryId"><option value="">بدون تصنيف</option></select></label>
-              <label class="span-2">الوصف<textarea name="description"></textarea></label>
-              <label>السعر<input name="price" type="number" step="0.01" required></label>
-              <label>المخزون<input name="stockQuantity" type="number" value="10"></label>
-              <label class="span-2">رابط صورة المنتج<input name="imageUrl" type="url" placeholder="https://..."></label>
-              <label class="span-2">الحالة<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
-              <button class="span-2">إضافة منتج</button>
-            </form>
-            <ul id="products" class="list"></ul>
-          </article>
+              <div class="performance-grid">
+                <div class="chart-card">
+                  <div class="panel-heading">
+                    <span class="eyebrow">Performance</span>
+                    <h3>حالة المتجر</h3>
+                  </div>
+                  <div class="bar-chart">
+                    <div><span>منتجات</span><strong id="chart-products-bar"></strong></div>
+                    <div><span>طلبات</span><strong id="chart-orders-bar"></strong></div>
+                    <div><span>مبيعات</span><strong id="chart-revenue-bar"></strong></div>
+                  </div>
+                </div>
+                <div class="chart-card">
+                  <div class="panel-heading">
+                    <span class="eyebrow">Next actions</span>
+                    <h3>اقتراحات تشغيلية</h3>
+                  </div>
+                  <ul class="insight-list">
+                    <li>أضف أول تصنيف ثم اربط المنتجات به.</li>
+                    <li>انشر المنتجات الجاهزة حتى تظهر في واجهة المتجر.</li>
+                    <li>راجع فواتير الاشتراك قبل اختبار الدفع الكامل.</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel merchant-tab" data-merchant-panel="orders">
+              <div class="panel-heading">
+                <span class="eyebrow">Orders</span>
+                <h2>الطلبات</h2>
+              </div>
+              <ul id="orders" class="list"></ul>
+              <h3>آخر الطلبات</h3>
+              <ul id="merchant-latest-orders" class="list"></ul>
+            </article>
+
+            <article class="panel merchant-tab" data-merchant-panel="catalog">
+              <div class="grid two">
+                <div>
+                  <div class="panel-heading">
+                    <span class="eyebrow">Categories</span>
+                    <h2>التصنيفات</h2>
+                  </div>
+                  <form id="category-form" class="form-stack">
+                    <label>اسم التصنيف عربي<input name="nameAr" required></label>
+                    <label>Category English<input name="nameEn" required></label>
+                    <button>إضافة تصنيف</button>
+                  </form>
+                  <ul id="categories" class="list"></ul>
+                </div>
+                <div>
+                  <div class="panel-heading">
+                    <span class="eyebrow">Products</span>
+                    <h2>المنتجات</h2>
+                  </div>
+                  <form id="product-form" class="form-grid">
+                    <label>اسم المنتج عربي<input name="titleAr" required></label>
+                    <label>Product English<input name="titleEn" required></label>
+                    <label class="span-2">التصنيف<select id="product-category" name="categoryId"><option value="">بدون تصنيف</option></select></label>
+                    <label class="span-2">الوصف<textarea name="description"></textarea></label>
+                    <label>السعر<input name="price" type="number" step="0.01" required></label>
+                    <label>المخزون<input name="stockQuantity" type="number" value="10"></label>
+                    <label class="span-2">رابط صورة المنتج<input name="imageUrl" type="url" placeholder="https://..."></label>
+                    <label class="span-2">الحالة<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+                    <button class="span-2">إضافة منتج</button>
+                  </form>
+                  <ul id="products" class="list"></ul>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel merchant-tab" data-merchant-panel="settings">
+              <div class="panel-heading">
+                <span class="eyebrow">Store settings</span>
+                <h2>إعدادات المتجر</h2>
+              </div>
+              <form id="store-settings-form" class="form-grid">
+                <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
+                <label>Store name English<input id="store-name-en" name="nameEn"></label>
+                <label class="span-2">البلد<input id="store-country" name="country"></label>
+                <button class="span-2">حفظ بيانات المتجر</button>
+              </form>
+            </article>
+
+            <article class="panel merchant-tab" data-merchant-panel="team">
+              <div class="panel-heading">
+                <span class="eyebrow">Team & Security</span>
+                <h2>الفريق والأمان</h2>
+              </div>
+              <div class="grid two">
+                <div>
+                  <h3>موظفو المتجر</h3>
+                  <form id="staff-form" class="form-grid">
+                    <label>اسم الموظف<input name="name" required></label>
+                    <label>البريد<input name="email" type="email" required></label>
+                    <label>موبايل<input name="phone"></label>
+                    <label>كلمة مرور مؤقتة<input name="password" type="password" minlength="8" required></label>
+                    <button class="span-2">إضافة موظف</button>
+                  </form>
+                  <ul id="staff-list" class="list"></ul>
+                </div>
+                <div>
+                  <h3>تغيير كلمة المرور</h3>
+                  <form id="password-form" class="form-stack">
+                    <label>كلمة المرور الحالية<input name="currentPassword" type="password" required></label>
+                    <label>كلمة المرور الجديدة<input name="newPassword" type="password" minlength="8" required></label>
+                    <button>تحديث كلمة المرور</button>
+                  </form>
+                  <div class="hint-box">صاحب المتجر فقط يضيف الموظفين. الموظف يدخل بنفس شاشة تسجيل الدخول ويشاهد بيانات نفس المتجر.</div>
+                </div>
+              </div>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -403,6 +445,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042517"></script>
+  <script src="/app.js?v=2026042518"></script>
 </body>
 </html>
