@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 import Fastify from "fastify";
 import jwt from "jsonwebtoken";
 import pg from "pg";
@@ -84,11 +85,37 @@ function slugify(value: string) {
 }
 
 function encodeSecret(value: unknown) {
-  return Buffer.from(JSON.stringify({ ...((value as Record<string, unknown>) ?? {}), keyHint: env.encryptionKey.slice(0, 4) })).toString("base64");
+  const key = crypto.createHash("sha256").update(env.encryptionKey).digest();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  const plaintext = JSON.stringify({ ...((value as Record<string, unknown>) ?? {}), keyHint: env.encryptionKey.slice(0, 4) });
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v1:${iv.toString("base64")}:${tag.toString("base64")}:${encrypted.toString("base64")}`;
 }
 
 function decodeSecret<T>(value: string): T {
+  if (value.startsWith("v1:")) {
+    const [, iv, tag, encrypted] = value.split(":");
+    const key = crypto.createHash("sha256").update(env.encryptionKey).digest();
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(iv, "base64"));
+    decipher.setAuthTag(Buffer.from(tag, "base64"));
+    const decrypted = Buffer.concat([decipher.update(Buffer.from(encrypted, "base64")), decipher.final()]).toString("utf8");
+    return JSON.parse(decrypted) as T;
+  }
   return JSON.parse(Buffer.from(value, "base64").toString("utf8")) as T;
+}
+
+async function migrateEncryptedSecrets() {
+  const tenantCredentials = await pool.query(`SELECT id, encrypted_secret FROM tenant_payment_credentials WHERE encrypted_secret <> '' AND encrypted_secret NOT LIKE 'v1:%'`);
+  for (const row of tenantCredentials.rows) {
+    await pool.query(`UPDATE tenant_payment_credentials SET encrypted_secret = $1 WHERE id = $2`, [encodeSecret(decodeSecret(row.encrypted_secret)), row.id]);
+  }
+
+  const platformCredentials = await pool.query(`SELECT id, encrypted_secret FROM platform_payment_credentials WHERE encrypted_secret <> '' AND encrypted_secret NOT LIKE 'v1:%'`);
+  for (const row of platformCredentials.rows) {
+    await pool.query(`UPDATE platform_payment_credentials SET encrypted_secret = $1 WHERE id = $2`, [encodeSecret(decodeSecret(row.encrypted_secret)), row.id]);
+  }
 }
 
 function splitName(value: string) {
@@ -319,6 +346,7 @@ async function migrate() {
     [env.platformOwnerEmail.toLowerCase(), ownerPasswordHash],
   );
   await expireOverdueSubscriptions();
+  await migrateEncryptedSecrets();
 }
 
 app.get("/health", async () => {
