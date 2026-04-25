@@ -195,16 +195,29 @@ async function testPlatformPaymob() {
 
 async function createSubscriptionInvoice(event) {
   event.preventDefault();
-  if (!$("planCode").value) {
-    await loadPlans();
+  const button = event.currentTarget.querySelector("button");
+  try {
+    button.disabled = true;
+    button.textContent = "جارٍ إنشاء الفاتورة...";
+    $("subscription-status").innerHTML = "<strong>جارٍ إنشاء الفاتورة</strong><p>نجهز فاتورة الاشتراك الآن.</p>";
+    if (!$("planCode").value) {
+      await loadPlans();
+    }
+    if (!$("planCode").value) {
+      throw new Error("لا توجد خطط اشتراك متاحة حاليًا. جرّب تحديث الصفحة أو راجع السوبر أدمن.");
+    }
+    const form = new FormData(event.currentTarget);
+    const data = await api("/api/merchant/subscription-invoices", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
+    showMessage(`تم إنشاء فاتورة اشتراك: ${data.invoice.id}`);
+    $("subscription-status").innerHTML = `<strong>تم إنشاء الفاتورة</strong><p>رقم الفاتورة: ${data.invoice.id}</p><p>اضغط زر دفع Paymob من قائمة الفواتير بالأسفل.</p>`;
+    await loadBillingData();
+  } catch (error) {
+    showMessage(error.message, true);
+    $("subscription-status").innerHTML = `<strong>تعذر إنشاء الفاتورة</strong><p>${error.message}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "إنشاء فاتورة اشتراك";
   }
-  if (!$("planCode").value) {
-    return showMessage("لا توجد خطط اشتراك متاحة حاليًا. جرّب تحديث الصفحة أو راجع السوبر أدمن.", true);
-  }
-  const form = new FormData(event.currentTarget);
-  const data = await api("/api/merchant/subscription-invoices", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
-  showMessage(`تم إنشاء فاتورة اشتراك: ${data.invoice.id}`);
-  await loadBillingData();
 }
 
 async function loadPlans() {
@@ -360,10 +373,21 @@ function renderBilling(store, invoices) {
       .join("") || "<li>لا توجد فواتير اشتراك بعد.</li>";
   document.querySelectorAll("[data-pay-invoice]").forEach((button) => {
     button.addEventListener("click", async () => {
-      const data = await api(`/api/merchant/subscription-invoices/${button.dataset.payInvoice}/pay`, { method: "POST", body: JSON.stringify({}) });
-      showMessage(`تم تجهيز دفع Paymob: ${data.payment.status}`);
-      if (data.payment.checkoutUrl) window.open(data.payment.checkoutUrl, "_blank", "noopener");
-      await loadBillingData();
+      try {
+        button.disabled = true;
+        button.textContent = "جارٍ تجهيز الدفع...";
+        const data = await api(`/api/merchant/subscription-invoices/${button.dataset.payInvoice}/pay`, { method: "POST", body: JSON.stringify({}) });
+        showMessage(`تم تجهيز دفع Paymob: ${data.payment.status}`);
+        $("subscription-status").innerHTML = `<strong>تم تجهيز الدفع</strong><p>لو لم تفتح صفحة Paymob تلقائيًا، اضغط زر الدفع مرة أخرى.</p>`;
+        if (data.payment.checkoutUrl) window.open(data.payment.checkoutUrl, "_blank", "noopener");
+        await loadBillingData();
+      } catch (error) {
+        showMessage(error.message, true);
+        $("subscription-status").innerHTML = `<strong>تعذر تجهيز الدفع</strong><p>${error.message}</p>`;
+      } finally {
+        button.disabled = false;
+        button.textContent = "دفع Paymob";
+      }
     });
   });
 }
