@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042511" />
+  <link rel="stylesheet" href="/styles.css?v=2026042513" />
 </head>
 <body>
   <div class="app-shell">
@@ -159,6 +159,34 @@
               <button class="span-2">حفظ بيانات المتجر</button>
             </form>
           </article>
+          <article class="panel span-2">
+            <div class="panel-heading">
+              <span class="eyebrow">Team & Security</span>
+              <h2>الفريق والأمان</h2>
+            </div>
+            <div class="grid two">
+              <div>
+                <h3>موظفو المتجر</h3>
+                <form id="staff-form" class="form-grid">
+                  <label>اسم الموظف<input name="name" required></label>
+                  <label>البريد<input name="email" type="email" required></label>
+                  <label>موبايل<input name="phone"></label>
+                  <label>كلمة مرور مؤقتة<input name="password" type="password" minlength="8" required></label>
+                  <button class="span-2">إضافة موظف</button>
+                </form>
+                <ul id="staff-list" class="list"></ul>
+              </div>
+              <div>
+                <h3>تغيير كلمة المرور</h3>
+                <form id="password-form" class="form-stack">
+                  <label>كلمة المرور الحالية<input name="currentPassword" type="password" required></label>
+                  <label>كلمة المرور الجديدة<input name="newPassword" type="password" minlength="8" required></label>
+                  <button>تحديث كلمة المرور</button>
+                </form>
+                <div class="hint-box">صاحب المتجر فقط يضيف الموظفين. الموظف يدخل بنفس شاشة تسجيل الدخول ويشاهد بيانات نفس المتجر.</div>
+              </div>
+            </div>
+          </article>
         </div>
         <div class="grid two">
           <article class="panel">
@@ -221,6 +249,18 @@
               <div id="product-detail" class="product-detail">اختر منتجًا لعرض التفاصيل.</div>
               <ul id="cart-items" class="list"></ul>
               <div class="status-line"><strong>الإجمالي</strong><span id="cart-total">0.00 EGP</span></div>
+              <details class="customer-account">
+                <summary>حساب العميل</summary>
+                <form id="customer-register-form" class="form-stack">
+                  <label>الاسم<input name="name"></label>
+                  <label>البريد<input name="email" type="email"></label>
+                  <label>الموبايل<input name="phone"></label>
+                  <label>كلمة المرور<input name="password" type="password" minlength="8"></label>
+                  <button>إنشاء حساب عميل</button>
+                </form>
+                <button type="button" class="secondary" id="customer-orders-button">عرض طلباتي</button>
+                <ul id="customer-orders" class="list"></ul>
+              </details>
               <form id="order-form" class="form-stack">
                 <label>اسم العميل<input name="customerName" required></label>
                 <label>موبايل العميل<input name="customerPhone" required></label>
@@ -366,6 +406,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042511"></script>
+  <script src="/app.js?v=2026042513"></script>
 </body>
 </html>

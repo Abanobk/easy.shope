@@ -65,7 +65,7 @@ jobs:
           set -euo pipefail
           test -n "${SSH_USER:-}" || { echo "Missing secret SSH_USER"; exit 1; }
           test -n "${DEPLOY_PATH:-}" || { echo "Missing secret DEPLOY_PATH"; exit 1; }
-          tar -czf /tmp/easy-shope-deploy.tgz docker-compose.yml .env.example deploy apps
+          tar -czf /tmp/easy-shope-deploy.tgz docker-compose.yml .env.example deploy apps scripts
           ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
             "${SSH_USER}@${SSH_HOST}" \
             "set -euo pipefail; mkdir -p \"${DEPLOY_PATH}\""

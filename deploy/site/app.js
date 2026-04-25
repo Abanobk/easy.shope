@@ -2,6 +2,7 @@ const state = {
   token: localStorage.getItem("easyShopeToken") || "",
   tenantSlug: localStorage.getItem("easyShopeTenantSlug") || "",
   role: localStorage.getItem("easyShopeRole") || "",
+  customerToken: localStorage.getItem("easyShopeCustomerToken") || "",
   cart: [],
   storefrontCategory: "",
 };
@@ -62,6 +63,20 @@ async function api(path, options = {}) {
     error.details = data.details;
     throw error;
   }
+  return data;
+}
+
+async function customerApi(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(state.customerToken ? { Authorization: `Bearer ${state.customerToken}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || `Request failed: ${response.status}`);
   return data;
 }
 
@@ -180,6 +195,43 @@ async function saveStoreSettings(event) {
   showMessage("تم حفظ إعدادات المتجر.");
   fillStoreSettings(data.store);
   await refreshMe();
+}
+
+async function createStaff(event) {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button");
+  try {
+    button.disabled = true;
+    button.textContent = "جارٍ إضافة الموظف...";
+    const form = new FormData(event.currentTarget);
+    await api("/api/merchant/staff", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
+    showMessage("تم إضافة الموظف.");
+    event.currentTarget.reset();
+    await loadStaff();
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "إضافة موظف";
+  }
+}
+
+async function changePassword(event) {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button");
+  try {
+    button.disabled = true;
+    button.textContent = "جارٍ التحديث...";
+    const form = new FormData(event.currentTarget);
+    await api("/api/auth/change-password", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
+    showMessage("تم تحديث كلمة المرور.");
+    event.currentTarget.reset();
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "تحديث كلمة المرور";
+  }
 }
 
 function fillStoreSettings(store) {
@@ -333,6 +385,55 @@ async function loadMerchantData() {
   await loadPlans();
   renderBilling(dashboard.tenant, billing.invoices);
   bindMerchantActions();
+  await loadStaff();
+}
+
+async function loadStaff() {
+  const staffList = $("staff-list");
+  if (!staffList) return;
+  if (state.role !== "merchant_owner") {
+    staffList.innerHTML = "<li>إدارة الموظفين متاحة لصاحب المتجر فقط.</li>";
+    $("staff-form")?.querySelectorAll("input, button").forEach((element) => {
+      element.disabled = true;
+    });
+    return;
+  }
+  $("staff-form")?.querySelectorAll("input, button").forEach((element) => {
+    element.disabled = false;
+  });
+  const data = await api("/api/merchant/staff");
+  staffList.innerHTML =
+    data.staff
+      .map(
+        (member) => `<li>
+          <strong>${member.name}<small>${member.email} - ${member.status}</small></strong>
+          <span class="row-actions">
+            <button data-staff-status="${member.id}:${member.status === "active" ? "disabled" : "active"}">${member.status === "active" ? "تعطيل" : "تفعيل"}</button>
+            <button class="danger-button" data-staff-delete="${member.id}">حذف</button>
+          </span>
+        </li>`,
+      )
+      .join("") || "<li>لا يوجد موظفون بعد.</li>";
+  bindStaffActions();
+}
+
+function bindStaffActions() {
+  document.querySelectorAll("[data-staff-status]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [staffId, status] = button.dataset.staffStatus.split(":");
+      await api(`/api/merchant/staff/${staffId}`, { method: "PATCH", body: JSON.stringify({ status }) });
+      showMessage(`تم تحديث الموظف إلى ${status}.`);
+      await loadStaff();
+    });
+  });
+  document.querySelectorAll("[data-staff-delete]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!confirm("هل تريد حذف هذا الموظف؟")) return;
+      await api(`/api/merchant/staff/${button.dataset.staffDelete}`, { method: "DELETE", body: JSON.stringify({}) });
+      showMessage("تم حذف الموظف.");
+      await loadStaff();
+    });
+  });
 }
 
 function bindMerchantActions() {
@@ -421,6 +522,35 @@ async function placeOrder(event) {
   state.cart = [];
   renderCart();
   if (!["platform_owner", "platform_admin"].includes(state.role)) await loadMerchantData();
+}
+
+async function registerCustomer(event) {
+  event.preventDefault();
+  const slug = $("tenant-slug").value.trim();
+  if (!slug) return showMessage("حمّل المتجر أولًا قبل إنشاء حساب عميل.", true);
+  const form = new FormData(event.currentTarget);
+  const payload = Object.fromEntries([...form.entries()].filter(([, value]) => String(value).trim()));
+  try {
+    const data = await api(`/api/store/${slug}/customers/register`, { method: "POST", body: JSON.stringify(payload) });
+    state.customerToken = data.token;
+    localStorage.setItem("easyShopeCustomerToken", state.customerToken);
+    showMessage("تم إنشاء حساب العميل.");
+    await loadCustomerOrders();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+}
+
+async function loadCustomerOrders() {
+  if (!state.customerToken) return showMessage("أنشئ حساب عميل أولًا لعرض الطلبات.", true);
+  try {
+    const data = await customerApi("/api/customer/orders");
+    $("customer-orders").innerHTML =
+      data.orders.map((order) => `<li><strong>${money(order.total_cents)}</strong><span>${order.status} - ${order.payment_status}</span></li>`).join("") ||
+      "<li>لا توجد طلبات لهذا العميل بعد.</li>";
+  } catch (error) {
+    showMessage(error.message, true);
+  }
 }
 
 function bindStorefrontActions() {
@@ -665,6 +795,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("category-form").addEventListener("submit", createCategory);
   $("product-form").addEventListener("submit", createProduct);
   $("store-settings-form").addEventListener("submit", saveStoreSettings);
+  $("staff-form").addEventListener("submit", createStaff);
+  $("password-form").addEventListener("submit", changePassword);
   $("easycash-form").addEventListener("submit", saveEasyCash);
   $("paymob-form").addEventListener("submit", savePaymob);
   $("test-paymob").addEventListener("click", testPaymob);
@@ -673,6 +805,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
   $("order-form").addEventListener("submit", placeOrder);
+  $("customer-register-form").addEventListener("submit", registerCustomer);
+  $("customer-orders-button").addEventListener("click", loadCustomerOrders);
   fillPaymobCallbackUrls();
   document.querySelectorAll(".callback-box input[readonly]").forEach((input) => {
     input.addEventListener("click", async () => {

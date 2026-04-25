@@ -98,6 +98,14 @@ function requireTenantUser(request: Parameters<typeof getAuth>[0]) {
   return user;
 }
 
+function requireMerchantOwner(request: Parameters<typeof getAuth>[0]) {
+  const user = requireTenantUser(request);
+  if (user.role !== "merchant_owner") {
+    throw httpError("Only the merchant owner can manage staff", 403);
+  }
+  return user;
+}
+
 function slugify(value: string) {
   return value
     .trim()
@@ -394,6 +402,7 @@ async function migrate() {
     );
   `);
   await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_provider text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS checkout_url text;
@@ -492,6 +501,9 @@ app.post("/api/auth/login", async (request, reply) => {
   if (!user || !(await bcrypt.compare(body.password, user.password_hash))) {
     return reply.code(401).send({ message: "Invalid email or password" });
   }
+  if (user.status !== "active") {
+    return reply.code(403).send({ message: "This account is disabled" });
+  }
   const token = signToken({ userId: user.id, tenantId: user.tenant_id, role: user.role });
   return { token, user: { id: user.id, tenantId: user.tenant_id, name: user.name, email: user.email, role: user.role } };
 });
@@ -499,12 +511,77 @@ app.post("/api/auth/login", async (request, reply) => {
 app.get("/api/me", async (request) => {
   const user = requireAuth(request);
   const result = await pool.query(
-    `SELECT users.id, users.name, users.email, users.role, users.tenant_id, tenants.name_en AS store_name, tenants.slug
+    `SELECT users.id, users.name, users.email, users.role, users.status, users.tenant_id, tenants.name_en AS store_name, tenants.slug
      FROM users LEFT JOIN tenants ON tenants.id = users.tenant_id
      WHERE users.id = $1`,
     [user.userId],
   );
   return result.rows[0];
+});
+
+app.post("/api/auth/change-password", async (request, reply) => {
+  const user = requireAuth(request);
+  const body = z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(8) }).parse(request.body);
+  const result = await pool.query(`SELECT id, password_hash FROM users WHERE id = $1`, [user.userId]);
+  const row = result.rows[0];
+  if (!row || !(await bcrypt.compare(body.currentPassword, row.password_hash))) {
+    return reply.code(401).send({ message: "Current password is incorrect" });
+  }
+  const passwordHash = await bcrypt.hash(body.newPassword, 12);
+  await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [passwordHash, user.userId]);
+  return { ok: true };
+});
+
+app.get("/api/merchant/staff", async (request) => {
+  const user = requireMerchantOwner(request);
+  const result = await pool.query(
+    `SELECT id, name, email, phone, role, status, created_at
+     FROM users
+     WHERE tenant_id = $1 AND role = 'merchant_staff'
+     ORDER BY created_at DESC`,
+    [user.tenantId],
+  );
+  return { staff: result.rows };
+});
+
+app.post("/api/merchant/staff", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const body = z.object({ name: z.string().min(2), email: z.string().email(), phone: z.string().optional(), password: z.string().min(8) }).parse(request.body);
+  const existing = await pool.query(`SELECT id FROM users WHERE email = $1`, [body.email.toLowerCase()]);
+  if (existing.rows[0]) return reply.code(409).send({ message: "هذا البريد مستخدم بالفعل." });
+  const passwordHash = await bcrypt.hash(body.password, 12);
+  const result = await pool.query(
+    `INSERT INTO users (tenant_id, name, email, phone, password_hash, role, status)
+     VALUES ($1, $2, $3, $4, $5, 'merchant_staff', 'active')
+     RETURNING id, name, email, phone, role, status, created_at`,
+    [user.tenantId, body.name, body.email.toLowerCase(), body.phone ?? null, passwordHash],
+  );
+  return reply.code(201).send({ staff: result.rows[0] });
+});
+
+app.patch("/api/merchant/staff/:staffId", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const params = z.object({ staffId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ name: z.string().min(2).optional(), phone: z.string().nullable().optional(), status: z.enum(["active", "disabled"]).optional() }).parse(request.body);
+  const result = await pool.query(
+    `UPDATE users
+     SET name = coalesce($3, name),
+         phone = CASE WHEN $4::boolean THEN $5::text ELSE phone END,
+         status = coalesce($6, status)
+     WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff'
+     RETURNING id, name, email, phone, role, status, created_at`,
+    [params.staffId, user.tenantId, body.name ?? null, Object.prototype.hasOwnProperty.call(body, "phone"), body.phone ?? null, body.status ?? null],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
+  return { staff: result.rows[0] };
+});
+
+app.delete("/api/merchant/staff/:staffId", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const params = z.object({ staffId: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`DELETE FROM users WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff' RETURNING id`, [params.staffId, user.tenantId]);
+  if (!result.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
+  return reply.code(204).send();
 });
 
 app.get("/api/plans", async () => {
@@ -897,6 +974,43 @@ app.get("/api/store/:tenantSlug/products/:productSlug", async (request, reply) =
   );
   if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });
   return { product: result.rows[0] };
+});
+
+app.post("/api/store/:tenantSlug/customers/register", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string() }).parse(request.params);
+  const body = z.object({ name: z.string().min(2), email: z.string().email(), phone: z.string().min(6), password: z.string().min(8) }).parse(request.body);
+  const tenant = await pool.query(`SELECT id, slug FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [params.tenantSlug]);
+  if (!tenant.rows[0]) return reply.code(404).send({ message: "Store not found" });
+  const existing = await pool.query(`SELECT id FROM users WHERE email = $1`, [body.email.toLowerCase()]);
+  if (existing.rows[0]) return reply.code(409).send({ message: "هذا البريد مستخدم بالفعل. جرّب تسجيل الدخول." });
+  const passwordHash = await bcrypt.hash(body.password, 12);
+  const user = await pool.query(
+    `INSERT INTO users (tenant_id, name, email, phone, password_hash, role, status)
+     VALUES ($1, $2, $3, $4, $5, 'customer', 'active')
+     RETURNING id, tenant_id, name, email, phone, role, status`,
+    [tenant.rows[0].id, body.name, body.email.toLowerCase(), body.phone, passwordHash],
+  );
+  await pool.query(
+    `INSERT INTO customers (tenant_id, name, email, phone)
+     VALUES ($1, $2, $3, $4)`,
+    [tenant.rows[0].id, body.name, body.email.toLowerCase(), body.phone],
+  );
+  const token = signToken({ userId: user.rows[0].id, tenantId: tenant.rows[0].id, role: "customer" });
+  return reply.code(201).send({ token, user: user.rows[0], tenant: tenant.rows[0] });
+});
+
+app.get("/api/customer/orders", async (request) => {
+  const user = requireTenantUser(request);
+  if (user.role !== "customer") throw httpError("Customer account required", 403);
+  const me = await pool.query(`SELECT email, phone FROM users WHERE id = $1`, [user.userId]);
+  const result = await pool.query(
+    `SELECT * FROM orders
+     WHERE tenant_id = $1 AND (customer_email = $2 OR customer_phone = $3)
+     ORDER BY created_at DESC
+     LIMIT 25`,
+    [user.tenantId, me.rows[0]?.email ?? null, me.rows[0]?.phone ?? null],
+  );
+  return { orders: result.rows };
 });
 
 app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
