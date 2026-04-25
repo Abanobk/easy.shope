@@ -41,6 +41,8 @@ function clearAuthState() {
   localStorage.removeItem("easyShopeToken");
   localStorage.removeItem("easyShopeTenantSlug");
   localStorage.removeItem("easyShopeRole");
+  if ($("current-user")) $("current-user").textContent = "guest";
+  updateNavigation();
 }
 
 async function api(path, options = {}) {
@@ -56,6 +58,7 @@ async function api(path, options = {}) {
   if (!response.ok) {
     if (response.status === 401 && path !== "/api/auth/login") {
       clearAuthState();
+      setOnboardingMode("login");
       setView("onboarding");
     }
     const baseMessage = response.status === 401 ? "انتهت جلسة تسجيل الدخول. سجّل دخول كتاجر مرة أخرى ثم أعد إنشاء الفاتورة." : data.message || `Request failed: ${response.status}`;
@@ -101,6 +104,7 @@ function defaultViewForScope(scope = currentScope()) {
 
 function updateNavigation() {
   const scope = currentScope();
+  document.body.dataset.scope = scope;
   document.querySelectorAll(".nav-item").forEach((button) => {
     const scopes = (button.dataset.scope || "public").split(",");
     button.hidden = !scopes.includes(scope);
@@ -109,12 +113,17 @@ function updateNavigation() {
   if ($("merchant-summary")) $("merchant-summary").hidden = scope !== "merchant";
 }
 
+function setOnboardingMode(mode = "register") {
+  document.body.dataset.authMode = mode === "login" ? "login" : "register";
+}
+
 function setView(view) {
   updateNavigation();
   const navButton = document.querySelector(`[data-view="${view}"]`);
   if (navButton?.hidden || !$(`view-${view}`)) {
     view = defaultViewForScope();
   }
+  document.body.dataset.view = view;
   document.querySelectorAll(".view").forEach((element) => element.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
   $(`view-${view}`)?.classList.add("active");
@@ -136,7 +145,7 @@ async function refreshMe() {
   localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
   $("current-user").textContent = `${me.name} (${me.role})`;
   $("tenant-slug").value = state.tenantSlug || "";
-  $("overview-slug").textContent = state.tenantSlug || "غير محدد";
+  if ($("overview-slug")) $("overview-slug").textContent = state.tenantSlug || "غير محدد";
   updateNavigation();
 }
 
@@ -808,10 +817,14 @@ async function bootstrap() {
     updateNavigation();
     const health = await api("/api/health");
     $("api-status").textContent = health.ok ? "API online" : "API error";
-    $("overview-api").textContent = health.ok ? "online" : "error";
-    $("overview-api").className = health.ok ? "ok" : "";
-    $("overview-db").textContent = health.db === false ? "checking" : "online";
-    $("overview-db").className = "ok";
+    if ($("overview-api")) {
+      $("overview-api").textContent = health.ok ? "online" : "error";
+      $("overview-api").className = health.ok ? "ok" : "";
+    }
+    if ($("overview-db")) {
+      $("overview-db").textContent = health.db === false ? "checking" : "online";
+      $("overview-db").className = "ok";
+    }
     $("api-dot").classList.toggle("ok", Boolean(health.ok));
     await refreshMe();
     if (["merchant_owner", "merchant_staff"].includes(state.role)) {
@@ -837,6 +850,7 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  setOnboardingMode("register");
   updateNavigation();
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -848,7 +862,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   document.querySelectorAll("[data-jump]").forEach((button) => {
-    button.addEventListener("click", () => setView(button.dataset.jump));
+    button.addEventListener("click", () => {
+      if (button.dataset.authMode) setOnboardingMode(button.dataset.authMode);
+      setView(button.dataset.jump);
+    });
+  });
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setOnboardingMode(button.dataset.authMode);
+      if (!button.dataset.jump) setView("onboarding");
+    });
   });
   $("register-form").addEventListener("submit", registerMerchant);
   $("login-form").addEventListener("submit", login);

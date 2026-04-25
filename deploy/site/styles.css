@@ -29,6 +29,22 @@ body {
   font-family: "Inter", "Cairo", "Segoe UI", system-ui, sans-serif;
 }
 
+body[data-scope="public"] .app-shell {
+  display: block;
+}
+
+body[data-scope="public"] .sidebar,
+body[data-scope="public"] .topbar,
+body[data-scope="public"][data-view="overview"] .message,
+body[data-scope="public"][data-view="overview"] .landing-benefits {
+  display: none;
+}
+
+body[data-scope="public"] .main {
+  width: min(1120px, calc(100% - 32px));
+  padding: 32px 0;
+}
+
 button,
 input,
 select,
@@ -182,6 +198,10 @@ button,
   color: #cbd5e1;
 }
 
+.system-status {
+  display: none;
+}
+
 .message {
   border-radius: 18px;
   margin-bottom: 18px;
@@ -242,12 +262,17 @@ button,
 }
 
 .landing-hero {
-  min-height: 420px;
+  min-height: calc(100vh - 64px);
   align-items: center;
   background:
     radial-gradient(circle at 80% 20%, rgba(56, 189, 248, .22), transparent 32%),
     radial-gradient(circle at 15% 80%, rgba(167, 139, 250, .18), transparent 34%),
     rgba(15, 23, 42, .78);
+}
+
+body[data-scope="public"] .landing-hero {
+  margin: 0;
+  padding: clamp(28px, 6vw, 64px);
 }
 
 .landing-card-stack {
@@ -275,6 +300,25 @@ button,
 .landing-card span {
   color: #cbd5e1;
   line-height: 1.7;
+}
+
+.auth-shell {
+  width: min(760px, 100%);
+  margin: 0 auto;
+}
+
+.auth-panel {
+  min-height: 0;
+}
+
+body[data-auth-mode="register"] .login-panel,
+body[data-auth-mode="login"] .register-panel {
+  display: none;
+}
+
+.auth-switch {
+  margin-top: 14px;
+  width: 100%;
 }
 
 .metric-grid,
