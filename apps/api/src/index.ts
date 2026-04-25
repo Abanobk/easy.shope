@@ -1155,7 +1155,8 @@ app.post("/api/webhooks/paymob", async (request, reply) => {
   const transactionId = String(obj.id || obj.transaction_id || obj.payment_key_claims || "");
   if (!orderId) return { ok: true, ignored: true };
   if (orderId.startsWith("subscription_invoice:")) {
-    const invoiceId = orderId.replace("subscription_invoice:", "");
+    const [, invoiceId] = orderId.split(":");
+    if (!invoiceId) return { ok: true, ignored: true };
     const credentials = await pool.query(`SELECT encrypted_secret FROM platform_payment_credentials WHERE provider = 'paymob'`);
     const secret = credentials.rows[0] ? decodeSecret<{ hmacSecret?: string }>(credentials.rows[0].encrypted_secret) : null;
     if (secret?.hmacSecret && !paymobHmacMatches(obj, secret.hmacSecret, receivedHmac)) {
@@ -1288,6 +1289,7 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
   const secret = decodeSecret<{ secretKey: string }>(gateway.encrypted_secret);
   const publicConfig = gateway.public_config as { publicKey: string; cardIntegrationId: number; currency?: string };
   const merchantName = splitName(String(invoice.merchant_name || invoice.tenant_name || "Merchant Store"));
+  const paymentReference = `subscription_invoice:${invoice.id}:${Date.now()}`;
   const intentionResponse = await fetch("https://accept.paymob.com/v1/intention/", {
     method: "POST",
     headers: { Authorization: `Token ${secret.secretKey}`, "Content-Type": "application/json" },
@@ -1315,7 +1317,7 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
         apartment: "NA",
         floor: "NA",
       },
-      special_reference: `subscription_invoice:${invoice.id}`,
+      special_reference: paymentReference,
       notification_url: absoluteUrl(request, "/api/webhooks/paymob"),
       redirection_url: absoluteUrl(request, `/?subscription_invoice=${invoice.id}`),
       expiration: 3600,
