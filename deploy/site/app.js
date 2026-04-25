@@ -1132,7 +1132,23 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
       setView(button.dataset.view);
+      if (button.dataset.view === "payments" && !["platform_owner", "platform_admin"].includes(state.role)) {
+        loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
+      }
     });
+  });
+
+  // Fallback delegated handler in case the sidebar is re-rendered or handlers were missed.
+  document.body.addEventListener("click", (event) => {
+    const target = event.target?.closest?.(".merchant-side-item");
+    if (!target) return;
+    const view = target.dataset.view;
+    if (!view) return;
+    event.preventDefault();
+    setView(view);
+    if (view === "payments" && !["platform_owner", "platform_admin"].includes(state.role)) {
+      loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
+    }
   });
   $("category-filter").addEventListener("input", renderMerchantCategories);
   $("show-category-form").addEventListener("click", () => setCreationForm("category-form", true));
