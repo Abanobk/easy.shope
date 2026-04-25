@@ -167,10 +167,19 @@ function paymobCheckoutUrl(publicKey: string, clientSecret: string) {
   const params = new URLSearchParams({
     publicKey,
     clientSecret,
-    public_key: publicKey,
-    client_secret: clientSecret,
   });
   return `https://accept.paymob.com/unifiedcheckout/?${params.toString()}`;
+}
+
+function isLikelyPaymobPublicKey(value: unknown) {
+  const key = String(value || "").trim();
+  return /(^|_)pk(_|l_|t_|test_|live_)/i.test(key) || /^pkt_/i.test(key) || /^pkl_/i.test(key);
+}
+
+function assertPaymobPublicKey(publicKey: unknown) {
+  if (!isLikelyPaymobPublicKey(publicKey)) {
+    throw httpError("Paymob Public Key غير صحيح. افتح Paymob > Developers > API Keys وانسخ Public Key الذي يبدأ غالبًا بـ pk أو egy_pk، وليس API Token أو Secret.", 400);
+  }
 }
 
 function paymobErrorMessage(payload: unknown): string {
@@ -821,6 +830,7 @@ app.post("/api/merchant/payment-providers/paymob", async (request) => {
     walletIntegrationId: body.walletIntegrationId ?? existingConfig.walletIntegrationId ?? null,
     currency: body.currency.toUpperCase(),
   };
+  assertPaymobPublicKey(publicConfig.publicKey);
   const result = await pool.query(
     `INSERT INTO tenant_payment_credentials (tenant_id, provider, mode, public_config, encrypted_secret, is_enabled)
      VALUES ($1, 'paymob', $2, $3, $4, $5)
@@ -1095,6 +1105,7 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
 
     const secret = decodeSecret<{ secretKey: string }>(credentials.encrypted_secret);
     const publicConfig = credentials.public_config as { publicKey: string; cardIntegrationId: number; currency?: string };
+    assertPaymobPublicKey(publicConfig.publicKey);
     const { firstName, lastName } = splitName(body.customerName);
     const intentionResponse = await fetch("https://accept.paymob.com/v1/intention/", {
       method: "POST",
@@ -1296,6 +1307,7 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
 
   const secret = decodeSecret<{ secretKey: string }>(gateway.encrypted_secret);
   const publicConfig = gateway.public_config as { publicKey: string; cardIntegrationId: number; currency?: string };
+  assertPaymobPublicKey(publicConfig.publicKey);
   const merchantName = splitName(String(invoice.merchant_name || invoice.tenant_name || "Merchant Store"));
   const paymentReference = `subscription_invoice:${invoice.id}:${Date.now()}`;
   const intentionResponse = await fetch("https://accept.paymob.com/v1/intention/", {
@@ -1476,6 +1488,7 @@ app.post("/api/admin/payment-providers/paymob", async (request) => {
     walletIntegrationId: body.walletIntegrationId ?? existingConfig.walletIntegrationId ?? null,
     currency: body.currency.toUpperCase(),
   };
+  assertPaymobPublicKey(publicConfig.publicKey);
   const result = await pool.query(
     `INSERT INTO platform_payment_credentials (provider, mode, public_config, encrypted_secret, is_enabled)
      VALUES ('paymob', $1, $2, $3, $4)
