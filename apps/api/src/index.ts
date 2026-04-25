@@ -370,6 +370,13 @@ app.post("/api/auth/register-merchant", async (request, reply) => {
     .parse(request.body);
 
   const slug = slugify(body.storeNameEn);
+  if (!slug) return reply.code(400).send({ message: "Store English name must contain letters or numbers" });
+  const existing = await pool.query(`SELECT 'email' AS field FROM users WHERE email = $1 UNION ALL SELECT 'store' AS field FROM tenants WHERE slug = $2`, [
+    body.email.toLowerCase(),
+    slug,
+  ]);
+  if (existing.rows.some((row) => row.field === "email")) return reply.code(409).send({ message: "هذا البريد مستخدم بالفعل. جرّب تسجيل الدخول أو استخدم بريدًا آخر." });
+  if (existing.rows.some((row) => row.field === "store")) return reply.code(409).send({ message: "اسم المتجر الإنجليزي مستخدم بالفعل. غيّر الاسم الإنجليزي قليلًا." });
   const passwordHash = await bcrypt.hash(body.password, 12);
   const client = await pool.connect();
   try {

@@ -78,20 +78,33 @@ async function refreshMe() {
 
 async function registerMerchant(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const data = await api("/api/auth/register-merchant", {
-    method: "POST",
-    body: JSON.stringify(Object.fromEntries(form.entries())),
-  });
-  state.token = data.token;
-  state.role = data.user.role;
-  state.tenantSlug = data.tenant.slug;
-  localStorage.setItem("easyShopeToken", state.token);
-  localStorage.setItem("easyShopeRole", state.role);
-  localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
-  showMessage("تم تسجيل التاجر وإنشاء المتجر.");
-  await bootstrap();
-  setView("catalog");
+  const button = event.currentTarget.querySelector("button");
+  try {
+    button.disabled = true;
+    button.textContent = "جارٍ إنشاء المتجر...";
+    $("register-result").innerHTML = "<strong>جارٍ إنشاء المتجر</strong><p>نجهز حساب التاجر والمتجر الآن.</p>";
+    const form = new FormData(event.currentTarget);
+    const data = await api("/api/auth/register-merchant", {
+      method: "POST",
+      body: JSON.stringify(Object.fromEntries(form.entries())),
+    });
+    state.token = data.token;
+    state.role = data.user.role;
+    state.tenantSlug = data.tenant.slug;
+    localStorage.setItem("easyShopeToken", state.token);
+    localStorage.setItem("easyShopeRole", state.role);
+    localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
+    $("register-result").innerHTML = `<strong>تم إنشاء المتجر</strong><p>Store slug: ${data.tenant.slug}</p><p>تم تسجيل الدخول كتاجر.</p>`;
+    showMessage("تم تسجيل التاجر وإنشاء المتجر.");
+    await bootstrap();
+    setView("catalog");
+  } catch (error) {
+    showMessage(error.message, true);
+    $("register-result").innerHTML = `<strong>تعذر إنشاء المتجر</strong><p>${error.message}</p>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "إنشاء المتجر ولوحة التحكم";
+  }
 }
 
 async function login(event) {
