@@ -42,8 +42,9 @@ app.setErrorHandler((error, _request, reply) => {
       issues: error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
     });
   }
-  const statusCode = (error as Error & { statusCode?: number }).statusCode || 500;
-  return reply.code(statusCode).send({ message: error.message || "Unexpected server error" });
+  const appError = error as Error & { statusCode?: number };
+  const statusCode = appError.statusCode || 500;
+  return reply.code(statusCode).send({ message: appError.message || "Unexpected server error" });
 });
 
 function httpError(message: string, statusCode = 400) {
