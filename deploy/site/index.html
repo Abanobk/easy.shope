@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042503" />
+  <link rel="stylesheet" href="/styles.css?v=2026042504" />
 </head>
 <body>
   <div class="app-shell">
@@ -314,6 +314,25 @@
           </article>
           <article class="panel span-2">
             <div class="panel-heading">
+              <span class="eyebrow">Platform Paymob</span>
+              <h2>بوابة دفع اشتراكات المنصة</h2>
+            </div>
+            <div id="platform-paymob-status" class="hint-box">لم يتم تحميل حالة Paymob.</div>
+            <form id="platform-paymob-form" class="form-grid">
+              <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+              <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
+              <label class="span-2">Public Key<input name="publicKey" required placeholder="pk_..."></label>
+              <label class="span-2">Secret Key<input name="secretKey" required placeholder="sk_..."></label>
+              <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري الآن"></label>
+              <label>Card Integration ID<input name="cardIntegrationId" type="number" required></label>
+              <label>Wallet Integration ID<input name="walletIntegrationId" type="number"></label>
+              <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob لاشتراكات التجار</label>
+              <button>حفظ بوابة المنصة</button>
+              <button type="button" class="secondary" id="test-platform-paymob">اختبار اتصال المنصة</button>
+            </form>
+          </article>
+          <article class="panel span-2">
+            <div class="panel-heading">
               <span class="eyebrow">Invoices</span>
               <h2>فواتير اشتراك المنصة</h2>
             </div>
@@ -328,6 +347,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042503"></script>
+  <script src="/app.js?v=2026042504"></script>
 </body>
 </html>

@@ -267,6 +267,16 @@ async function migrate() {
       UNIQUE (tenant_id, provider)
     );
 
+    CREATE TABLE IF NOT EXISTS platform_payment_credentials (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      provider text NOT NULL UNIQUE,
+      mode text NOT NULL DEFAULT 'test',
+      public_config jsonb NOT NULL DEFAULT '{}'::jsonb,
+      encrypted_secret text NOT NULL DEFAULT '',
+      is_enabled boolean NOT NULL DEFAULT false,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS platform_subscription_invoices (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -771,7 +781,7 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
     );
     return reply.code(201).send({ order: updatedOrder.rows[0], payment: { status: "redirect_required", provider: "paymob", checkoutUrl } });
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => undefined);
     throw error;
   } finally {
     client.release();
@@ -786,6 +796,19 @@ app.post("/api/webhooks/paymob", async (request) => {
   const pending = obj.pending === true || obj.pending === "true";
   const transactionId = String(obj.id || obj.transaction_id || obj.payment_key_claims || "");
   if (!orderId) return { ok: true, ignored: true };
+  if (orderId.startsWith("subscription_invoice:")) {
+    const invoiceId = orderId.replace("subscription_invoice:", "");
+    if (success) {
+      await markSubscriptionInvoicePaid(invoiceId);
+    } else {
+      await pool.query(`UPDATE platform_subscription_invoices SET status = $1, provider = 'paymob', provider_reference = coalesce($3, provider_reference) WHERE id = $2`, [
+        pending ? "pending" : "failed",
+        invoiceId,
+        transactionId || null,
+      ]);
+    }
+    return { ok: true };
+  }
   const paymentStatus = success ? "paid" : pending ? "pending" : "failed";
   const orderStatus = success ? "confirmed" : "pending";
   await pool.query(
@@ -855,23 +878,77 @@ app.get("/api/merchant/subscription-invoices", async (request) => {
 app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, reply) => {
   const user = requireTenantUser(request);
   const params = z.object({ invoiceId: z.string().uuid() }).parse(request.params);
+  const invoiceResult = await pool.query(
+    `SELECT invoices.*, tenants.name_en AS tenant_name
+     FROM platform_subscription_invoices invoices
+     JOIN tenants ON tenants.id = invoices.tenant_id
+     WHERE invoices.id = $1 AND invoices.tenant_id = $2`,
+    [params.invoiceId, user.tenantId],
+  );
+  const invoice = invoiceResult.rows[0];
+  if (!invoice) return reply.code(404).send({ message: "Invoice not found" });
+
+  const gatewayResult = await pool.query(`SELECT * FROM platform_payment_credentials WHERE provider = 'paymob' AND is_enabled = true`);
+  const gateway = gatewayResult.rows[0];
+  if (!gateway) return reply.code(400).send({ message: "Platform Paymob is not configured yet" });
+
+  const secret = decodeSecret<{ secretKey: string }>(gateway.encrypted_secret);
+  const publicConfig = gateway.public_config as { publicKey: string; cardIntegrationId: number; currency?: string };
+  const intentionResponse = await fetch("https://accept.paymob.com/v1/intention/", {
+    method: "POST",
+    headers: { Authorization: `Token ${secret.secretKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: invoice.amount_cents,
+      currency: publicConfig.currency || "EGP",
+      payment_methods: [Number(publicConfig.cardIntegrationId)],
+      items: [
+        {
+          name: `Easy Shope ${invoice.plan_code}`.slice(0, 50),
+          amount: invoice.amount_cents,
+          description: `Platform subscription for ${invoice.tenant_name}`,
+          quantity: 1,
+        },
+      ],
+      billing_data: {
+        first_name: invoice.tenant_name || "Merchant",
+        last_name: "Store",
+        phone_number: "01000000000",
+        email: "merchant@example.com",
+        country: "EG",
+        city: "Cairo",
+        street: "NA",
+        building: "NA",
+        apartment: "NA",
+        floor: "NA",
+      },
+      special_reference: `subscription_invoice:${invoice.id}`,
+      notification_url: absoluteUrl(request, "/api/webhooks/paymob"),
+      redirection_url: absoluteUrl(request, `/?subscription_invoice=${invoice.id}`),
+      expiration: 3600,
+    }),
+  });
+  const intention = await intentionResponse.json().catch(() => ({}));
+  if (!intentionResponse.ok || !intention.client_secret) {
+    return reply.code(400).send({ message: intention.message || "Paymob intention creation failed", details: intention });
+  }
+  const checkoutUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(publicConfig.publicKey)}&clientSecret=${encodeURIComponent(
+    intention.client_secret,
+  )}`;
   const result = await pool.query(
     `UPDATE platform_subscription_invoices
      SET status = 'pending',
-         provider = 'easycash',
-         provider_reference = coalesce(provider_reference, $3)
-     WHERE id = $1 AND tenant_id = $2
+         provider = 'paymob',
+         provider_reference = $2
+     WHERE id = $1
      RETURNING *`,
-    [params.invoiceId, user.tenantId, `easycash-checkout-${Date.now()}`],
+    [invoice.id, String(intention.id || intention.intention_order_id || "")],
   );
-  if (!result.rows[0]) return reply.code(404).send({ message: "Invoice not found" });
   return {
     invoice: result.rows[0],
     payment: {
-      provider: "easycash",
-      status: "pending",
-      checkoutUrl: `/mock-easycash/checkout/${result.rows[0].id}`,
-      message: "EasyCash redirect placeholder until live credentials are connected.",
+      provider: "paymob",
+      status: "redirect_required",
+      checkoutUrl,
     },
   };
 });
@@ -951,6 +1028,83 @@ app.patch("/api/admin/plans/:code", async (request) => {
     [params.code, body.name ?? null, body.priceCents ?? null, body.isActive ?? null],
   );
   return { plan: result.rows[0] };
+});
+
+app.get("/api/admin/payment-providers", async (request) => {
+  requirePlatformOwner(request);
+  const result = await pool.query(
+    `SELECT id, provider, mode, public_config, is_enabled, updated_at
+     FROM platform_payment_credentials
+     ORDER BY updated_at DESC`,
+  );
+  return { providers: result.rows };
+});
+
+app.post("/api/admin/payment-providers/paymob", async (request) => {
+  requirePlatformOwner(request);
+  const body = z
+    .object({
+      mode: z.enum(["test", "live"]).default("test"),
+      publicKey: z.string().min(8),
+      secretKey: z.string().min(8),
+      hmacSecret: z.string().optional(),
+      cardIntegrationId: z.coerce.number().int().positive(),
+      walletIntegrationId: z.coerce.number().int().positive().optional(),
+      currency: z.string().min(3).max(3).default("EGP"),
+      enabled: z.boolean().default(false),
+    })
+    .parse(request.body);
+  const publicConfig = {
+    publicKey: body.publicKey,
+    publicKeyLast8: body.publicKey.slice(-8),
+    cardIntegrationId: body.cardIntegrationId,
+    walletIntegrationId: body.walletIntegrationId ?? null,
+    currency: body.currency.toUpperCase(),
+  };
+  const result = await pool.query(
+    `INSERT INTO platform_payment_credentials (provider, mode, public_config, encrypted_secret, is_enabled)
+     VALUES ('paymob', $1, $2, $3, $4)
+     ON CONFLICT (provider)
+     DO UPDATE SET mode = EXCLUDED.mode, public_config = EXCLUDED.public_config, encrypted_secret = EXCLUDED.encrypted_secret, is_enabled = EXCLUDED.is_enabled, updated_at = now()
+     RETURNING id, provider, mode, public_config, is_enabled, updated_at`,
+    [body.mode, JSON.stringify(publicConfig), encodeSecret({ secretKey: body.secretKey, hmacSecret: body.hmacSecret ?? "" }), body.enabled],
+  );
+  return { credentials: result.rows[0] };
+});
+
+app.post("/api/admin/payment-providers/paymob/test", async (request, reply) => {
+  requirePlatformOwner(request);
+  const result = await pool.query(`SELECT * FROM platform_payment_credentials WHERE provider = 'paymob'`);
+  const credentials = result.rows[0];
+  if (!credentials) return reply.code(404).send({ message: "Platform Paymob settings not found" });
+  const secret = decodeSecret<{ secretKey: string }>(credentials.encrypted_secret);
+  const response = await fetch("https://accept.paymob.com/v1/intention/", {
+    method: "POST",
+    headers: { Authorization: `Token ${secret.secretKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: 100,
+      currency: credentials.public_config.currency || "EGP",
+      payment_methods: [Number(credentials.public_config.cardIntegrationId)],
+      items: [{ name: "Platform test", amount: 100, description: "Easy Shope platform Paymob test", quantity: 1 }],
+      billing_data: {
+        first_name: "Easy",
+        last_name: "Shope",
+        phone_number: "01000000000",
+        email: "owner@example.com",
+        country: "EG",
+        city: "Cairo",
+        street: "NA",
+        building: "NA",
+        apartment: "NA",
+        floor: "NA",
+      },
+      special_reference: `platform-test-${Date.now()}`,
+      expiration: 600,
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) return reply.code(400).send({ ok: false, message: data.message || "Paymob connection failed", details: data });
+  return { ok: true, provider: "paymob", intentionId: data.id, hasClientSecret: Boolean(data.client_secret) };
 });
 
 app.get("/api/admin/subscription-invoices", async (request) => {

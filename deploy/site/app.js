@@ -45,6 +45,10 @@ function showMessage(message, isError = false) {
 }
 
 function setView(view) {
+  if (view === "payments" && ["platform_owner", "platform_admin"].includes(state.role)) {
+    showMessage("إعدادات دفع التجار تظهر للتاجر فقط. Paymob الخاص بالمنصة موجود داخل لوحة السوبر أدمن.");
+    view = "admin";
+  }
   document.querySelectorAll(".view").forEach((element) => element.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
   $(`view-${view}`)?.classList.add("active");
@@ -161,6 +165,24 @@ async function savePaymob(event) {
 async function testPaymob() {
   const data = await api("/api/merchant/payment-providers/paymob/test", { method: "POST", body: JSON.stringify({}) });
   showMessage(data.ok ? "Paymob connection ok." : "Paymob connection failed.", !data.ok);
+}
+
+async function savePlatformPaymob(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const payload = Object.fromEntries([...form.entries()].filter(([, value]) => String(value).trim()));
+  payload.enabled = payload.enabled === "on";
+  if (payload.cardIntegrationId) payload.cardIntegrationId = Number(payload.cardIntegrationId);
+  if (payload.walletIntegrationId) payload.walletIntegrationId = Number(payload.walletIntegrationId);
+  else delete payload.walletIntegrationId;
+  await api("/api/admin/payment-providers/paymob", { method: "POST", body: JSON.stringify(payload) });
+  showMessage("تم حفظ Paymob الخاص بالمنصة.");
+  await loadAdmin();
+}
+
+async function testPlatformPaymob() {
+  const data = await api("/api/admin/payment-providers/paymob/test", { method: "POST", body: JSON.stringify({}) });
+  showMessage(data.ok ? "Platform Paymob connection ok." : "Platform Paymob connection failed.", !data.ok);
 }
 
 async function createSubscriptionInvoice(event) {
@@ -315,13 +337,14 @@ function renderBilling(store, invoices) {
   $("subscription-invoices").innerHTML =
     invoices
       .map(
-        (invoice) => `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}</strong><span>${invoice.status} <button class="mini-button" data-pay-invoice="${invoice.id}">دفع EasyCash</button></span></li>`,
+        (invoice) => `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}</strong><span>${invoice.status} <button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button></span></li>`,
       )
       .join("") || "<li>لا توجد فواتير اشتراك بعد.</li>";
   document.querySelectorAll("[data-pay-invoice]").forEach((button) => {
     button.addEventListener("click", async () => {
       const data = await api(`/api/merchant/subscription-invoices/${button.dataset.payInvoice}/pay`, { method: "POST", body: JSON.stringify({}) });
-      showMessage(`تم تجهيز دفع EasyCash: ${data.payment.status}`);
+      showMessage(`تم تجهيز دفع Paymob: ${data.payment.status}`);
+      if (data.payment.checkoutUrl) window.open(data.payment.checkoutUrl, "_blank", "noopener");
       await loadBillingData();
     });
   });
@@ -330,11 +353,12 @@ function renderBilling(store, invoices) {
 async function loadAdmin() {
   if (!state.token) return;
   try {
-    const [overview, tenants, plans, invoices] = await Promise.all([
+    const [overview, tenants, plans, invoices, platformProviders] = await Promise.all([
       api("/api/admin/overview"),
       api("/api/admin/tenants"),
       api("/api/admin/plans"),
       api("/api/admin/subscription-invoices"),
+      api("/api/admin/payment-providers"),
     ]);
     $("admin-tenants-total").textContent = sumRows(overview.tenants);
     $("admin-tenants-active").textContent = `${statusCount(overview.tenants, "active")} active`;
@@ -369,6 +393,7 @@ async function loadAdmin() {
         </div>`,
       )
       .join("");
+    renderPlatformProviders(platformProviders.providers);
     $("admin-invoices-table").innerHTML =
       invoices.invoices
         .map(
@@ -389,6 +414,15 @@ async function loadAdmin() {
   } catch {
     $("admin-tenants-table").innerHTML = `<tr><td colspan="5">سجل دخول كسوبر أدمن لعرض هذا القسم.</td></tr>`;
   }
+}
+
+function renderPlatformProviders(providers) {
+  const paymob = providers.find((provider) => provider.provider === "paymob");
+  $("platform-paymob-status").innerHTML = paymob
+    ? `<strong>${paymob.is_enabled ? "Paymob مفعل" : "Paymob محفوظ وغير مفعل"}</strong><p>${paymob.mode} - card ${
+        paymob.public_config.cardIntegrationId || "غير محدد"
+      } - key ${paymob.public_config.publicKeyLast8 || ""}</p>`
+    : "<strong>Paymob غير مضاف</strong><p>أدخل مفاتيح حسابك حتى يدفع التجار اشتراكات المنصة لك.</p>";
 }
 
 function bindAdminActions() {
@@ -465,6 +499,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("easycash-form").addEventListener("submit", saveEasyCash);
   $("paymob-form").addEventListener("submit", savePaymob);
   $("test-paymob").addEventListener("click", testPaymob);
+  $("platform-paymob-form").addEventListener("submit", savePlatformPaymob);
+  $("test-platform-paymob").addEventListener("click", testPlatformPaymob);
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
   $("order-form").addEventListener("submit", placeOrder);
