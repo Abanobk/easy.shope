@@ -25,6 +25,14 @@ function queryString(params) {
   return entries.length ? `?${new URLSearchParams(entries).toString()}` : "";
 }
 
+function fillPaymobCallbackUrls() {
+  const origin = window.location.origin;
+  const processed = $("merchant-paymob-processed-callback");
+  const response = $("merchant-paymob-response-callback");
+  if (processed) processed.value = `${origin}/api/webhooks/paymob`;
+  if (response) response.value = `${origin}/?payment=paymob`;
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -504,6 +512,13 @@ document.addEventListener("DOMContentLoaded", () => {
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
   $("order-form").addEventListener("submit", placeOrder);
+  fillPaymobCallbackUrls();
+  document.querySelectorAll(".callback-box input[readonly]").forEach((input) => {
+    input.addEventListener("click", async () => {
+      await navigator.clipboard?.writeText(input.value);
+      showMessage("تم نسخ الرابط.");
+    });
+  });
   renderCart();
   $("logout").addEventListener("click", () => {
     localStorage.removeItem("easyShopeToken");

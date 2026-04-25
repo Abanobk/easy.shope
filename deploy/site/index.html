@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042504" />
+  <link rel="stylesheet" href="/styles.css?v=2026042505" />
 </head>
 <body>
   <div class="app-shell">
@@ -253,6 +253,15 @@
               <span class="eyebrow">Paymob Accept</span>
               <h2>ربط Paymob للتاجر</h2>
             </div>
+            <div class="hint-box">
+              <strong>بيانات Paymob المطلوبة للتاجر</strong>
+              <p>من Paymob: Settings هات Public Key و Secret Key، ومن Developers > Payment Integrations هات ID الخاص بـ Online Card. المحافظ اختيارية لاحقًا من Mobile Wallet.</p>
+            </div>
+            <div class="callback-box">
+              <label>Transaction processed callback<input id="merchant-paymob-processed-callback" readonly></label>
+              <label>Transaction response callback<input id="merchant-paymob-response-callback" readonly></label>
+              <small>ضع اللينكين دول في Paymob داخل Developers > Payment Integrations > Edit callbacks. اللينكات ثابتة للمنصة وتتعرف على الطلب والتاجر تلقائيًا من رقم الطلب.</small>
+            </div>
             <form id="paymob-form" class="form-grid">
               <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
               <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
@@ -260,7 +269,7 @@
               <label class="span-2">Secret Key<input name="secretKey" required placeholder="sk_..."></label>
               <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري الآن، مطلوب للتحقق الكامل من webhook"></label>
               <label>Card Integration ID<input name="cardIntegrationId" type="number" required></label>
-              <label>Wallet Integration ID<input name="walletIntegrationId" type="number"></label>
+              <label>Wallet Integration ID اختياري<input name="walletIntegrationId" type="number"></label>
               <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob على Checkout المتجر</label>
               <button>حفظ Paymob</button>
               <button type="button" class="secondary" id="test-paymob">اختبار الاتصال</button>
@@ -279,7 +288,7 @@
             <ul id="subscription-invoices" class="list"></ul>
             <div class="hint-box">
               <strong>ملاحظة</strong>
-              <p>زر الدفع يجهز عملية EasyCash placeholder. السوبر أدمن يقدر يعلّم الفاتورة paid فيتم تجديد الاشتراك تلقائيًا.</p>
+              <p>زر الدفع يستخدم Paymob الخاص بالمنصة. عند نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
             </div>
           </article>
         </div>
@@ -347,6 +356,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042504"></script>
+  <script src="/app.js?v=2026042505"></script>
 </body>
 </html>
