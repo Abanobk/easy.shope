@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042513" />
+  <link rel="stylesheet" href="/styles.css?v=2026042516" />
 </head>
 <body>
   <div class="app-shell">
@@ -17,12 +17,12 @@
         </div>
       </div>
       <nav class="nav">
-        <button class="nav-item active" data-view="overview">نظرة عامة</button>
-        <button class="nav-item" data-view="onboarding">تسجيل / دخول</button>
-        <button class="nav-item" data-view="catalog">الكتالوج</button>
-        <button class="nav-item" data-view="storefront">المتجر والطلبات</button>
-        <button class="nav-item" data-view="payments">الدفع والاشتراكات</button>
-        <button class="nav-item" data-view="admin">سوبر أدمن</button>
+        <button class="nav-item active" data-view="overview" data-scope="public">الرئيسية</button>
+        <button class="nav-item" data-view="onboarding" data-scope="public">إنشاء متجر / دخول</button>
+        <button class="nav-item" data-view="catalog" data-scope="merchant">لوحة المتجر</button>
+        <button class="nav-item" data-view="storefront" data-scope="merchant,customer">واجهة المتجر</button>
+        <button class="nav-item" data-view="payments" data-scope="merchant">الدفع والاشتراكات</button>
+        <button class="nav-item" data-view="admin" data-scope="admin">لوحة السوبر أدمن</button>
       </nav>
       <div class="sidebar-card">
         <span class="eyebrow">Deployment</span>
@@ -50,22 +50,21 @@
       <div id="message" class="message">جاهز للعمل.</div>
 
       <section class="view active" id="view-overview">
-        <div class="hero-panel">
+        <div class="hero-panel landing-hero">
           <div>
-            <span class="badge">Phase 2 Foundation</span>
-            <h2>الأساس شغال: API + Database + Redis + Web</h2>
-            <p>هذه نسخة تأسيسية عملية تثبت تدفق النظام: تسجيل تاجر، إنشاء متجر، كتالوج، طلبات، دفع مبدئي، وسوبر أدمن. الواجهة النهائية ستتحول لاحقًا إلى Flutter احترافي.</p>
+            <span class="badge">Easy Shope Commerce OS</span>
+            <h2>ابني متجرك الإلكتروني وابدأ البيع من مكان واحد</h2>
+            <p>منصة SaaS للتجار: متجر عام، كتالوج منتجات، طلبات، دفع إلكتروني، اشتراك شهري، ولوحة إدارة واضحة بدون تعقيد.</p>
             <div class="quick-actions">
-              <button data-jump="onboarding">ابدأ بتسجيل تاجر</button>
-              <button class="secondary" data-jump="catalog">إدارة المنتجات</button>
+              <button data-jump="onboarding">ابني متجرك الخاص الآن</button>
+              <button class="secondary" data-jump="onboarding">لدي حساب بالفعل</button>
               <a class="secondary-link" href="/api/health" target="_blank" rel="noreferrer">API health</a>
             </div>
           </div>
-          <div class="metric-grid">
-            <div class="metric"><span>Tenancy</span><strong>tenant_id</strong><small>عزل بيانات كل متجر</small></div>
-            <div class="metric"><span>Catalog</span><strong>Products</strong><small>تصنيفات، منتجات، مخزون</small></div>
-            <div class="metric"><span>Checkout</span><strong>Orders</strong><small>إنشاء طلبات مبدئي</small></div>
-            <div class="metric"><span>Billing</span><strong>EasyCash</strong><small>Placeholder جاهز للربط</small></div>
+          <div class="landing-card-stack">
+            <div class="landing-card"><strong>متجر عام</strong><span>رابط متجر لكل تاجر وسلة وCheckout.</span></div>
+            <div class="landing-card"><strong>دفع Paymob</strong><span>اشتراكات المنصة ودفع طلبات المتجر.</span></div>
+            <div class="landing-card"><strong>إدارة يومية</strong><span>منتجات، مخزون، طلبات، موظفين، وفواتير.</span></div>
           </div>
         </div>
 
@@ -77,13 +76,13 @@
             <div class="status-line"><span>Database</span><strong id="overview-db">checking</strong></div>
           </article>
           <article class="panel">
-            <h3>المتجر الحالي</h3>
-            <p>Slug المستخدم للتجربة:</p>
+            <h3>تجربة التاجر</h3>
+            <p>بعد الدخول كتاجر ستفتح لوحة متجرك فقط.</p>
             <code id="overview-slug">غير محدد</code>
           </article>
           <article class="panel">
-            <h3>الخطوة التالية</h3>
-            <p>اختبر التسجيل والمنتجات والطلبات، ثم نستبدل الواجهة المؤقتة بتطبيق Flutter كامل.</p>
+            <h3>تجربة السوبر أدمن</h3>
+            <p>لو دخلت بسوبر أدمن ستظهر لوحة المنصة فقط: التجار، الخطط، وفواتير الاشتراك.</p>
           </article>
         </div>
         <div class="grid four merchant-summary" id="merchant-summary">
@@ -105,13 +104,13 @@
               <label>اسم التاجر<input name="name" required></label>
               <label>البريد<input name="email" type="email" required></label>
               <label>رقم الموبايل<input name="phone" required></label>
-              <label>كلمة المرور<input name="password" type="password" value="ChangeMe123!" required></label>
+              <label>كلمة المرور<input name="password" type="password" minlength="8" required></label>
               <label>اسم المتجر عربي<input name="storeNameAr" required></label>
               <label>Store name English<input name="storeNameEn" required></label>
               <label class="span-2">البلد<input name="country" value="Egypt" required></label>
               <button class="span-2">إنشاء المتجر ولوحة التحكم</button>
             </form>
-            <div id="register-result" class="hint-box">استخدم بريدًا جديدًا واسم متجر إنجليزي غير مكرر. بعد الإنشاء ستدخل كتاجر تلقائيًا.</div>
+            <div id="register-result" class="hint-box">ابدأ ببيانات حقيقية للتاجر. بعد الإنشاء ستدخل مباشرة إلى لوحة متجرك فقط.</div>
           </article>
           <article class="panel">
             <div class="panel-heading">
@@ -406,6 +405,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042514"></script>
+  <script src="/app.js?v=2026042516"></script>
 </body>
 </html>

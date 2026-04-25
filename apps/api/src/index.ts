@@ -106,6 +106,14 @@ function requireMerchantOwner(request: Parameters<typeof getAuth>[0]) {
   return user;
 }
 
+function requireMerchantUser(request: Parameters<typeof getAuth>[0]) {
+  const user = requireTenantUser(request);
+  if (!["merchant_owner", "merchant_staff"].includes(user.role)) {
+    throw httpError("Merchant account required", 403);
+  }
+  return user;
+}
+
 function slugify(value: string) {
   return value
     .trim()
@@ -623,7 +631,7 @@ app.get("/api/plans", async () => {
 });
 
 app.post("/api/merchant/categories", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const body = z.object({ nameAr: z.string().min(1), nameEn: z.string().min(1), parentId: z.string().uuid().optional() }).parse(request.body);
   const categorySlug = slugify(body.nameEn);
   if (!categorySlug) throw httpError("Category English name must contain letters or numbers");
@@ -639,13 +647,13 @@ app.post("/api/merchant/categories", async (request, reply) => {
 });
 
 app.get("/api/merchant/categories", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const result = await pool.query(`SELECT * FROM categories WHERE tenant_id = $1 ORDER BY sort_order, created_at DESC`, [user.tenantId]);
   return { categories: result.rows };
 });
 
 app.post("/api/merchant/products", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const body = z
     .object({
       categoryId: z.string().uuid().optional(),
@@ -691,13 +699,13 @@ app.post("/api/merchant/products", async (request, reply) => {
 });
 
 app.get("/api/merchant/products", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const result = await pool.query(`SELECT * FROM products WHERE tenant_id = $1 ORDER BY created_at DESC`, [user.tenantId]);
   return { products: result.rows };
 });
 
 app.patch("/api/merchant/products/:productId", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const params = z.object({ productId: z.string().uuid() }).parse(request.params);
   const body = z
     .object({
@@ -763,7 +771,7 @@ app.patch("/api/merchant/products/:productId", async (request, reply) => {
 });
 
 app.delete("/api/merchant/products/:productId", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const params = z.object({ productId: z.string().uuid() }).parse(request.params);
   const result = await pool.query(`DELETE FROM products WHERE id = $1 AND tenant_id = $2 RETURNING id`, [params.productId, user.tenantId]);
   if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });
@@ -771,13 +779,13 @@ app.delete("/api/merchant/products/:productId", async (request, reply) => {
 });
 
 app.get("/api/merchant/orders", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const result = await pool.query(`SELECT * FROM orders WHERE tenant_id = $1 ORDER BY created_at DESC`, [user.tenantId]);
   return { orders: result.rows };
 });
 
 app.get("/api/merchant/orders/:orderId", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
   const order = await pool.query(`SELECT * FROM orders WHERE id = $1 AND tenant_id = $2`, [params.orderId, user.tenantId]);
   if (!order.rows[0]) return reply.code(404).send({ message: "Order not found" });
@@ -786,7 +794,7 @@ app.get("/api/merchant/orders/:orderId", async (request, reply) => {
 });
 
 app.patch("/api/merchant/orders/:orderId/status", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
   const body = z.object({ status: z.enum(["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]) }).parse(request.body);
   const paymentStatus = body.status === "cancelled" ? "failed" : undefined;
@@ -803,7 +811,7 @@ app.patch("/api/merchant/orders/:orderId/status", async (request, reply) => {
 });
 
 app.get("/api/merchant/payment-providers", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const result = await pool.query(
     `SELECT id, provider, mode, public_config, is_enabled, updated_at
      FROM tenant_payment_credentials
@@ -815,7 +823,7 @@ app.get("/api/merchant/payment-providers", async (request) => {
 });
 
 app.post("/api/merchant/payment-providers/paymob", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const body = z
     .object({
       mode: z.enum(["test", "live"]).default("test"),
@@ -857,7 +865,7 @@ app.post("/api/merchant/payment-providers/paymob", async (request) => {
 });
 
 app.post("/api/merchant/payment-providers/paymob/test", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const result = await pool.query(`SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob'`, [user.tenantId]);
   const credentials = result.rows[0];
   if (!credentials) return reply.code(404).send({ message: "Paymob settings not found" });
@@ -892,7 +900,7 @@ app.post("/api/merchant/payment-providers/paymob/test", async (request, reply) =
 });
 
 app.get("/api/merchant/dashboard", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const [tenant, products, categories, orders, revenue, latestOrders] = await Promise.all([
     pool.query(`SELECT * FROM tenants WHERE id = $1`, [user.tenantId]),
     pool.query(
@@ -919,13 +927,13 @@ app.get("/api/merchant/dashboard", async (request) => {
 });
 
 app.get("/api/merchant/store", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const result = await pool.query(`SELECT * FROM tenants WHERE id = $1`, [user.tenantId]);
   return { store: result.rows[0] };
 });
 
 app.patch("/api/merchant/store", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const body = z
     .object({
       nameAr: z.string().min(2).optional(),
@@ -1265,7 +1273,7 @@ app.post("/api/payments/paymob/return", async (request, reply) => {
 });
 
 app.post("/api/merchant/payment-providers/easycash", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const body = z
     .object({
       mode: z.enum(["test", "live"]).default("test"),
@@ -1289,7 +1297,7 @@ app.post("/api/merchant/payment-providers/easycash", async (request) => {
 });
 
 app.post("/api/merchant/subscription-invoices", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const body = z.object({ planCode: z.string().min(1) }).parse(request.body);
   const plan = await pool.query(`SELECT * FROM plans WHERE code = $1 AND is_active = true`, [body.planCode]);
   if (!plan.rows[0]) return reply.code(404).send({ message: "Plan not found" });
@@ -1315,7 +1323,7 @@ app.post("/api/merchant/subscription-invoices", async (request, reply) => {
 });
 
 app.get("/api/merchant/subscription-invoices", async (request) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const result = await pool.query(
     `SELECT invoices.*, plans.name AS plan_name, plans.duration_months
      FROM platform_subscription_invoices invoices
@@ -1329,7 +1337,7 @@ app.get("/api/merchant/subscription-invoices", async (request) => {
 });
 
 app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, reply) => {
-  const user = requireTenantUser(request);
+  const user = requireMerchantUser(request);
   const params = z.object({ invoiceId: z.string().uuid() }).parse(request.params);
   const invoiceResult = await pool.query(
     `SELECT invoices.*,

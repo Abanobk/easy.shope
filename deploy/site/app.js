@@ -85,10 +85,35 @@ function showMessage(message, isError = false) {
   $("message").className = isError ? "message error" : "message ok";
 }
 
+function currentScope() {
+  if (["platform_owner", "platform_admin"].includes(state.role)) return "admin";
+  if (["merchant_owner", "merchant_staff"].includes(state.role)) return "merchant";
+  if (state.role === "customer") return "customer";
+  return "public";
+}
+
+function defaultViewForScope(scope = currentScope()) {
+  if (scope === "admin") return "admin";
+  if (scope === "merchant") return "catalog";
+  if (scope === "customer") return "storefront";
+  return "overview";
+}
+
+function updateNavigation() {
+  const scope = currentScope();
+  document.querySelectorAll(".nav-item").forEach((button) => {
+    const scopes = (button.dataset.scope || "public").split(",");
+    button.hidden = !scopes.includes(scope);
+  });
+  $("logout").hidden = scope === "public";
+  if ($("merchant-summary")) $("merchant-summary").hidden = scope !== "merchant";
+}
+
 function setView(view) {
-  if (view === "payments" && ["platform_owner", "platform_admin"].includes(state.role)) {
-    showMessage("إعدادات دفع التجار تظهر للتاجر فقط. Paymob الخاص بالمنصة موجود داخل لوحة السوبر أدمن.");
-    view = "admin";
+  updateNavigation();
+  const navButton = document.querySelector(`[data-view="${view}"]`);
+  if (navButton?.hidden || !$(`view-${view}`)) {
+    view = defaultViewForScope();
   }
   document.querySelectorAll(".view").forEach((element) => element.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
@@ -98,7 +123,12 @@ function setView(view) {
 }
 
 async function refreshMe() {
-  if (!state.token) return;
+  if (!state.token) {
+    state.role = "";
+    $("current-user").textContent = "guest";
+    updateNavigation();
+    return;
+  }
   const me = await api("/api/me");
   state.role = me.role;
   state.tenantSlug = me.slug || state.tenantSlug;
@@ -107,6 +137,7 @@ async function refreshMe() {
   $("current-user").textContent = `${me.name} (${me.role})`;
   $("tenant-slug").value = state.tenantSlug || "";
   $("overview-slug").textContent = state.tenantSlug || "غير محدد";
+  updateNavigation();
 }
 
 async function registerMerchant(event) {
@@ -130,7 +161,7 @@ async function registerMerchant(event) {
     $("register-result").innerHTML = `<strong>تم إنشاء المتجر</strong><p>Store slug: ${data.tenant.slug}</p><p>تم تسجيل الدخول كتاجر.</p>`;
     showMessage("تم تسجيل التاجر وإنشاء المتجر.");
     await bootstrap();
-    setView("catalog");
+    setView(defaultViewForScope());
   } catch (error) {
     showMessage(error.message, true);
     $("register-result").innerHTML = `<strong>تعذر إنشاء المتجر</strong><p>${error.message}</p>`;
@@ -154,7 +185,7 @@ async function login(event) {
     localStorage.setItem("easyShopeRole", state.role);
     showMessage("تم تسجيل الدخول.");
     await bootstrap();
-    setView(["platform_owner", "platform_admin"].includes(state.role) ? "admin" : "overview");
+    setView(defaultViewForScope());
   } catch (error) {
     showMessage(error.message, true);
   } finally {
@@ -602,11 +633,14 @@ async function loadBillingData() {
 }
 
 function renderBilling(store, invoices) {
-  $("subscription-status").innerHTML = `<strong>${store.status}</strong><p>الخطة: ${store.plan_code} - ينتهي: ${store.subscription_expires_at || "غير محدد"}</p>`;
+  const activeText = store.status === "active" ? "الخدمة مفعلة" : store.status === "trial" ? "فترة تجربة / بانتظار الاشتراك" : store.status;
+  $("subscription-status").innerHTML = `<strong>${activeText}</strong><p>الخطة: ${store.plan_code} - ينتهي: ${store.subscription_expires_at || "غير محدد"}</p>`;
   $("subscription-invoices").innerHTML =
     invoices
       .map(
-        (invoice) => `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}</strong><span>${invoice.status} <button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button></span></li>`,
+        (invoice) => `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}<small>${invoice.provider || ""} ${invoice.provider_reference || ""}</small></strong><span>${invoice.status} ${
+          invoice.status === "paid" ? "" : `<button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button>`
+        }</span></li>`,
       )
       .join("") || "<li>لا توجد فواتير اشتراك بعد.</li>";
   document.querySelectorAll("[data-pay-invoice]").forEach((button) => {
@@ -771,6 +805,7 @@ function bindAdminActions() {
 
 async function bootstrap() {
   try {
+    updateNavigation();
     const health = await api("/api/health");
     $("api-status").textContent = health.ok ? "API online" : "API error";
     $("overview-api").textContent = health.ok ? "online" : "error";
@@ -779,21 +814,30 @@ async function bootstrap() {
     $("overview-db").className = "ok";
     $("api-dot").classList.toggle("ok", Boolean(health.ok));
     await refreshMe();
-    if (!["platform_owner", "platform_admin"].includes(state.role)) {
+    if (["merchant_owner", "merchant_staff"].includes(state.role)) {
       await loadMerchantData();
       if (state.tenantSlug) await loadStorefront();
+    } else if (state.role === "customer" && state.tenantSlug) {
+      await loadStorefront();
     }
-    await loadAdmin();
+    if (["platform_owner", "platform_admin"].includes(state.role)) await loadAdmin();
     if (["platform_owner", "platform_admin"].includes(state.role)) {
       setView("admin");
       showMessage("تم فتح لوحة السوبر أدمن.");
+    } else if (["merchant_owner", "merchant_staff"].includes(state.role)) {
+      setView("catalog");
+      showMessage("تم فتح لوحة متجرك.");
+    } else {
+      setView("overview");
     }
   } catch (error) {
+    updateNavigation();
     showMessage(error.message, true);
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  updateNavigation();
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", async () => {
       setView(button.dataset.view);
