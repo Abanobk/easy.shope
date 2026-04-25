@@ -195,21 +195,31 @@ async function testPlatformPaymob() {
 
 async function createSubscriptionInvoice(event) {
   event.preventDefault();
+  if (!$("planCode").value) {
+    await loadPlans();
+  }
+  if (!$("planCode").value) {
+    return showMessage("لا توجد خطط اشتراك متاحة حاليًا. جرّب تحديث الصفحة أو راجع السوبر أدمن.", true);
+  }
   const form = new FormData(event.currentTarget);
   const data = await api("/api/merchant/subscription-invoices", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
   showMessage(`تم إنشاء فاتورة اشتراك: ${data.invoice.id}`);
   await loadBillingData();
 }
 
+async function loadPlans() {
+  const plans = await api("/api/plans");
+  $("planCode").innerHTML = plans.plans.map((plan) => `<option value="${plan.code}">${plan.name} - ${money(plan.price_cents)}</option>`).join("");
+}
+
 async function loadMerchantData() {
   if (!state.token || !state.tenantSlug || ["platform_owner", "platform_admin"].includes(state.role)) return;
-  const [dashboard, categories, products, orders, providers, plans, billing] = await Promise.all([
+  const [dashboard, categories, products, orders, providers, billing] = await Promise.all([
     api("/api/merchant/dashboard"),
     api("/api/merchant/categories"),
     api("/api/merchant/products"),
     api("/api/merchant/orders"),
     api("/api/merchant/payment-providers"),
-    api("/api/plans"),
     api("/api/merchant/subscription-invoices"),
   ]);
 
@@ -238,7 +248,7 @@ async function loadMerchantData() {
           }</span></li>`,
       )
       .join("") || "<li>لم يتم ربط دفع بعد.</li>";
-  $("planCode").innerHTML = plans.plans.map((plan) => `<option value="${plan.code}">${plan.name} - ${money(plan.price_cents)}</option>`).join("");
+  await loadPlans();
   renderBilling(dashboard.tenant, billing.invoices);
 }
 
@@ -494,7 +504,13 @@ async function bootstrap() {
 
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".nav-item").forEach((button) => {
-    button.addEventListener("click", () => setView(button.dataset.view));
+    button.addEventListener("click", async () => {
+      setView(button.dataset.view);
+      if (button.dataset.view === "payments" && !["platform_owner", "platform_admin"].includes(state.role)) {
+        await loadPlans();
+        await loadBillingData();
+      }
+    });
   });
   document.querySelectorAll("[data-jump]").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.jump));
