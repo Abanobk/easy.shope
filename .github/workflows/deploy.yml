@@ -33,6 +33,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate API build
+        run: docker build ./apps/api
+
       - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:

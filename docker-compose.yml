@@ -41,6 +41,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
   web:
     image: nginx:1.27-alpine
@@ -49,7 +54,8 @@ services:
     ports:
       - "8098:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     volumes:
       - ./deploy/site:/usr/share/nginx/html:ro
       - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro

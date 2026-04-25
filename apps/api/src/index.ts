@@ -16,6 +16,7 @@ const env = {
   encryptionKey: process.env.ENCRYPTION_KEY ?? "dev-only-change-me",
   platformOwnerEmail: process.env.PLATFORM_OWNER_EMAIL ?? "owner@easyshope.local",
   platformOwnerPassword: process.env.PLATFORM_OWNER_PASSWORD ?? "ChangeMe123!",
+  nodeEnv: process.env.NODE_ENV ?? "development",
 };
 
 type AuthUser = {
@@ -27,8 +28,29 @@ type AuthUser = {
 const pool = new Pool({ connectionString: env.databaseUrl });
 const app = Fastify({ logger: true });
 
+if (env.nodeEnv === "production" && [env.jwtSecret, env.encryptionKey, env.platformOwnerPassword].some((value) => value.includes("change-this") || value.includes("dev-only"))) {
+  app.log.warn("Production is using placeholder secrets. Update .env before handling real customers or payments.");
+}
+
 await app.register(cors, { origin: true });
 await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+
+app.setErrorHandler((error, _request, reply) => {
+  if (error instanceof z.ZodError) {
+    return reply.code(400).send({
+      message: "Invalid request data",
+      issues: error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
+    });
+  }
+  const statusCode = (error as Error & { statusCode?: number }).statusCode || 500;
+  return reply.code(statusCode).send({ message: error.message || "Unexpected server error" });
+});
+
+function httpError(message: string, statusCode = 400) {
+  const error = new Error(message);
+  (error as Error & { statusCode: number }).statusCode = statusCode;
+  return error;
+}
 
 function signToken(user: AuthUser) {
   return jwt.sign(user, env.jwtSecret, { expiresIn: "7d" });
@@ -148,6 +170,41 @@ function paymobErrorMessage(payload: unknown): string {
   return errors.join(" | ") || "Paymob rejected the payment request";
 }
 
+function paymobField(obj: Record<string, unknown>, path: string) {
+  return path.split(".").reduce<unknown>((current, key) => (current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined), obj);
+}
+
+function paymobHmacMatches(obj: Record<string, unknown>, hmacSecret: string, receivedHmac: string) {
+  if (!hmacSecret) return true;
+  if (!receivedHmac) return false;
+  const fields = [
+    "amount_cents",
+    "created_at",
+    "currency",
+    "error_occured",
+    "has_parent_transaction",
+    "id",
+    "integration_id",
+    "is_3d_secure",
+    "is_auth",
+    "is_capture",
+    "is_refunded",
+    "is_standalone_payment",
+    "is_voided",
+    "order.id",
+    "owner",
+    "pending",
+    "source_data.pan",
+    "source_data.sub_type",
+    "source_data.type",
+    "success",
+  ];
+  const message = fields.map((field) => String(paymobField(obj, field) ?? "")).join("");
+  const expected = crypto.createHmac("sha512", hmacSecret).update(message).digest("hex");
+  const received = receivedHmac.toLowerCase();
+  return expected.length === received.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+}
+
 async function expireOverdueSubscriptions() {
   await pool.query(
     `UPDATE tenants
@@ -174,6 +231,10 @@ async function markSubscriptionInvoicePaid(invoiceId: string) {
     if (!row) {
       await client.query("ROLLBACK");
       return null;
+    }
+    if (row.status === "paid") {
+      await client.query("COMMIT");
+      return row;
     }
     const updatedInvoice = await client.query(
       `UPDATE platform_subscription_invoices
@@ -370,7 +431,10 @@ app.get("/health", async () => {
   return { ok: true, service: "easy-shope-api", db: db.rows[0].ok === 1 };
 });
 
-app.get("/api/health", async () => ({ ok: true, service: "easy-shope-api" }));
+app.get("/api/health", async () => {
+  const db = await pool.query("SELECT 1 AS ok");
+  return { ok: true, service: "easy-shope-api", db: db.rows[0].ok === 1 };
+});
 
 app.post("/api/auth/register-merchant", async (request, reply) => {
   const body = z
@@ -450,11 +514,15 @@ app.get("/api/plans", async () => {
 app.post("/api/merchant/categories", async (request, reply) => {
   const user = requireTenantUser(request);
   const body = z.object({ nameAr: z.string().min(1), nameEn: z.string().min(1), parentId: z.string().uuid().optional() }).parse(request.body);
+  const categorySlug = slugify(body.nameEn);
+  if (!categorySlug) throw httpError("Category English name must contain letters or numbers");
+  const existing = await pool.query(`SELECT id FROM categories WHERE tenant_id = $1 AND slug = $2`, [user.tenantId, categorySlug]);
+  if (existing.rows[0]) throw httpError("Category already exists with this English name", 409);
   const result = await pool.query(
     `INSERT INTO categories (tenant_id, parent_id, name_ar, name_en, slug)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [user.tenantId, body.parentId ?? null, body.nameAr, body.nameEn, slugify(body.nameEn)],
+    [user.tenantId, body.parentId ?? null, body.nameAr, body.nameEn, categorySlug],
   );
   return reply.code(201).send({ category: result.rows[0] });
 });
@@ -481,6 +549,14 @@ app.post("/api/merchant/products", async (request, reply) => {
       imageUrl: z.string().url().optional(),
     })
     .parse(request.body);
+  if (body.categoryId) {
+    const category = await pool.query(`SELECT id FROM categories WHERE id = $1 AND tenant_id = $2`, [body.categoryId, user.tenantId]);
+    if (!category.rows[0]) throw httpError("Category not found for this store", 404);
+  }
+  const productSlug = slugify(body.titleEn);
+  if (!productSlug) throw httpError("Product English name must contain letters or numbers");
+  const existing = await pool.query(`SELECT id FROM products WHERE tenant_id = $1 AND slug = $2`, [user.tenantId, productSlug]);
+  if (existing.rows[0]) throw httpError("Product already exists with this English name", 409);
   const result = await pool.query(
     `INSERT INTO products (tenant_id, category_id, title_ar, title_en, slug, description, price_cents, compare_at_price_cents, sku, stock_quantity, status, image_url)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
@@ -490,7 +566,7 @@ app.post("/api/merchant/products", async (request, reply) => {
       body.categoryId ?? null,
       body.titleAr,
       body.titleEn,
-      slugify(body.titleEn),
+      productSlug,
       body.description ?? null,
       body.priceCents,
       body.compareAtPriceCents ?? null,
@@ -509,10 +585,110 @@ app.get("/api/merchant/products", async (request) => {
   return { products: result.rows };
 });
 
+app.patch("/api/merchant/products/:productId", async (request, reply) => {
+  const user = requireTenantUser(request);
+  const params = z.object({ productId: z.string().uuid() }).parse(request.params);
+  const body = z
+    .object({
+      categoryId: z.string().uuid().nullable().optional(),
+      titleAr: z.string().min(1).optional(),
+      titleEn: z.string().min(1).optional(),
+      description: z.string().optional(),
+      priceCents: z.number().int().nonnegative().optional(),
+      compareAtPriceCents: z.number().int().nonnegative().nullable().optional(),
+      sku: z.string().nullable().optional(),
+      stockQuantity: z.number().int().nonnegative().optional(),
+      status: z.enum(["draft", "published"]).optional(),
+      imageUrl: z.string().url().nullable().optional(),
+    })
+    .parse(request.body);
+  if (body.categoryId) {
+    const category = await pool.query(`SELECT id FROM categories WHERE id = $1 AND tenant_id = $2`, [body.categoryId, user.tenantId]);
+    if (!category.rows[0]) throw httpError("Category not found for this store", 404);
+  }
+  const nextSlug = body.titleEn ? slugify(body.titleEn) : null;
+  if (body.titleEn && !nextSlug) throw httpError("Product English name must contain letters or numbers");
+  if (nextSlug) {
+    const existing = await pool.query(`SELECT id FROM products WHERE tenant_id = $1 AND slug = $2 AND id <> $3`, [user.tenantId, nextSlug, params.productId]);
+    if (existing.rows[0]) throw httpError("Product already exists with this English name", 409);
+  }
+  const result = await pool.query(
+    `UPDATE products
+     SET category_id = CASE WHEN $3::boolean THEN $4::uuid ELSE category_id END,
+         title_ar = coalesce($5, title_ar),
+         title_en = coalesce($6, title_en),
+         slug = coalesce($7, slug),
+         description = coalesce($8, description),
+         price_cents = coalesce($9, price_cents),
+         compare_at_price_cents = CASE WHEN $10::boolean THEN $11::int ELSE compare_at_price_cents END,
+         sku = CASE WHEN $12::boolean THEN $13::text ELSE sku END,
+         stock_quantity = coalesce($14, stock_quantity),
+         status = coalesce($15, status),
+         image_url = CASE WHEN $16::boolean THEN $17::text ELSE image_url END
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [
+      params.productId,
+      user.tenantId,
+      Object.prototype.hasOwnProperty.call(body, "categoryId"),
+      body.categoryId ?? null,
+      body.titleAr ?? null,
+      body.titleEn ?? null,
+      nextSlug,
+      body.description ?? null,
+      body.priceCents ?? null,
+      Object.prototype.hasOwnProperty.call(body, "compareAtPriceCents"),
+      body.compareAtPriceCents ?? null,
+      Object.prototype.hasOwnProperty.call(body, "sku"),
+      body.sku ?? null,
+      body.stockQuantity ?? null,
+      body.status ?? null,
+      Object.prototype.hasOwnProperty.call(body, "imageUrl"),
+      body.imageUrl ?? null,
+    ],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });
+  return { product: result.rows[0] };
+});
+
+app.delete("/api/merchant/products/:productId", async (request, reply) => {
+  const user = requireTenantUser(request);
+  const params = z.object({ productId: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`DELETE FROM products WHERE id = $1 AND tenant_id = $2 RETURNING id`, [params.productId, user.tenantId]);
+  if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });
+  return reply.code(204).send();
+});
+
 app.get("/api/merchant/orders", async (request) => {
   const user = requireTenantUser(request);
   const result = await pool.query(`SELECT * FROM orders WHERE tenant_id = $1 ORDER BY created_at DESC`, [user.tenantId]);
   return { orders: result.rows };
+});
+
+app.get("/api/merchant/orders/:orderId", async (request, reply) => {
+  const user = requireTenantUser(request);
+  const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
+  const order = await pool.query(`SELECT * FROM orders WHERE id = $1 AND tenant_id = $2`, [params.orderId, user.tenantId]);
+  if (!order.rows[0]) return reply.code(404).send({ message: "Order not found" });
+  const items = await pool.query(`SELECT * FROM order_items WHERE order_id = $1 ORDER BY id`, [params.orderId]);
+  return { order: order.rows[0], items: items.rows };
+});
+
+app.patch("/api/merchant/orders/:orderId/status", async (request, reply) => {
+  const user = requireTenantUser(request);
+  const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ status: z.enum(["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]) }).parse(request.body);
+  const paymentStatus = body.status === "cancelled" ? "failed" : undefined;
+  const result = await pool.query(
+    `UPDATE orders
+     SET status = $3,
+         payment_status = coalesce($4, payment_status)
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [params.orderId, user.tenantId, body.status, paymentStatus ?? null],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Order not found" });
+  return { order: result.rows[0] };
 });
 
 app.get("/api/merchant/payment-providers", async (request) => {
@@ -740,10 +916,13 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
     await expireOverdueSubscriptions();
     const tenantResult = await client.query(`SELECT * FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [params.tenantSlug]);
     const tenant = tenantResult.rows[0];
-    if (!tenant) return reply.code(404).send({ message: "Store not found" });
+    if (!tenant) {
+      await client.query("ROLLBACK");
+      return reply.code(404).send({ message: "Store not found" });
+    }
 
     const productIds = body.items.map((item) => item.productId);
-    const products = await client.query(`SELECT * FROM products WHERE tenant_id = $1 AND id = ANY($2::uuid[]) AND status = 'published'`, [
+    const products = await client.query(`SELECT * FROM products WHERE tenant_id = $1 AND id = ANY($2::uuid[]) AND status = 'published' FOR UPDATE`, [
       tenant.id,
       productIds,
     ]);
@@ -751,7 +930,8 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
     let total = 0;
     const itemRows = body.items.map((item) => {
       const product = byId.get(item.productId);
-      if (!product) throw new Error(`Product not available: ${item.productId}`);
+      if (!product) throw httpError(`Product not available: ${item.productId}`, 400);
+      if (product.stock_quantity < item.quantity) throw httpError(`${product.title_ar || product.title_en} has only ${product.stock_quantity} items in stock`, 400);
       const lineTotal = product.price_cents * item.quantity;
       total += lineTotal;
       return { product, quantity: item.quantity, lineTotal };
@@ -775,6 +955,7 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
          VALUES ($1,$2,$3,$4,$5,$6)`,
         [order.rows[0].id, item.product.id, item.product.title_en, item.quantity, item.product.price_cents, item.lineTotal],
       );
+      await client.query(`UPDATE products SET stock_quantity = stock_quantity - $2 WHERE id = $1`, [item.product.id, item.quantity]);
     }
     await client.query("COMMIT");
 
@@ -848,9 +1029,11 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
   }
 });
 
-app.post("/api/webhooks/paymob", async (request) => {
+app.post("/api/webhooks/paymob", async (request, reply) => {
   const payload = request.body as Record<string, unknown>;
   const obj = ((payload.obj as Record<string, unknown> | undefined) ?? payload) as Record<string, unknown>;
+  const query = (request.query ?? {}) as Record<string, unknown>;
+  const receivedHmac = String(query.hmac || "");
   const orderId = String(obj.special_reference || obj.merchant_order_id || obj.order_id || "");
   const success = obj.success === true || obj.success === "true";
   const pending = obj.pending === true || obj.pending === "true";
@@ -858,6 +1041,11 @@ app.post("/api/webhooks/paymob", async (request) => {
   if (!orderId) return { ok: true, ignored: true };
   if (orderId.startsWith("subscription_invoice:")) {
     const invoiceId = orderId.replace("subscription_invoice:", "");
+    const credentials = await pool.query(`SELECT encrypted_secret FROM platform_payment_credentials WHERE provider = 'paymob'`);
+    const secret = credentials.rows[0] ? decodeSecret<{ hmacSecret?: string }>(credentials.rows[0].encrypted_secret) : null;
+    if (secret?.hmacSecret && !paymobHmacMatches(obj, secret.hmacSecret, receivedHmac)) {
+      return reply.code(401).send({ message: "Invalid Paymob webhook signature" });
+    }
     if (success) {
       await markSubscriptionInvoicePaid(invoiceId);
     } else {
@@ -868,6 +1056,18 @@ app.post("/api/webhooks/paymob", async (request) => {
       ]);
     }
     return { ok: true };
+  }
+  const orderCredentials = await pool.query(
+    `SELECT credentials.encrypted_secret
+     FROM orders
+     JOIN tenant_payment_credentials credentials ON credentials.tenant_id = orders.tenant_id AND credentials.provider = 'paymob'
+     WHERE orders.id = $1`,
+    [orderId],
+  );
+  if (!orderCredentials.rows[0]) return { ok: true, ignored: true };
+  const secret = decodeSecret<{ hmacSecret?: string }>(orderCredentials.rows[0].encrypted_secret);
+  if (secret.hmacSecret && !paymobHmacMatches(obj, secret.hmacSecret, receivedHmac)) {
+    return reply.code(401).send({ message: "Invalid Paymob webhook signature" });
   }
   const paymentStatus = success ? "paid" : pending ? "pending" : "failed";
   const orderStatus = success ? "confirmed" : "pending";
@@ -912,6 +1112,18 @@ app.post("/api/merchant/subscription-invoices", async (request, reply) => {
   const body = z.object({ planCode: z.string().min(1) }).parse(request.body);
   const plan = await pool.query(`SELECT * FROM plans WHERE code = $1 AND is_active = true`, [body.planCode]);
   if (!plan.rows[0]) return reply.code(404).send({ message: "Plan not found" });
+  const existing = await pool.query(
+    `SELECT invoices.*, plans.name AS plan_name, plans.duration_months
+     FROM platform_subscription_invoices invoices
+     JOIN plans ON plans.code = invoices.plan_code
+     WHERE invoices.tenant_id = $1 AND invoices.status = 'pending'
+     ORDER BY invoices.created_at DESC
+     LIMIT 1`,
+    [user.tenantId],
+  );
+  if (existing.rows[0]) {
+    return reply.code(200).send({ invoice: existing.rows[0], payment: { provider: existing.rows[0].provider, status: "pending_existing" } });
+  }
   const result = await pool.query(
     `INSERT INTO platform_subscription_invoices (tenant_id, plan_code, amount_cents)
      VALUES ($1, $2, $3)
@@ -952,6 +1164,7 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
   );
   const invoice = invoiceResult.rows[0];
   if (!invoice) return reply.code(404).send({ message: "Invoice not found" });
+  if (invoice.status === "paid") return reply.code(400).send({ message: "Invoice already paid" });
 
   const gatewayResult = await pool.query(`SELECT * FROM platform_payment_credentials WHERE provider = 'paymob' AND is_enabled = true`);
   const gateway = gatewayResult.rows[0];

@@ -445,7 +445,14 @@ pre {
 .list li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
+}
+
+.list li strong small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
 }
 
 .table-wrap {

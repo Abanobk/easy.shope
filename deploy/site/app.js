@@ -55,7 +55,7 @@ async function api(path, options = {}) {
   if (!response.ok) {
     if (response.status === 401 && path !== "/api/auth/login") {
       clearAuthState();
-      setView("auth");
+      setView("onboarding");
     }
     const baseMessage = response.status === 401 ? "انتهت جلسة تسجيل الدخول. سجّل دخول كتاجر مرة أخرى ثم أعد إنشاء الفاتورة." : data.message || `Request failed: ${response.status}`;
     const error = new Error(data.hint ? `${baseMessage} - ${data.hint}` : baseMessage);
@@ -127,15 +127,25 @@ async function registerMerchant(event) {
 
 async function login(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const data = await api("/api/auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
-  state.token = data.token;
-  state.role = data.user.role;
-  localStorage.setItem("easyShopeToken", state.token);
-  localStorage.setItem("easyShopeRole", state.role);
-  showMessage("تم تسجيل الدخول.");
-  await bootstrap();
-  setView(["platform_owner", "platform_admin"].includes(state.role) ? "admin" : "overview");
+  const button = event.currentTarget.querySelector("button");
+  try {
+    button.disabled = true;
+    button.textContent = "جارٍ الدخول...";
+    const form = new FormData(event.currentTarget);
+    const data = await api("/api/auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
+    state.token = data.token;
+    state.role = data.user.role;
+    localStorage.setItem("easyShopeToken", state.token);
+    localStorage.setItem("easyShopeRole", state.role);
+    showMessage("تم تسجيل الدخول.");
+    await bootstrap();
+    setView(["platform_owner", "platform_admin"].includes(state.role) ? "admin" : "overview");
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "دخول";
+  }
 }
 
 async function createCategory(event) {
@@ -155,6 +165,7 @@ async function createProduct(event) {
   payload.stockQuantity = Number(payload.stockQuantity || 0);
   delete payload.price;
   if (!payload.categoryId) delete payload.categoryId;
+  if (!payload.imageUrl) delete payload.imageUrl;
   await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload) });
   showMessage("تم إنشاء المنتج.");
   event.currentTarget.reset();
@@ -281,8 +292,35 @@ async function loadMerchantData() {
     dashboard.latestOrders.map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} - ${order.status}</span></li>`).join("") ||
     "<li>لا توجد طلبات حديثة.</li>";
   $("categories").innerHTML = categories.categories.map((item) => `<li><strong>${item.name_ar}</strong><span>${item.name_en}</span></li>`).join("") || "<li>لا توجد تصنيفات بعد.</li>";
-  $("products").innerHTML = products.products.map((item) => `<li><strong>${item.title_ar}</strong><span>${money(item.price_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد منتجات بعد.</li>";
-  $("orders").innerHTML = orders.orders.map((item) => `<li><strong>${item.customer_name}</strong><span>${money(item.total_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد طلبات بعد.</li>";
+  $("product-category").innerHTML =
+    `<option value="">بدون تصنيف</option>` + categories.categories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
+  $("products").innerHTML =
+    products.products
+      .map(
+        (item) => `<li>
+          <strong>${item.title_ar}<small>${money(item.price_cents)} - مخزون ${item.stock_quantity}</small></strong>
+          <span class="row-actions">
+            <button data-product-status="${item.id}:${item.status === "published" ? "draft" : "published"}">${item.status === "published" ? "إخفاء" : "نشر"}</button>
+            <button class="danger-button" data-product-delete="${item.id}">حذف</button>
+          </span>
+        </li>`,
+      )
+      .join("") || "<li>لا توجد منتجات بعد.</li>";
+  $("orders").innerHTML =
+    orders.orders
+      .map(
+        (item) => `<li>
+          <strong>${item.customer_name}<small>${money(item.total_cents)} - دفع: ${item.payment_status}</small></strong>
+          <span class="row-actions">
+            <button data-order-details="${item.id}">تفاصيل</button>
+            <button data-order-status="${item.id}:processing">تجهيز</button>
+            <button data-order-status="${item.id}:shipped">شحن</button>
+            <button class="success-button" data-order-status="${item.id}:delivered">تسليم</button>
+            <button class="danger-button" data-order-status="${item.id}:cancelled">إلغاء</button>
+          </span>
+        </li>`,
+      )
+      .join("") || "<li>لا توجد طلبات بعد.</li>";
   $("payment-providers").innerHTML =
     providers.providers
       .map(
@@ -294,6 +332,45 @@ async function loadMerchantData() {
       .join("") || "<li>لم يتم ربط دفع بعد.</li>";
   await loadPlans();
   renderBilling(dashboard.tenant, billing.invoices);
+  bindMerchantActions();
+}
+
+function bindMerchantActions() {
+  document.querySelectorAll("[data-product-status]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [productId, status] = button.dataset.productStatus.split(":");
+      await api(`/api/merchant/products/${productId}`, { method: "PATCH", body: JSON.stringify({ status }) });
+      showMessage(status === "published" ? "تم نشر المنتج." : "تم إخفاء المنتج.");
+      await loadMerchantData();
+      if (state.tenantSlug) await loadStorefront();
+    });
+  });
+  document.querySelectorAll("[data-product-delete]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!confirm("هل تريد حذف المنتج؟")) return;
+      await api(`/api/merchant/products/${button.dataset.productDelete}`, { method: "DELETE", body: JSON.stringify({}) });
+      showMessage("تم حذف المنتج.");
+      await loadMerchantData();
+      if (state.tenantSlug) await loadStorefront();
+    });
+  });
+  document.querySelectorAll("[data-order-status]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [orderId, status] = button.dataset.orderStatus.split(":");
+      await api(`/api/merchant/orders/${orderId}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+      showMessage(`تم تحديث الطلب إلى ${status}.`);
+      await loadMerchantData();
+    });
+  });
+  document.querySelectorAll("[data-order-details]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const data = await api(`/api/merchant/orders/${button.dataset.orderDetails}`);
+      $("message").className = "message ok";
+      $("message").innerHTML = `<strong>طلب ${data.order.id}</strong><br>${data.items
+        .map((item) => `${item.title} x ${item.quantity} = ${money(item.total_cents)}`)
+        .join("<br>")}`;
+    });
+  });
 }
 
 async function loadStorefront(event) {
@@ -421,6 +498,19 @@ function renderBilling(store, invoices) {
       }
     });
   });
+}
+
+async function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("subscription_invoice")) {
+    setView("payments");
+    showMessage("رجعت من Paymob. لو الدفع تم بنجاح سيتم تحديث الاشتراك بعد وصول webhook.");
+    if (state.token && !["platform_owner", "platform_admin"].includes(state.role)) await loadBillingData();
+  }
+  if (params.has("order")) {
+    setView("storefront");
+    $("checkout-result").innerHTML = "<strong>رجعت من Paymob</strong><p>لو الدفع تم بنجاح ستتحدث حالة الطلب تلقائيًا بعد وصول webhook.</p>";
+  }
 }
 
 async function loadAdmin() {
@@ -595,5 +685,5 @@ document.addEventListener("DOMContentLoaded", () => {
     clearAuthState();
     location.reload();
   });
-  bootstrap();
+  bootstrap().then(handlePaymentReturn);
 });
