@@ -1131,6 +1131,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".merchant-side-item[data-view]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
+      if (document.body.dataset.view !== "catalog") return;
       setView(button.dataset.view);
       if (button.dataset.view === "payments" && !["platform_owner", "platform_admin"].includes(state.role)) {
         loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
@@ -1140,6 +1141,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Fallback delegated handler in case the sidebar is re-rendered or handlers were missed.
   document.body.addEventListener("click", (event) => {
+    if (document.body.dataset.view !== "catalog") return;
     const target = event.target?.closest?.(".merchant-side-item");
     if (!target) return;
     const view = target.dataset.view;
