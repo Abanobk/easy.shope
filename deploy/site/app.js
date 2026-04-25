@@ -91,14 +91,18 @@ function clearAuthState() {
 }
 
 async function api(path, options = {}) {
+  const controller = new AbortController();
+  const timeoutMs = Number(options.timeoutMs || 25000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const response = await fetch(path, {
     ...options,
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
       ...(options.headers || {}),
     },
-  });
+  }).finally(() => clearTimeout(timer));
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401 && path !== "/api/auth/login") {
@@ -115,14 +119,18 @@ async function api(path, options = {}) {
 }
 
 async function customerApi(path, options = {}) {
+  const controller = new AbortController();
+  const timeoutMs = Number(options.timeoutMs || 25000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   const response = await fetch(path, {
     ...options,
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       ...(state.customerToken ? { Authorization: `Bearer ${state.customerToken}` } : {}),
       ...(options.headers || {}),
     },
-  });
+  }).finally(() => clearTimeout(timer));
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message || `Request failed: ${response.status}`);
   return data;
@@ -327,8 +335,12 @@ async function createProduct(event) {
     const form = new FormData(event.currentTarget);
     const payload = Object.fromEntries(form.entries());
     const imageFiles = form.getAll("imageFiles").filter((file) => file?.size);
+    if (imageFiles.length > 6) throw new Error("اختر بحد أقصى 6 صور للمنتج.");
+    const totalImageBytes = imageFiles.reduce((sum, file) => sum + Number(file.size || 0), 0);
+    if (totalImageBytes > 6 * 1024 * 1024) throw new Error("إجمالي حجم الصور كبير. استخدم صورًا أقل/أخف (حد أقصى 6MB).");
     const mediaUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
-    const uploadedVideo = await fileToDataUrl(form.get("videoFile"));
+    if (form.get("videoFile")?.size) throw new Error("رفع الفيديو من الجهاز غير مدعوم حاليًا. استخدم رابط فيديو فقط.");
+    const uploadedVideo = "";
     payload.priceCents = parseMoneyToCents(payload.price);
     if (payload.compareAtPrice) payload.compareAtPriceCents = parseMoneyToCents(payload.compareAtPrice);
     payload.discountPercent = Number(payload.discountPercent || 0);
@@ -344,7 +356,7 @@ async function createProduct(event) {
     if (!payload.categoryId) delete payload.categoryId;
     if (!payload.imageUrl) delete payload.imageUrl;
     if (!payload.videoUrl) delete payload.videoUrl;
-    await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload) });
+    await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload), timeoutMs: 25000 });
     showMessage("تم إنشاء المنتج.");
     event.currentTarget.reset();
     $("product-filter").value = "";
