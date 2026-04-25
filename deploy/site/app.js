@@ -42,10 +42,15 @@ function fileToDataUrl(file) {
 function setCreationForm(formId, visible) {
   const form = $(formId);
   if (!form) return;
+  form.hidden = !visible;
   form.classList.toggle("hidden", !visible);
   const panel = form.closest(".panel");
   panel?.classList.toggle("panel-mode-add", visible);
   panel?.classList.toggle("panel-mode-list", !visible);
+  panel?.querySelector(".list-mode")?.toggleAttribute("hidden", visible);
+  if (visible) {
+    form.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
 }
 
 function parseMoneyToCents(value) {
