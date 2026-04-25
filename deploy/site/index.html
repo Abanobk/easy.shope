@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042525" />
+  <link rel="stylesheet" href="/styles.css?v=2026042526" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -124,17 +124,24 @@
       </section>
 
       <section class="view" id="view-catalog">
-        <div class="merchant-workspace">
-          <div class="workspace-switcher">
-            <button type="button" class="workspace-card active" data-merchant-tab="overview"><span>نظرة عامة</span><strong>أداء المتجر</strong><small>مبيعات، طلبات، منتجات</small></button>
-            <button type="button" class="workspace-card" data-merchant-tab="orders"><span>الطلبات</span><strong>إدارة الطلبات</strong><small>متابعة وتجهيز الطلبات</small></button>
-            <button type="button" class="workspace-card" data-merchant-tab="categories"><span>الأصناف</span><strong>تصنيفات المتجر</strong><small>تنظيم الأقسام والصور</small></button>
-            <button type="button" class="workspace-card" data-merchant-tab="products"><span>المنتجات</span><strong>إدارة المنتجات</strong><small>صور، فيديو، خصم، خيارات</small></button>
-            <button type="button" class="workspace-card" data-merchant-tab="settings"><span>الإعدادات</span><strong>بيانات المتجر</strong><small>الاسم والبلد والهوية</small></button>
-            <button type="button" class="workspace-card" data-merchant-tab="team"><span>الفريق</span><strong>الموظفون والأمان</strong><small>حسابات وكلمات مرور</small></button>
-          </div>
+        <div class="merchant-dashboard">
+          <aside class="merchant-side">
+            <div class="merchant-side-head">
+              <span class="eyebrow">Merchant workspace</span>
+              <strong>إدارة المتجر</strong>
+            </div>
+            <nav class="merchant-side-nav">
+              <button type="button" class="merchant-side-item active" data-merchant-tab="overview"><strong>نظرة عامة</strong><small>الأداء والتنبيهات</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="orders"><strong>الطلبات</strong><small>إدارة وتتبع</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="products"><strong>المنتجات</strong><small>قائمة وإضافة</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="categories"><strong>الأصناف</strong><small>تنظيم وتصنيف</small></button>
+              <button type="button" class="merchant-side-item" data-view="payments"><strong>الدفع والاشتراكات</strong><small>Paymob والفواتير</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="team"><strong>الفريق والصلاحيات</strong><small>موظفون وأمان</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="settings"><strong>إعدادات المتجر</strong><small>البيانات والهوية</small></button>
+            </nav>
+          </aside>
 
-          <div class="workspace-content">
+          <div class="merchant-main">
             <article class="panel merchant-tab active" data-merchant-panel="overview">
               <div class="panel-heading">
                 <span class="eyebrow">Merchant dashboard</span>
@@ -478,6 +485,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042525"></script>
+  <script src="/app.js?v=2026042526"></script>
 </body>
 </html>

@@ -338,55 +338,63 @@ body[data-auth-mode="login"] .register-panel {
   width: 100%;
 }
 
-.merchant-workspace {
+.merchant-dashboard {
   display: grid;
-  gap: 18px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.workspace-switcher {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-}
-
-.workspace-card {
-  min-height: 138px;
+.merchant-side {
+  position: sticky;
+  top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
   padding: 18px;
-  text-align: right;
-  border: 1px solid rgba(148, 163, 184, .16);
-  border-radius: 24px;
-  color: #dbeafe;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, .14), transparent 35%),
-    rgba(15, 23, 42, .72);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
+  background: rgba(2, 6, 23, .32);
+  box-shadow: var(--shadow);
 }
 
-.workspace-card:hover,
-.workspace-card.active {
-  transform: translateY(-2px);
+.merchant-side-head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.merchant-side-nav {
+  display: grid;
+  gap: 10px;
+}
+
+.merchant-side-item {
+  text-align: right;
+  border: 1px solid rgba(148, 163, 184, .14);
+  border-radius: 20px;
+  padding: 14px 14px;
+  background: rgba(15, 23, 42, .62);
+  color: #dbeafe;
+  display: grid;
+  gap: 6px;
+}
+
+.merchant-side-item:hover,
+.merchant-side-item.active {
   border-color: rgba(56, 189, 248, .42);
   background:
-    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, .28), transparent 38%),
-    linear-gradient(135deg, rgba(8, 47, 73, .86), rgba(15, 23, 42, .86));
+    radial-gradient(circle at 10% 20%, rgba(56, 189, 248, .20), transparent 46%),
+    rgba(56, 189, 248, .10);
 }
 
-.workspace-card span,
-.workspace-card small {
+.merchant-side-item small {
   color: var(--muted);
+  font-weight: 700;
+  line-height: 1.5;
 }
 
-.workspace-card strong {
-  display: block;
-  margin: 8px 0;
-  font-size: 18px;
-}
-
-.workspace-content {
+.merchant-main {
   min-height: 520px;
+  display: grid;
+  gap: 16px;
 }
 
 .merchant-tab {
@@ -1048,7 +1056,7 @@ tr:last-child td {
   .store-product-grid,
   .billing-layout,
   .billing-form,
-  .workspace-switcher,
+  .merchant-dashboard,
   .performance-grid,
   .variant-row,
   .grid.two,

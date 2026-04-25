@@ -211,6 +211,10 @@ function setMerchantTab(tab = "overview") {
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
     button.classList.toggle("active", button.dataset.merchantTab === tab);
   });
+  document.querySelectorAll(".merchant-side-item").forEach((button) => {
+    if (!button.dataset.merchantTab) return;
+    button.classList.toggle("active", button.dataset.merchantTab === tab);
+  });
   document.querySelectorAll("[data-merchant-panel]").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
   });
@@ -1122,6 +1126,12 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
       setMerchantTab(button.dataset.merchantTab);
+    });
+  });
+  document.querySelectorAll(".merchant-side-item[data-view]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      setView(button.dataset.view);
     });
   });
   $("category-filter").addEventListener("input", renderMerchantCategories);
