@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042520" />
+  <link rel="stylesheet" href="/styles.css?v=2026042521" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -182,36 +182,49 @@
               <ul id="merchant-latest-orders" class="list"></ul>
             </article>
 
-            <article class="panel merchant-tab" data-merchant-panel="categories">
+            <article class="panel merchant-tab panel-mode-list" data-merchant-panel="categories" id="categories-panel">
               <div class="panel-heading">
                 <span class="eyebrow">Categories</span>
                 <h2>الأصناف</h2>
               </div>
-              <div class="section-tools">
-                <input id="category-filter" placeholder="فلتر الأصناف بالاسم">
-                <button type="button" id="show-category-form">إضافة صنف جديد</button>
+              <div class="list-mode">
+                <div class="section-tools">
+                  <input id="category-filter" placeholder="ابحث عن صنف">
+                  <button type="button" id="show-category-form">إضافة صنف جديد</button>
+                </div>
+                <ul id="categories" class="list media-list"></ul>
               </div>
               <form id="category-form" class="form-grid creation-form hidden">
+                <div class="span-2 form-header-row">
+                  <h3>إضافة صنف جديد</h3>
+                  <button type="button" class="ghost" id="cancel-category-form">رجوع لقائمة الأصناف</button>
+                </div>
                 <label>اسم التصنيف عربي<input name="nameAr" required></label>
                 <label>Category English<input name="nameEn" required></label>
                 <label class="span-2">صورة التصنيف من الجهاز<input name="imageFile" type="file" accept="image/*"></label>
-                <button class="span-2">إضافة تصنيف</button>
+                <button class="span-2" data-submit-category>إضافة تصنيف</button>
               </form>
-              <ul id="categories" class="list media-list"></ul>
             </article>
 
-            <article class="panel merchant-tab" data-merchant-panel="products">
+            <article class="panel merchant-tab panel-mode-list" data-merchant-panel="products" id="products-panel">
               <div class="panel-heading">
                 <span class="eyebrow">Products</span>
                 <h2>المنتجات</h2>
               </div>
-              <div class="section-tools">
-                <input id="product-filter" placeholder="فلتر المنتجات بالاسم">
-                <select id="product-filter-category"><option value="">كل الأصناف</option></select>
-                <select id="product-filter-status"><option value="">كل الحالات</option><option value="published">Published</option><option value="draft">Draft</option></select>
-                <button type="button" id="show-product-form">إضافة منتج جديد</button>
+              <div class="list-mode">
+                <div class="section-tools">
+                  <input id="product-filter" placeholder="ابحث عن منتج">
+                  <select id="product-filter-category"><option value="">كل الأصناف</option></select>
+                  <select id="product-filter-status"><option value="">كل الحالات</option><option value="published">Published</option><option value="draft">Draft</option></select>
+                  <button type="button" id="show-product-form">إضافة منتج جديد</button>
+                </div>
+                <ul id="products" class="list media-list"></ul>
               </div>
               <form id="product-form" class="form-grid creation-form hidden">
+                <div class="span-2 form-header-row">
+                  <h3>إضافة منتج جديد</h3>
+                  <button type="button" class="ghost" id="cancel-product-form">رجوع لقائمة المنتجات</button>
+                </div>
                 <label>اسم المنتج عربي<input name="titleAr" required></label>
                 <label>Product English<input name="titleEn" required></label>
                 <label class="span-2">التصنيف<select id="product-category" name="categoryId"><option value="">بدون تصنيف</option></select></label>
@@ -232,9 +245,8 @@
                   <div id="variant-rows" class="variant-rows"></div>
                   <button type="button" class="secondary" id="add-variant">إضافة نوع / لون</button>
                 </div>
-                <button class="span-2">إضافة منتج</button>
+                <button class="span-2" data-submit-product>إضافة منتج</button>
               </form>
-              <ul id="products" class="list media-list"></ul>
             </article>
 
             <article class="panel merchant-tab" data-merchant-panel="settings">
@@ -466,6 +478,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042520"></script>
+  <script src="/app.js?v=2026042521"></script>
 </body>
 </html>

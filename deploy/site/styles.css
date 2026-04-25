@@ -471,6 +471,26 @@ body[data-auth-mode="login"] .register-panel {
   display: none;
 }
 
+.panel-mode-add .list-mode {
+  display: none;
+}
+
+.panel-mode-add .creation-form {
+  display: grid;
+}
+
+.form-header-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.form-header-row h3 {
+  margin: 0;
+}
+
 .variant-builder {
   border: 1px solid var(--line);
   border-radius: 22px;

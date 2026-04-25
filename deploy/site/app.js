@@ -40,7 +40,12 @@ function fileToDataUrl(file) {
 }
 
 function setCreationForm(formId, visible) {
-  $(formId)?.classList.toggle("hidden", !visible);
+  const form = $(formId);
+  if (!form) return;
+  form.classList.toggle("hidden", !visible);
+  const panel = form.closest(".panel");
+  panel?.classList.toggle("panel-mode-add", visible);
+  panel?.classList.toggle("panel-mode-list", !visible);
 }
 
 function parseMoneyToCents(value) {
@@ -159,6 +164,8 @@ function setMerchantTab(tab = "overview") {
   document.querySelectorAll("[data-merchant-panel]").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
   });
+  if (tab !== "categories") setCreationForm("category-form", false);
+  if (tab !== "products") setCreationForm("product-form", false);
 }
 
 function setView(view) {
@@ -249,7 +256,8 @@ async function login(event) {
 
 async function createCategory(event) {
   event.preventDefault();
-  const button = event.currentTarget.querySelector("button");
+  event.stopPropagation();
+  const button = event.currentTarget.querySelector("[data-submit-category]");
   try {
     button.disabled = true;
     button.textContent = "جارٍ إضافة الصنف...";
@@ -262,8 +270,9 @@ async function createCategory(event) {
     showMessage("تم إنشاء التصنيف.");
     event.currentTarget.reset();
     $("category-filter").value = "";
-    setCreationForm("category-form", false);
     await loadMerchantData();
+    setCreationForm("category-form", false);
+    setMerchantTab("categories");
   } catch (error) {
     showMessage(error.message, true);
   } finally {
@@ -305,7 +314,8 @@ function collectVariants() {
 
 async function createProduct(event) {
   event.preventDefault();
-  const button = event.currentTarget.querySelector("button.span-2:last-of-type");
+  event.stopPropagation();
+  const button = event.currentTarget.querySelector("[data-submit-product]");
   try {
     button.disabled = true;
     button.textContent = "جارٍ إضافة المنتج...";
@@ -336,8 +346,9 @@ async function createProduct(event) {
     $("product-filter-category").value = "";
     $("product-filter-status").value = "";
     resetVariants();
-    setCreationForm("product-form", false);
     await loadMerchantData();
+    setCreationForm("product-form", false);
+    setMerchantTab("products");
   } catch (error) {
     showMessage(error.message, true);
   } finally {
@@ -1053,11 +1064,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("category-filter").addEventListener("input", renderMerchantCategories);
   $("show-category-form").addEventListener("click", () => setCreationForm("category-form", true));
+  $("cancel-category-form").addEventListener("click", () => setCreationForm("category-form", false));
   $("product-filter").addEventListener("input", renderMerchantProducts);
   $("product-filter-category").addEventListener("change", renderMerchantProducts);
   $("product-filter-status").addEventListener("change", renderMerchantProducts);
   $("show-product-form").addEventListener("click", () => setCreationForm("product-form", true));
+  $("cancel-product-form").addEventListener("click", () => setCreationForm("product-form", false));
   $("add-variant").addEventListener("click", () => addVariantRow());
+  document.querySelectorAll("#product-form input, #product-form select, #product-form textarea, #category-form input").forEach((element) => {
+    element.addEventListener("click", (event) => event.stopPropagation());
+    element.addEventListener("focus", (event) => event.stopPropagation());
+  });
   $("register-form").addEventListener("submit", registerMerchant);
   $("login-form").addEventListener("submit", login);
   $("category-form").addEventListener("submit", createCategory);
