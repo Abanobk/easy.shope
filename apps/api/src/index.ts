@@ -509,20 +509,29 @@ app.post("/api/merchant/payment-providers/paymob", async (request) => {
   const body = z
     .object({
       mode: z.enum(["test", "live"]).default("test"),
-      publicKey: z.string().min(8),
-      secretKey: z.string().min(8),
+      publicKey: z.string().min(8).optional(),
+      secretKey: z.string().min(8).optional(),
       hmacSecret: z.string().optional(),
-      cardIntegrationId: z.coerce.number().int().positive(),
+      cardIntegrationId: z.coerce.number().int().positive().optional(),
       walletIntegrationId: z.coerce.number().int().positive().optional(),
       currency: z.string().min(3).max(3).default("EGP"),
       enabled: z.boolean().default(false),
     })
     .parse(request.body);
+  const existing = await pool.query(`SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob'`, [user.tenantId]);
+  const existingRow = existing.rows[0];
+  if ((!body.publicKey || !body.secretKey || !body.cardIntegrationId) && !existingRow) {
+    const error = new Error("Public Key, Secret Key, and Card Integration ID are required for the first save");
+    (error as Error & { statusCode: number }).statusCode = 400;
+    throw error;
+  }
+  const existingConfig = (existingRow?.public_config ?? {}) as Record<string, unknown>;
+  const existingSecret = existingRow ? decodeSecret<{ secretKey: string; hmacSecret?: string }>(existingRow.encrypted_secret) : null;
   const publicConfig = {
-    publicKey: body.publicKey,
-    publicKeyLast8: body.publicKey.slice(-8),
-    cardIntegrationId: body.cardIntegrationId,
-    walletIntegrationId: body.walletIntegrationId ?? null,
+    publicKey: body.publicKey ?? existingConfig.publicKey,
+    publicKeyLast8: (body.publicKey ?? String(existingConfig.publicKey ?? "")).slice(-8),
+    cardIntegrationId: body.cardIntegrationId ?? existingConfig.cardIntegrationId,
+    walletIntegrationId: body.walletIntegrationId ?? existingConfig.walletIntegrationId ?? null,
     currency: body.currency.toUpperCase(),
   };
   const result = await pool.query(
@@ -531,7 +540,7 @@ app.post("/api/merchant/payment-providers/paymob", async (request) => {
      ON CONFLICT (tenant_id, provider)
      DO UPDATE SET mode = EXCLUDED.mode, public_config = EXCLUDED.public_config, encrypted_secret = EXCLUDED.encrypted_secret, is_enabled = EXCLUDED.is_enabled, updated_at = now()
      RETURNING id, tenant_id, provider, mode, public_config, is_enabled, updated_at`,
-    [user.tenantId, body.mode, JSON.stringify(publicConfig), encodeSecret({ secretKey: body.secretKey, hmacSecret: body.hmacSecret ?? "" }), body.enabled],
+    [user.tenantId, body.mode, JSON.stringify(publicConfig), encodeSecret({ secretKey: body.secretKey ?? existingSecret?.secretKey, hmacSecret: body.hmacSecret ?? existingSecret?.hmacSecret ?? "" }), body.enabled],
   );
   return { credentials: result.rows[0] };
 });
@@ -1073,20 +1082,29 @@ app.post("/api/admin/payment-providers/paymob", async (request) => {
   const body = z
     .object({
       mode: z.enum(["test", "live"]).default("test"),
-      publicKey: z.string().min(8),
-      secretKey: z.string().min(8),
+      publicKey: z.string().min(8).optional(),
+      secretKey: z.string().min(8).optional(),
       hmacSecret: z.string().optional(),
-      cardIntegrationId: z.coerce.number().int().positive(),
+      cardIntegrationId: z.coerce.number().int().positive().optional(),
       walletIntegrationId: z.coerce.number().int().positive().optional(),
       currency: z.string().min(3).max(3).default("EGP"),
       enabled: z.boolean().default(false),
     })
     .parse(request.body);
+  const existing = await pool.query(`SELECT * FROM platform_payment_credentials WHERE provider = 'paymob'`);
+  const existingRow = existing.rows[0];
+  if ((!body.publicKey || !body.secretKey || !body.cardIntegrationId) && !existingRow) {
+    const error = new Error("Public Key, Secret Key, and Card Integration ID are required for the first save");
+    (error as Error & { statusCode: number }).statusCode = 400;
+    throw error;
+  }
+  const existingConfig = (existingRow?.public_config ?? {}) as Record<string, unknown>;
+  const existingSecret = existingRow ? decodeSecret<{ secretKey: string; hmacSecret?: string }>(existingRow.encrypted_secret) : null;
   const publicConfig = {
-    publicKey: body.publicKey,
-    publicKeyLast8: body.publicKey.slice(-8),
-    cardIntegrationId: body.cardIntegrationId,
-    walletIntegrationId: body.walletIntegrationId ?? null,
+    publicKey: body.publicKey ?? existingConfig.publicKey,
+    publicKeyLast8: (body.publicKey ?? String(existingConfig.publicKey ?? "")).slice(-8),
+    cardIntegrationId: body.cardIntegrationId ?? existingConfig.cardIntegrationId,
+    walletIntegrationId: body.walletIntegrationId ?? existingConfig.walletIntegrationId ?? null,
     currency: body.currency.toUpperCase(),
   };
   const result = await pool.query(
@@ -1095,7 +1113,7 @@ app.post("/api/admin/payment-providers/paymob", async (request) => {
      ON CONFLICT (provider)
      DO UPDATE SET mode = EXCLUDED.mode, public_config = EXCLUDED.public_config, encrypted_secret = EXCLUDED.encrypted_secret, is_enabled = EXCLUDED.is_enabled, updated_at = now()
      RETURNING id, provider, mode, public_config, is_enabled, updated_at`,
-    [body.mode, JSON.stringify(publicConfig), encodeSecret({ secretKey: body.secretKey, hmacSecret: body.hmacSecret ?? "" }), body.enabled],
+    [body.mode, JSON.stringify(publicConfig), encodeSecret({ secretKey: body.secretKey ?? existingSecret?.secretKey, hmacSecret: body.hmacSecret ?? existingSecret?.hmacSecret ?? "" }), body.enabled],
   );
   return { credentials: result.rows[0] };
 });
