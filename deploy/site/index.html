@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042527" />
+  <link rel="stylesheet" href="/styles.css?v=2026042530" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -354,7 +354,11 @@
       </section>
 
       <section class="view" id="view-payments">
-        <div class="grid two">
+        <div class="payments-tabs">
+          <button type="button" class="payments-tab active" data-payments-tab="subscription">اشتراك المنصة</button>
+          <button type="button" class="payments-tab" data-payments-tab="providers">إعدادات الدفع للمتجر</button>
+        </div>
+        <div class="grid two payments-panel active" data-payments-panel="subscription">
           <article class="panel billing-card span-2">
             <div class="panel-heading">
               <span class="eyebrow">Platform billing</span>
@@ -378,6 +382,8 @@
               </div>
             </div>
           </article>
+        </div>
+        <div class="grid two payments-panel" data-payments-panel="providers">
           <article class="panel">
             <div class="panel-heading">
               <span class="eyebrow">EasyCash</span>
@@ -485,6 +491,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042529"></script>
+  <script src="/app.js?v=2026042530"></script>
 </body>
 </html>

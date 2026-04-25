@@ -410,6 +410,35 @@ body[data-auth-mode="login"] .register-panel {
   gap: 16px;
 }
 
+.payments-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.payments-tab {
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, .58);
+  color: #dbeafe;
+  font-weight: 900;
+}
+
+.payments-tab.active {
+  border-color: rgba(56, 189, 248, .42);
+  background: linear-gradient(135deg, rgba(56, 189, 248, .18), rgba(167, 139, 250, .14));
+}
+
+.payments-panel {
+  display: none;
+}
+
+.payments-panel.active {
+  display: grid;
+}
+
 .merchant-tab {
   display: none;
 }
