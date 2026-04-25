@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042502" />
+  <link rel="stylesheet" href="/styles.css?v=2026042503" />
 </head>
 <body>
   <div class="app-shell">
@@ -250,6 +250,24 @@
           </article>
           <article class="panel">
             <div class="panel-heading">
+              <span class="eyebrow">Paymob Accept</span>
+              <h2>ربط Paymob للتاجر</h2>
+            </div>
+            <form id="paymob-form" class="form-grid">
+              <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+              <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
+              <label class="span-2">Public Key<input name="publicKey" required placeholder="pk_..."></label>
+              <label class="span-2">Secret Key<input name="secretKey" required placeholder="sk_..."></label>
+              <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري الآن، مطلوب للتحقق الكامل من webhook"></label>
+              <label>Card Integration ID<input name="cardIntegrationId" type="number" required></label>
+              <label>Wallet Integration ID<input name="walletIntegrationId" type="number"></label>
+              <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob على Checkout المتجر</label>
+              <button>حفظ Paymob</button>
+              <button type="button" class="secondary" id="test-paymob">اختبار الاتصال</button>
+            </form>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
               <span class="eyebrow">Platform billing</span>
               <h2>اشتراك التاجر للمنصة</h2>
             </div>
@@ -310,6 +328,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042502"></script>
+  <script src="/app.js?v=2026042503"></script>
 </body>
 </html>

@@ -145,6 +145,24 @@ async function saveEasyCash(event) {
   await loadMerchantData();
 }
 
+async function savePaymob(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const payload = Object.fromEntries([...form.entries()].filter(([, value]) => String(value).trim()));
+  payload.enabled = payload.enabled === "on";
+  if (payload.cardIntegrationId) payload.cardIntegrationId = Number(payload.cardIntegrationId);
+  if (payload.walletIntegrationId) payload.walletIntegrationId = Number(payload.walletIntegrationId);
+  else delete payload.walletIntegrationId;
+  await api("/api/merchant/payment-providers/paymob", { method: "POST", body: JSON.stringify(payload) });
+  showMessage("تم حفظ إعدادات Paymob.");
+  await loadMerchantData();
+}
+
+async function testPaymob() {
+  const data = await api("/api/merchant/payment-providers/paymob/test", { method: "POST", body: JSON.stringify({}) });
+  showMessage(data.ok ? "Paymob connection ok." : "Paymob connection failed.", !data.ok);
+}
+
 async function createSubscriptionInvoice(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
@@ -181,7 +199,15 @@ async function loadMerchantData() {
   $("categories").innerHTML = categories.categories.map((item) => `<li><strong>${item.name_ar}</strong><span>${item.name_en}</span></li>`).join("") || "<li>لا توجد تصنيفات بعد.</li>";
   $("products").innerHTML = products.products.map((item) => `<li><strong>${item.title_ar}</strong><span>${money(item.price_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد منتجات بعد.</li>";
   $("orders").innerHTML = orders.orders.map((item) => `<li><strong>${item.customer_name}</strong><span>${money(item.total_cents)} - ${item.status}</span></li>`).join("") || "<li>لا توجد طلبات بعد.</li>";
-  $("payment-providers").innerHTML = providers.providers.map((item) => `<li><strong>${item.provider}</strong><span>${item.mode} - ${item.is_enabled ? "enabled" : "disabled"}</span></li>`).join("") || "<li>لم يتم ربط دفع بعد.</li>";
+  $("payment-providers").innerHTML =
+    providers.providers
+      .map(
+        (item) =>
+          `<li><strong>${item.provider}</strong><span>${item.mode} - ${item.is_enabled ? "enabled" : "disabled"} ${
+            item.provider === "paymob" ? `- card ${item.public_config.cardIntegrationId || ""}` : ""
+          }</span></li>`,
+      )
+      .join("") || "<li>لم يتم ربط دفع بعد.</li>";
   $("planCode").innerHTML = plans.plans.map((plan) => `<option value="${plan.code}">${plan.name} - ${money(plan.price_cents)}</option>`).join("");
   renderBilling(dashboard.tenant, billing.invoices);
 }
@@ -228,7 +254,9 @@ async function placeOrder(event) {
   const payload = { ...Object.fromEntries(form.entries()), items };
   const data = await api(`/api/store/${slug}/orders`, { method: "POST", body: JSON.stringify(payload) });
   showMessage(`تم إنشاء الطلب: ${data.order.id}`);
-  $("checkout-result").innerHTML = `<strong>تم إنشاء الطلب بنجاح</strong><p>رقم الطلب: ${data.order.id}</p><p>حالة الدفع: ${data.payment.status}</p>`;
+  $("checkout-result").innerHTML = `<strong>تم إنشاء الطلب بنجاح</strong><p>رقم الطلب: ${data.order.id}</p><p>حالة الدفع: ${data.payment.status}</p>${
+    data.payment.checkoutUrl ? `<p><a class="button" href="${data.payment.checkoutUrl}" target="_blank" rel="noopener">ادفع الآن عبر Paymob</a></p>` : ""
+  }`;
   state.cart = [];
   renderCart();
   if (!["platform_owner", "platform_admin"].includes(state.role)) await loadMerchantData();
@@ -435,6 +463,8 @@ document.addEventListener("DOMContentLoaded", () => {
   $("product-form").addEventListener("submit", createProduct);
   $("store-settings-form").addEventListener("submit", saveStoreSettings);
   $("easycash-form").addEventListener("submit", saveEasyCash);
+  $("paymob-form").addEventListener("submit", savePaymob);
+  $("test-paymob").addEventListener("click", testPaymob);
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
   $("order-form").addEventListener("submit", placeOrder);

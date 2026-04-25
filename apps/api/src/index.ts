@@ -83,6 +83,28 @@ function slugify(value: string) {
     .slice(0, 64);
 }
 
+function encodeSecret(value: unknown) {
+  return Buffer.from(JSON.stringify({ ...((value as Record<string, unknown>) ?? {}), keyHint: env.encryptionKey.slice(0, 4) })).toString("base64");
+}
+
+function decodeSecret<T>(value: string): T {
+  return JSON.parse(Buffer.from(value, "base64").toString("utf8")) as T;
+}
+
+function splitName(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  return { firstName: parts[0] || "Customer", lastName: parts.slice(1).join(" ") || "Guest" };
+}
+
+function absoluteUrl(request: { headers: Record<string, string | string[] | undefined> }, path: string) {
+  const forwardedProto = request.headers["x-forwarded-proto"];
+  const forwardedHost = request.headers["x-forwarded-host"];
+  const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto;
+  const hostHeader = forwardedHost ?? request.headers.host;
+  const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+  return `${proto || "https"}://${host || "shope.easytecheg.net"}${path}`;
+}
+
 async function expireOverdueSubscriptions() {
   await pool.query(
     `UPDATE tenants
@@ -128,7 +150,7 @@ async function markSubscriptionInvoicePaid(invoiceId: string) {
     await client.query("COMMIT");
     return updatedInvoice.rows[0];
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => undefined);
     throw error;
   } finally {
     client.release();
@@ -256,6 +278,11 @@ async function migrate() {
       created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
+  await pool.query(`
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_provider text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS checkout_url text;
+  `);
 
   const plans = [
     ["monthly", "Monthly", 1, 150000],
@@ -325,7 +352,7 @@ app.post("/api/auth/register-merchant", async (request, reply) => {
     const token = signToken({ userId: user.rows[0].id, tenantId: tenant.rows[0].id, role: "merchant_owner" });
     return reply.code(201).send({ token, tenant: tenant.rows[0], user: user.rows[0] });
   } catch (error) {
-    await client.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => undefined);
     throw error;
   } finally {
     client.release();
@@ -437,6 +464,73 @@ app.get("/api/merchant/payment-providers", async (request) => {
     [user.tenantId],
   );
   return { providers: result.rows };
+});
+
+app.post("/api/merchant/payment-providers/paymob", async (request) => {
+  const user = requireTenantUser(request);
+  const body = z
+    .object({
+      mode: z.enum(["test", "live"]).default("test"),
+      publicKey: z.string().min(8),
+      secretKey: z.string().min(8),
+      hmacSecret: z.string().optional(),
+      cardIntegrationId: z.coerce.number().int().positive(),
+      walletIntegrationId: z.coerce.number().int().positive().optional(),
+      currency: z.string().min(3).max(3).default("EGP"),
+      enabled: z.boolean().default(false),
+    })
+    .parse(request.body);
+  const publicConfig = {
+    publicKey: body.publicKey,
+    publicKeyLast8: body.publicKey.slice(-8),
+    cardIntegrationId: body.cardIntegrationId,
+    walletIntegrationId: body.walletIntegrationId ?? null,
+    currency: body.currency.toUpperCase(),
+  };
+  const result = await pool.query(
+    `INSERT INTO tenant_payment_credentials (tenant_id, provider, mode, public_config, encrypted_secret, is_enabled)
+     VALUES ($1, 'paymob', $2, $3, $4, $5)
+     ON CONFLICT (tenant_id, provider)
+     DO UPDATE SET mode = EXCLUDED.mode, public_config = EXCLUDED.public_config, encrypted_secret = EXCLUDED.encrypted_secret, is_enabled = EXCLUDED.is_enabled, updated_at = now()
+     RETURNING id, tenant_id, provider, mode, public_config, is_enabled, updated_at`,
+    [user.tenantId, body.mode, JSON.stringify(publicConfig), encodeSecret({ secretKey: body.secretKey, hmacSecret: body.hmacSecret ?? "" }), body.enabled],
+  );
+  return { credentials: result.rows[0] };
+});
+
+app.post("/api/merchant/payment-providers/paymob/test", async (request, reply) => {
+  const user = requireTenantUser(request);
+  const result = await pool.query(`SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob'`, [user.tenantId]);
+  const credentials = result.rows[0];
+  if (!credentials) return reply.code(404).send({ message: "Paymob settings not found" });
+  const secret = decodeSecret<{ secretKey: string }>(credentials.encrypted_secret);
+  const response = await fetch("https://accept.paymob.com/v1/intention/", {
+    method: "POST",
+    headers: { Authorization: `Token ${secret.secretKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: 100,
+      currency: credentials.public_config.currency || "EGP",
+      payment_methods: [Number(credentials.public_config.cardIntegrationId)],
+      items: [{ name: "Connection test", amount: 100, description: "Easy Shope Paymob test", quantity: 1 }],
+      billing_data: {
+        first_name: "Easy",
+        last_name: "Shope",
+        phone_number: "01000000000",
+        email: "test@example.com",
+        country: "EG",
+        city: "Cairo",
+        street: "NA",
+        building: "NA",
+        apartment: "NA",
+        floor: "NA",
+      },
+      special_reference: `test-${user.tenantId}-${Date.now()}`,
+      expiration: 600,
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) return reply.code(400).send({ ok: false, message: data.message || "Paymob connection failed", details: data });
+  return { ok: true, provider: "paymob", intentionId: data.id, hasClientSecret: Boolean(data.client_secret) };
 });
 
 app.get("/api/merchant/dashboard", async (request) => {
@@ -613,13 +707,97 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
       );
     }
     await client.query("COMMIT");
-    return reply.code(201).send({ order: order.rows[0], payment: { status: "pending", provider: "manual_until_easycash_connected" } });
+
+    const paymob = await pool.query(
+      `SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob' AND is_enabled = true`,
+      [tenant.id],
+    );
+    const credentials = paymob.rows[0];
+    if (!credentials) {
+      return reply.code(201).send({ order: order.rows[0], payment: { status: "pending", provider: "manual_until_paymob_connected" } });
+    }
+
+    const secret = decodeSecret<{ secretKey: string }>(credentials.encrypted_secret);
+    const publicConfig = credentials.public_config as { publicKey: string; cardIntegrationId: number; currency?: string };
+    const { firstName, lastName } = splitName(body.customerName);
+    const intentionResponse = await fetch("https://accept.paymob.com/v1/intention/", {
+      method: "POST",
+      headers: { Authorization: `Token ${secret.secretKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount: total,
+        currency: publicConfig.currency || "EGP",
+        payment_methods: [Number(publicConfig.cardIntegrationId)],
+        items: itemRows.map((item) => ({
+          name: item.product.title_en.slice(0, 50),
+          amount: item.lineTotal,
+          description: item.product.description || item.product.title_en,
+          quantity: item.quantity,
+        })),
+        billing_data: {
+          first_name: firstName,
+          last_name: lastName,
+          phone_number: body.customerPhone,
+          email: body.customerEmail || "customer@example.com",
+          country: "EG",
+          city: "Cairo",
+          street: body.shippingAddress || "NA",
+          building: "NA",
+          apartment: "NA",
+          floor: "NA",
+        },
+        special_reference: order.rows[0].id,
+        notification_url: absoluteUrl(request, "/api/webhooks/paymob"),
+        redirection_url: absoluteUrl(request, `/?order=${order.rows[0].id}`),
+        expiration: 3600,
+      }),
+    });
+    const intention = await intentionResponse.json().catch(() => ({}));
+    if (!intentionResponse.ok || !intention.client_secret) {
+      await pool.query(`UPDATE orders SET payment_provider = 'paymob', payment_reference = $2 WHERE id = $1`, [
+        order.rows[0].id,
+        intention.id ? String(intention.id) : null,
+      ]);
+      return reply.code(201).send({
+        order: order.rows[0],
+        payment: { status: "pending", provider: "paymob", message: intention.message || "Paymob intention creation failed", details: intention },
+      });
+    }
+    const checkoutUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(publicConfig.publicKey)}&clientSecret=${encodeURIComponent(
+      intention.client_secret,
+    )}`;
+    const updatedOrder = await pool.query(
+      `UPDATE orders SET payment_provider = 'paymob', payment_reference = $2, checkout_url = $3 WHERE id = $1 RETURNING *`,
+      [order.rows[0].id, String(intention.id || intention.intention_order_id || ""), checkoutUrl],
+    );
+    return reply.code(201).send({ order: updatedOrder.rows[0], payment: { status: "redirect_required", provider: "paymob", checkoutUrl } });
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
   } finally {
     client.release();
   }
+});
+
+app.post("/api/webhooks/paymob", async (request) => {
+  const payload = request.body as Record<string, unknown>;
+  const obj = ((payload.obj as Record<string, unknown> | undefined) ?? payload) as Record<string, unknown>;
+  const orderId = String(obj.special_reference || obj.merchant_order_id || obj.order_id || "");
+  const success = obj.success === true || obj.success === "true";
+  const pending = obj.pending === true || obj.pending === "true";
+  const transactionId = String(obj.id || obj.transaction_id || obj.payment_key_claims || "");
+  if (!orderId) return { ok: true, ignored: true };
+  const paymentStatus = success ? "paid" : pending ? "pending" : "failed";
+  const orderStatus = success ? "confirmed" : "pending";
+  await pool.query(
+    `UPDATE orders
+     SET payment_status = $2,
+         status = $3,
+         payment_provider = 'paymob',
+         payment_reference = coalesce($4, payment_reference)
+     WHERE id = $1`,
+    [orderId, paymentStatus, orderStatus, transactionId || null],
+  );
+  return { ok: true };
 });
 
 app.post("/api/merchant/payment-providers/easycash", async (request) => {
