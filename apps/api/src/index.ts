@@ -26,7 +26,7 @@ type AuthUser = {
 };
 
 const pool = new Pool({ connectionString: env.databaseUrl });
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
 
 if (env.nodeEnv === "production" && [env.jwtSecret, env.encryptionKey, env.platformOwnerPassword].some((value) => value.includes("change-this") || value.includes("dev-only"))) {
   app.log.warn("Production is using placeholder secrets. Update .env before handling real customers or payments.");
@@ -122,6 +122,18 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 64);
 }
+
+const mediaUrlSchema = z
+  .string()
+  .max(5_000_000)
+  .refine((value) => /^https?:\/\//i.test(value) || /^data:(image|video)\//i.test(value), "Media must be a URL or uploaded image/video data");
+
+const productVariantSchema = z.object({
+  type: z.string().trim().optional(),
+  color: z.string().trim().optional(),
+  extraPriceCents: z.number().int().nonnegative().default(0),
+  stockQuantity: z.number().int().nonnegative().nullable().optional(),
+});
 
 function encodeSecret(value: unknown) {
   const key = crypto.createHash("sha256").update(env.encryptionKey).digest();
@@ -444,6 +456,11 @@ async function migrate() {
   `);
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+    ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url text;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS media_urls jsonb NOT NULL DEFAULT '[]'::jsonb;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS video_url text;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_percent int NOT NULL DEFAULT 0;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS variants jsonb NOT NULL DEFAULT '[]'::jsonb;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_provider text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS checkout_url text;
@@ -632,16 +649,16 @@ app.get("/api/plans", async () => {
 
 app.post("/api/merchant/categories", async (request, reply) => {
   const user = requireMerchantUser(request);
-  const body = z.object({ nameAr: z.string().min(1), nameEn: z.string().min(1), parentId: z.string().uuid().optional() }).parse(request.body);
+  const body = z.object({ nameAr: z.string().min(1), nameEn: z.string().min(1), parentId: z.string().uuid().optional(), imageUrl: mediaUrlSchema.optional() }).parse(request.body);
   const categorySlug = slugify(body.nameEn);
   if (!categorySlug) throw httpError("Category English name must contain letters or numbers");
   const existing = await pool.query(`SELECT id FROM categories WHERE tenant_id = $1 AND slug = $2`, [user.tenantId, categorySlug]);
   if (existing.rows[0]) throw httpError("Category already exists with this English name", 409);
   const result = await pool.query(
-    `INSERT INTO categories (tenant_id, parent_id, name_ar, name_en, slug)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO categories (tenant_id, parent_id, name_ar, name_en, slug, image_url)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [user.tenantId, body.parentId ?? null, body.nameAr, body.nameEn, categorySlug],
+    [user.tenantId, body.parentId ?? null, body.nameAr, body.nameEn, categorySlug, body.imageUrl ?? null],
   );
   return reply.code(201).send({ category: result.rows[0] });
 });
@@ -662,10 +679,14 @@ app.post("/api/merchant/products", async (request, reply) => {
       description: z.string().optional(),
       priceCents: z.number().int().nonnegative(),
       compareAtPriceCents: z.number().int().nonnegative().optional(),
+      discountPercent: z.number().int().min(0).max(100).default(0),
       sku: z.string().optional(),
       stockQuantity: z.number().int().nonnegative().default(0),
       status: z.enum(["draft", "published"]).default("draft"),
-      imageUrl: z.string().url().optional(),
+      imageUrl: mediaUrlSchema.optional(),
+      mediaUrls: z.array(mediaUrlSchema).max(8).default([]),
+      videoUrl: mediaUrlSchema.optional(),
+      variants: z.array(productVariantSchema).max(30).default([]),
     })
     .parse(request.body);
   if (body.categoryId) {
@@ -677,8 +698,8 @@ app.post("/api/merchant/products", async (request, reply) => {
   const existing = await pool.query(`SELECT id FROM products WHERE tenant_id = $1 AND slug = $2`, [user.tenantId, productSlug]);
   if (existing.rows[0]) throw httpError("Product already exists with this English name", 409);
   const result = await pool.query(
-    `INSERT INTO products (tenant_id, category_id, title_ar, title_en, slug, description, price_cents, compare_at_price_cents, sku, stock_quantity, status, image_url)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    `INSERT INTO products (tenant_id, category_id, title_ar, title_en, slug, description, price_cents, compare_at_price_cents, sku, stock_quantity, status, image_url, media_urls, video_url, discount_percent, variants)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16::jsonb)
      RETURNING *`,
     [
       user.tenantId,
@@ -693,6 +714,10 @@ app.post("/api/merchant/products", async (request, reply) => {
       body.stockQuantity,
       body.status,
       body.imageUrl ?? null,
+      JSON.stringify(body.mediaUrls.length ? body.mediaUrls : body.imageUrl ? [body.imageUrl] : []),
+      body.videoUrl ?? null,
+      body.discountPercent,
+      JSON.stringify(body.variants.filter((variant) => variant.type || variant.color)),
     ],
   );
   return reply.code(201).send({ product: result.rows[0] });
@@ -715,10 +740,14 @@ app.patch("/api/merchant/products/:productId", async (request, reply) => {
       description: z.string().optional(),
       priceCents: z.number().int().nonnegative().optional(),
       compareAtPriceCents: z.number().int().nonnegative().nullable().optional(),
+      discountPercent: z.number().int().min(0).max(100).optional(),
       sku: z.string().nullable().optional(),
       stockQuantity: z.number().int().nonnegative().optional(),
       status: z.enum(["draft", "published"]).optional(),
-      imageUrl: z.string().url().nullable().optional(),
+      imageUrl: mediaUrlSchema.nullable().optional(),
+      mediaUrls: z.array(mediaUrlSchema).max(8).optional(),
+      videoUrl: mediaUrlSchema.nullable().optional(),
+      variants: z.array(productVariantSchema).max(30).optional(),
     })
     .parse(request.body);
   if (body.categoryId) {
@@ -743,7 +772,11 @@ app.patch("/api/merchant/products/:productId", async (request, reply) => {
          sku = CASE WHEN $12::boolean THEN $13::text ELSE sku END,
          stock_quantity = coalesce($14, stock_quantity),
          status = coalesce($15, status),
-         image_url = CASE WHEN $16::boolean THEN $17::text ELSE image_url END
+         image_url = CASE WHEN $16::boolean THEN $17::text ELSE image_url END,
+         media_urls = CASE WHEN $18::boolean THEN $19::jsonb ELSE media_urls END,
+         video_url = CASE WHEN $20::boolean THEN $21::text ELSE video_url END,
+         discount_percent = coalesce($22, discount_percent),
+         variants = CASE WHEN $23::boolean THEN $24::jsonb ELSE variants END
      WHERE id = $1 AND tenant_id = $2
      RETURNING *`,
     [
@@ -764,6 +797,13 @@ app.patch("/api/merchant/products/:productId", async (request, reply) => {
       body.status ?? null,
       Object.prototype.hasOwnProperty.call(body, "imageUrl"),
       body.imageUrl ?? null,
+      Object.prototype.hasOwnProperty.call(body, "mediaUrls"),
+      JSON.stringify(body.mediaUrls ?? []),
+      Object.prototype.hasOwnProperty.call(body, "videoUrl"),
+      body.videoUrl ?? null,
+      body.discountPercent ?? null,
+      Object.prototype.hasOwnProperty.call(body, "variants"),
+      JSON.stringify((body.variants ?? []).filter((variant) => variant.type || variant.color)),
     ],
   );
   if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });

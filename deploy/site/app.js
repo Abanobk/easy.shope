@@ -5,6 +5,8 @@ const state = {
   customerToken: localStorage.getItem("easyShopeCustomerToken") || "",
   cart: [],
   storefrontCategory: "",
+  merchantCategories: [],
+  merchantProducts: [],
 };
 
 const $ = (id) => document.getElementById(id);
@@ -24,6 +26,34 @@ function statusCount(rows, status) {
 function queryString(params) {
   const entries = Object.entries(params).filter(([, value]) => value);
   return entries.length ? `?${new URLSearchParams(entries).toString()}` : "";
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.size) return resolve("");
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("تعذر قراءة الملف."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function parseMoneyToCents(value) {
+  return Math.round(Number(value || 0) * 100);
+}
+
+function productPriceHtml(product) {
+  const compareAt = Number(product.compare_at_price_cents || 0);
+  const discount = Number(product.discount_percent || 0);
+  return `<code>${money(product.price_cents)}</code>${compareAt ? `<small class="old-price">${money(compareAt)}</small>` : ""}${discount ? `<small class="discount-badge">خصم ${discount}%</small>` : ""}`;
+}
+
+function productMediaHtml(product) {
+  const media = Array.isArray(product.media_urls) ? product.media_urls : [];
+  const images = (media.length ? media : product.image_url ? [product.image_url] : []).filter(Boolean);
+  return `<div class="product-media-gallery">${
+    images.map((url) => `<img src="${url}" alt="">`).join("") || `<div class="product-image"><span>${product.title_ar.slice(0, 1)}</span></div>`
+  }${product.video_url ? `<video src="${product.video_url}" controls></video>` : ""}</div>`;
 }
 
 function fillPaymobCallbackUrls() {
@@ -215,24 +245,73 @@ async function login(event) {
 async function createCategory(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
-  await api("/api/merchant/categories", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
+  const payload = Object.fromEntries(form.entries());
+  const imageUrl = await fileToDataUrl(form.get("imageFile"));
+  delete payload.imageFile;
+  if (imageUrl) payload.imageUrl = imageUrl;
+  await api("/api/merchant/categories", { method: "POST", body: JSON.stringify(payload) });
   showMessage("تم إنشاء التصنيف.");
   event.currentTarget.reset();
   await loadMerchantData();
+}
+
+function addVariantRow(variant = {}) {
+  const container = $("variant-rows");
+  if (!container) return;
+  const row = document.createElement("div");
+  row.className = "variant-row";
+  row.innerHTML = `
+    <input name="variantType" placeholder="النوع / المقاس" value="${variant.type || ""}">
+    <input name="variantColor" placeholder="اللون" value="${variant.color || ""}">
+    <input name="variantExtraPrice" type="number" step="0.01" placeholder="إضافة سعر" value="${variant.extraPrice || ""}">
+    <input name="variantStock" type="number" placeholder="مخزون اختياري" value="${variant.stockQuantity ?? ""}">
+    <button type="button" class="danger-button" data-remove-variant>حذف</button>
+  `;
+  row.querySelector("[data-remove-variant]").addEventListener("click", () => row.remove());
+  container.appendChild(row);
+}
+
+function resetVariants() {
+  if ($("variant-rows")) $("variant-rows").innerHTML = "";
+}
+
+function collectVariants() {
+  return Array.from(document.querySelectorAll(".variant-row"))
+    .map((row) => ({
+      type: row.querySelector('[name="variantType"]').value.trim(),
+      color: row.querySelector('[name="variantColor"]').value.trim(),
+      extraPriceCents: parseMoneyToCents(row.querySelector('[name="variantExtraPrice"]').value),
+      stockQuantity: row.querySelector('[name="variantStock"]').value ? Number(row.querySelector('[name="variantStock"]').value) : null,
+    }))
+    .filter((variant) => variant.type || variant.color);
 }
 
 async function createProduct(event) {
   event.preventDefault();
   const form = new FormData(event.currentTarget);
   const payload = Object.fromEntries(form.entries());
-  payload.priceCents = Math.round(Number(payload.price) * 100);
+  const imageFiles = form.getAll("imageFiles").filter((file) => file?.size);
+  const mediaUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
+  const uploadedVideo = await fileToDataUrl(form.get("videoFile"));
+  payload.priceCents = parseMoneyToCents(payload.price);
+  if (payload.compareAtPrice) payload.compareAtPriceCents = parseMoneyToCents(payload.compareAtPrice);
+  payload.discountPercent = Number(payload.discountPercent || 0);
   payload.stockQuantity = Number(payload.stockQuantity || 0);
+  payload.mediaUrls = mediaUrls.filter(Boolean);
+  payload.imageUrl = payload.mediaUrls[0] || "";
+  payload.videoUrl = uploadedVideo || payload.videoUrl || "";
+  payload.variants = collectVariants();
   delete payload.price;
+  delete payload.compareAtPrice;
+  delete payload.imageFiles;
+  delete payload.videoFile;
   if (!payload.categoryId) delete payload.categoryId;
   if (!payload.imageUrl) delete payload.imageUrl;
+  if (!payload.videoUrl) delete payload.videoUrl;
   await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload) });
   showMessage("تم إنشاء المنتج.");
   event.currentTarget.reset();
+  resetVariants();
   await loadMerchantData();
 }
 
@@ -397,21 +476,14 @@ async function loadMerchantData() {
   $("merchant-latest-orders").innerHTML =
     dashboard.latestOrders.map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} - ${order.status}</span></li>`).join("") ||
     "<li>لا توجد طلبات حديثة.</li>";
-  $("categories").innerHTML = categories.categories.map((item) => `<li><strong>${item.name_ar}</strong><span>${item.name_en}</span></li>`).join("") || "<li>لا توجد تصنيفات بعد.</li>";
+  state.merchantCategories = categories.categories || [];
+  state.merchantProducts = products.products || [];
   $("product-category").innerHTML =
     `<option value="">بدون تصنيف</option>` + categories.categories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
-  $("products").innerHTML =
-    products.products
-      .map(
-        (item) => `<li>
-          <strong>${item.title_ar}<small>${money(item.price_cents)} - مخزون ${item.stock_quantity}</small></strong>
-          <span class="row-actions">
-            <button data-product-status="${item.id}:${item.status === "published" ? "draft" : "published"}">${item.status === "published" ? "إخفاء" : "نشر"}</button>
-            <button class="danger-button" data-product-delete="${item.id}">حذف</button>
-          </span>
-        </li>`,
-      )
-      .join("") || "<li>لا توجد منتجات بعد.</li>";
+  $("product-filter-category").innerHTML =
+    `<option value="">كل الأصناف</option>` + categories.categories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
+  renderMerchantCategories();
+  renderMerchantProducts();
   $("orders").innerHTML =
     orders.orders
       .map(
@@ -438,8 +510,52 @@ async function loadMerchantData() {
       .join("") || "<li>لم يتم ربط دفع بعد.</li>";
   await loadPlans();
   renderBilling(dashboard.tenant, billing.invoices);
-  bindMerchantActions();
+  bindMerchantActions("orders");
   await loadStaff();
+}
+
+function renderMerchantCategories() {
+  const filter = $("category-filter")?.value.trim().toLowerCase() || "";
+  const rows = state.merchantCategories.filter((item) => `${item.name_ar} ${item.name_en}`.toLowerCase().includes(filter));
+  $("categories").innerHTML =
+    rows
+      .map(
+        (item) => `<li>
+          <strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.name_ar}<small>${item.name_en}</small></strong>
+          <span>${item.slug}</span>
+        </li>`,
+      )
+      .join("") || "<li>لا توجد تصنيفات مطابقة.</li>";
+}
+
+function renderMerchantProducts() {
+  const query = $("product-filter")?.value.trim().toLowerCase() || "";
+  const categoryId = $("product-filter-category")?.value || "";
+  const status = $("product-filter-status")?.value || "";
+  const categoryById = new Map(state.merchantCategories.map((category) => [category.id, category.name_ar]));
+  const rows = state.merchantProducts.filter((item) => {
+    const matchesQuery = `${item.title_ar} ${item.title_en} ${item.description || ""}`.toLowerCase().includes(query);
+    const matchesCategory = !categoryId || item.category_id === categoryId;
+    const matchesStatus = !status || item.status === status;
+    return matchesQuery && matchesCategory && matchesStatus;
+  });
+  $("products").innerHTML =
+    rows
+      .map((item) => {
+        const variantCount = Array.isArray(item.variants) ? item.variants.length : 0;
+        const hasVideo = Boolean(item.video_url);
+        return `<li>
+          <strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.title_ar}
+            <small>${money(item.price_cents)}${item.discount_percent ? ` - خصم ${item.discount_percent}%` : ""} - مخزون ${item.stock_quantity} - ${categoryById.get(item.category_id) || "بدون تصنيف"}${variantCount ? ` - ${variantCount} خيار` : ""}${hasVideo ? " - فيديو" : ""}</small>
+          </strong>
+          <span class="row-actions">
+            <button data-product-status="${item.id}:${item.status === "published" ? "draft" : "published"}">${item.status === "published" ? "إخفاء" : "نشر"}</button>
+            <button class="danger-button" data-product-delete="${item.id}">حذف</button>
+          </span>
+        </li>`;
+      })
+      .join("") || "<li>لا توجد منتجات مطابقة.</li>";
+  bindMerchantActions("products");
 }
 
 async function loadStaff() {
@@ -490,25 +606,28 @@ function bindStaffActions() {
   });
 }
 
-function bindMerchantActions() {
-  document.querySelectorAll("[data-product-status]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const [productId, status] = button.dataset.productStatus.split(":");
-      await api(`/api/merchant/products/${productId}`, { method: "PATCH", body: JSON.stringify({ status }) });
-      showMessage(status === "published" ? "تم نشر المنتج." : "تم إخفاء المنتج.");
-      await loadMerchantData();
-      if (state.tenantSlug) await loadStorefront();
+function bindMerchantActions(scope = "all") {
+  if (scope === "all" || scope === "products") {
+    document.querySelectorAll("[data-product-status]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const [productId, status] = button.dataset.productStatus.split(":");
+        await api(`/api/merchant/products/${productId}`, { method: "PATCH", body: JSON.stringify({ status }) });
+        showMessage(status === "published" ? "تم نشر المنتج." : "تم إخفاء المنتج.");
+        await loadMerchantData();
+        if (state.tenantSlug) await loadStorefront();
+      });
     });
-  });
-  document.querySelectorAll("[data-product-delete]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      if (!confirm("هل تريد حذف المنتج؟")) return;
-      await api(`/api/merchant/products/${button.dataset.productDelete}`, { method: "DELETE", body: JSON.stringify({}) });
-      showMessage("تم حذف المنتج.");
-      await loadMerchantData();
-      if (state.tenantSlug) await loadStorefront();
+    document.querySelectorAll("[data-product-delete]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        if (!confirm("هل تريد حذف المنتج؟")) return;
+        await api(`/api/merchant/products/${button.dataset.productDelete}`, { method: "DELETE", body: JSON.stringify({}) });
+        showMessage("تم حذف المنتج.");
+        await loadMerchantData();
+        if (state.tenantSlug) await loadStorefront();
+      });
     });
-  });
+  }
+  if (scope === "products") return;
   document.querySelectorAll("[data-order-status]").forEach((button) => {
     button.addEventListener("click", async () => {
       const [orderId, status] = button.dataset.orderStatus.split(":");
@@ -551,7 +670,7 @@ async function loadStorefront(event) {
         (item) => `<article class="store-product-card">
           <div class="product-image">${item.image_url ? `<img src="${item.image_url}" alt="">` : `<span>${item.title_ar.slice(0, 1)}</span>`}</div>
           <div><strong>${item.title_ar}</strong><p>${item.description || "منتج متاح في المتجر."}</p></div>
-          <div class="product-card-footer"><code>${money(item.price_cents)}</code><div class="row-actions">
+          <div class="product-card-footer"><div class="price-stack">${productPriceHtml(item)}</div><div class="row-actions">
             <button data-view-product="${item.slug}">تفاصيل</button>
             <button class="success-button" data-add-cart="${item.id}" data-title="${item.title_ar}" data-price="${item.price_cents}">أضف للسلة</button>
           </div></div>
@@ -621,7 +740,14 @@ function bindStorefrontActions() {
     button.addEventListener("click", async () => {
       const slug = $("tenant-slug").value.trim();
       const data = await api(`/api/store/${slug}/products/${button.dataset.viewProduct}`);
-      $("product-detail").innerHTML = `<strong>${data.product.title_ar}</strong><p>${data.product.description || "لا يوجد وصف."}</p><p>${money(data.product.price_cents)} - ${data.product.stock_quantity} في المخزون</p>`;
+      const variants = Array.isArray(data.product.variants) ? data.product.variants : [];
+      $("product-detail").innerHTML = `${productMediaHtml(data.product)}<strong>${data.product.title_ar}</strong><p>${data.product.description || "لا يوجد وصف."}</p><div class="price-stack">${productPriceHtml(data.product)}</div><p>${data.product.stock_quantity} في المخزون</p>${
+        variants.length
+          ? `<div class="variant-pills">${variants
+              .map((variant) => `<span>${variant.type || "نوع"} ${variant.color || ""}${variant.extraPriceCents ? ` + ${money(variant.extraPriceCents)}` : ""}${variant.stockQuantity !== null && variant.stockQuantity !== undefined ? ` - مخزون ${variant.stockQuantity}` : ""}</span>`)
+              .join("")}</div>`
+          : ""
+      }`;
     });
   });
 }
@@ -889,8 +1015,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
-    button.addEventListener("click", () => setMerchantTab(button.dataset.merchantTab));
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      setMerchantTab(button.dataset.merchantTab);
+    });
   });
+  $("category-filter").addEventListener("input", renderMerchantCategories);
+  $("product-filter").addEventListener("input", renderMerchantProducts);
+  $("product-filter-category").addEventListener("change", renderMerchantProducts);
+  $("product-filter-status").addEventListener("change", renderMerchantProducts);
+  $("add-variant").addEventListener("click", () => addVariantRow());
   $("register-form").addEventListener("submit", registerMerchant);
   $("login-form").addEventListener("submit", login);
   $("category-form").addEventListener("submit", createCategory);
