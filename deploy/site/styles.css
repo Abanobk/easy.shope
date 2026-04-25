@@ -63,6 +63,19 @@ a {
   min-height: 100vh;
 }
 
+/* When merchant is inside merchant dashboard, hide global sidebar to avoid double navigation. */
+body[data-scope="merchant"][data-view="catalog"] .app-shell {
+  grid-template-columns: 1fr;
+}
+
+body[data-scope="merchant"][data-view="catalog"] .sidebar {
+  display: none;
+}
+
+body[data-scope="merchant"][data-view="catalog"] .main {
+  width: min(1320px, calc(100% - 32px));
+}
+
 .sidebar {
   position: sticky;
   top: 0;
