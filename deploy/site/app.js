@@ -28,15 +28,44 @@ function queryString(params) {
   return entries.length ? `?${new URLSearchParams(entries).toString()}` : "";
 }
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    if (!file || !file.size) return resolve("");
-    if (file.size > 8 * 1024 * 1024) return reject(new Error("حجم الملف كبير. استخدم صورة أو فيديو أقل من 8MB."));
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error || new Error("تعذر قراءة الملف."));
-    reader.readAsDataURL(file);
-  });
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function compressImageToDataUrl(file, { maxSize = 1100, quality = 0.78 } = {}) {
+  if (!file || !file.size) return "";
+  if (file.size > 8 * 1024 * 1024) throw new Error("حجم الصورة كبير. استخدم صورة أقل من 8MB.");
+  const blobUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = blobUrl;
+    await new Promise((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("تعذر قراءة الصورة."));
+    });
+    const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("تعذر تجهيز معالجة الصورة.");
+    ctx.drawImage(image, 0, 0, width, height);
+    await sleep(0); // yield so UI can update
+    return canvas.toDataURL("image/jpeg", quality);
+  } finally {
+    URL.revokeObjectURL(blobUrl);
+  }
+}
+
+async function fileToDataUrl(file) {
+  if (!file || !file.size) return "";
+  const type = String(file.type || "");
+  if (type.startsWith("image/")) return await compressImageToDataUrl(file);
+  // For now, avoid heavy video/base64 uploads
+  throw new Error("رفع هذا النوع من الملفات غير مدعوم حاليًا. استخدم رابط فيديو فقط.");
 }
 
 function setCreationForm(formId, visible) {
@@ -94,15 +123,23 @@ async function api(path, options = {}) {
   const controller = new AbortController();
   const timeoutMs = Number(options.timeoutMs || 25000);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  const response = await fetch(path, {
-    ...options,
-    signal: controller.signal,
-    headers: {
-      "Content-Type": "application/json",
-      ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
-      ...(options.headers || {}),
-    },
-  }).finally(() => clearTimeout(timer));
+  let response;
+  try {
+    response = await fetch(path, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(state.token ? { Authorization: `Bearer ${state.token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch (error) {
+    if (String(error?.name) === "AbortError") throw new Error("الطلب أخذ وقتًا طويلًا. جرّب مرة أخرى.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401 && path !== "/api/auth/login") {
@@ -338,7 +375,12 @@ async function createProduct(event) {
     if (imageFiles.length > 6) throw new Error("اختر بحد أقصى 6 صور للمنتج.");
     const totalImageBytes = imageFiles.reduce((sum, file) => sum + Number(file.size || 0), 0);
     if (totalImageBytes > 6 * 1024 * 1024) throw new Error("إجمالي حجم الصور كبير. استخدم صورًا أقل/أخف (حد أقصى 6MB).");
-    const mediaUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
+    showMessage("جارٍ تجهيز الصور...");
+    const mediaUrls = [];
+    for (const file of imageFiles) {
+      mediaUrls.push(await fileToDataUrl(file));
+      await sleep(0);
+    }
     if (form.get("videoFile")?.size) throw new Error("رفع الفيديو من الجهاز غير مدعوم حاليًا. استخدم رابط فيديو فقط.");
     const uploadedVideo = "";
     payload.priceCents = parseMoneyToCents(payload.price);
@@ -356,6 +398,7 @@ async function createProduct(event) {
     if (!payload.categoryId) delete payload.categoryId;
     if (!payload.imageUrl) delete payload.imageUrl;
     if (!payload.videoUrl) delete payload.videoUrl;
+    showMessage("جارٍ حفظ المنتج...");
     await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload), timeoutMs: 25000 });
     showMessage("تم إنشاء المنتج.");
     event.currentTarget.reset();
