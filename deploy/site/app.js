@@ -31,11 +31,16 @@ function queryString(params) {
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     if (!file || !file.size) return resolve("");
+    if (file.size > 8 * 1024 * 1024) return reject(new Error("حجم الملف كبير. استخدم صورة أو فيديو أقل من 8MB."));
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
     reader.onerror = () => reject(reader.error || new Error("تعذر قراءة الملف."));
     reader.readAsDataURL(file);
   });
+}
+
+function setCreationForm(formId, visible) {
+  $(formId)?.classList.toggle("hidden", !visible);
 }
 
 function parseMoneyToCents(value) {
@@ -244,15 +249,27 @@ async function login(event) {
 
 async function createCategory(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const payload = Object.fromEntries(form.entries());
-  const imageUrl = await fileToDataUrl(form.get("imageFile"));
-  delete payload.imageFile;
-  if (imageUrl) payload.imageUrl = imageUrl;
-  await api("/api/merchant/categories", { method: "POST", body: JSON.stringify(payload) });
-  showMessage("تم إنشاء التصنيف.");
-  event.currentTarget.reset();
-  await loadMerchantData();
+  const button = event.currentTarget.querySelector("button");
+  try {
+    button.disabled = true;
+    button.textContent = "جارٍ إضافة الصنف...";
+    const form = new FormData(event.currentTarget);
+    const payload = Object.fromEntries(form.entries());
+    const imageUrl = await fileToDataUrl(form.get("imageFile"));
+    delete payload.imageFile;
+    if (imageUrl) payload.imageUrl = imageUrl;
+    await api("/api/merchant/categories", { method: "POST", body: JSON.stringify(payload) });
+    showMessage("تم إنشاء التصنيف.");
+    event.currentTarget.reset();
+    $("category-filter").value = "";
+    setCreationForm("category-form", false);
+    await loadMerchantData();
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "إضافة تصنيف";
+  }
 }
 
 function addVariantRow(variant = {}) {
@@ -288,31 +305,45 @@ function collectVariants() {
 
 async function createProduct(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
-  const payload = Object.fromEntries(form.entries());
-  const imageFiles = form.getAll("imageFiles").filter((file) => file?.size);
-  const mediaUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
-  const uploadedVideo = await fileToDataUrl(form.get("videoFile"));
-  payload.priceCents = parseMoneyToCents(payload.price);
-  if (payload.compareAtPrice) payload.compareAtPriceCents = parseMoneyToCents(payload.compareAtPrice);
-  payload.discountPercent = Number(payload.discountPercent || 0);
-  payload.stockQuantity = Number(payload.stockQuantity || 0);
-  payload.mediaUrls = mediaUrls.filter(Boolean);
-  payload.imageUrl = payload.mediaUrls[0] || "";
-  payload.videoUrl = uploadedVideo || payload.videoUrl || "";
-  payload.variants = collectVariants();
-  delete payload.price;
-  delete payload.compareAtPrice;
-  delete payload.imageFiles;
-  delete payload.videoFile;
-  if (!payload.categoryId) delete payload.categoryId;
-  if (!payload.imageUrl) delete payload.imageUrl;
-  if (!payload.videoUrl) delete payload.videoUrl;
-  await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload) });
-  showMessage("تم إنشاء المنتج.");
-  event.currentTarget.reset();
-  resetVariants();
-  await loadMerchantData();
+  const button = event.currentTarget.querySelector("button.span-2:last-of-type");
+  try {
+    button.disabled = true;
+    button.textContent = "جارٍ إضافة المنتج...";
+    const form = new FormData(event.currentTarget);
+    const payload = Object.fromEntries(form.entries());
+    const imageFiles = form.getAll("imageFiles").filter((file) => file?.size);
+    const mediaUrls = await Promise.all(imageFiles.map((file) => fileToDataUrl(file)));
+    const uploadedVideo = await fileToDataUrl(form.get("videoFile"));
+    payload.priceCents = parseMoneyToCents(payload.price);
+    if (payload.compareAtPrice) payload.compareAtPriceCents = parseMoneyToCents(payload.compareAtPrice);
+    payload.discountPercent = Number(payload.discountPercent || 0);
+    payload.stockQuantity = Number(payload.stockQuantity || 0);
+    payload.mediaUrls = mediaUrls.filter(Boolean);
+    payload.imageUrl = payload.mediaUrls[0] || "";
+    payload.videoUrl = uploadedVideo || payload.videoUrl || "";
+    payload.variants = collectVariants();
+    delete payload.price;
+    delete payload.compareAtPrice;
+    delete payload.imageFiles;
+    delete payload.videoFile;
+    if (!payload.categoryId) delete payload.categoryId;
+    if (!payload.imageUrl) delete payload.imageUrl;
+    if (!payload.videoUrl) delete payload.videoUrl;
+    await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload) });
+    showMessage("تم إنشاء المنتج.");
+    event.currentTarget.reset();
+    $("product-filter").value = "";
+    $("product-filter-category").value = "";
+    $("product-filter-status").value = "";
+    resetVariants();
+    setCreationForm("product-form", false);
+    await loadMerchantData();
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "إضافة منتج";
+  }
 }
 
 async function saveStoreSettings(event) {
@@ -1021,9 +1052,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   $("category-filter").addEventListener("input", renderMerchantCategories);
+  $("show-category-form").addEventListener("click", () => setCreationForm("category-form", true));
   $("product-filter").addEventListener("input", renderMerchantProducts);
   $("product-filter-category").addEventListener("change", renderMerchantProducts);
   $("product-filter-status").addEventListener("change", renderMerchantProducts);
+  $("show-product-form").addEventListener("click", () => setCreationForm("product-form", true));
   $("add-variant").addEventListener("click", () => addVariantRow());
   $("register-form").addEventListener("submit", registerMerchant);
   $("login-form").addEventListener("submit", login);

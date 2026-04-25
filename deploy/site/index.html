@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042519" />
+  <link rel="stylesheet" href="/styles.css?v=2026042520" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -189,8 +189,9 @@
               </div>
               <div class="section-tools">
                 <input id="category-filter" placeholder="فلتر الأصناف بالاسم">
+                <button type="button" id="show-category-form">إضافة صنف جديد</button>
               </div>
-              <form id="category-form" class="form-grid">
+              <form id="category-form" class="form-grid creation-form hidden">
                 <label>اسم التصنيف عربي<input name="nameAr" required></label>
                 <label>Category English<input name="nameEn" required></label>
                 <label class="span-2">صورة التصنيف من الجهاز<input name="imageFile" type="file" accept="image/*"></label>
@@ -208,8 +209,9 @@
                 <input id="product-filter" placeholder="فلتر المنتجات بالاسم">
                 <select id="product-filter-category"><option value="">كل الأصناف</option></select>
                 <select id="product-filter-status"><option value="">كل الحالات</option><option value="published">Published</option><option value="draft">Draft</option></select>
+                <button type="button" id="show-product-form">إضافة منتج جديد</button>
               </div>
-              <form id="product-form" class="form-grid">
+              <form id="product-form" class="form-grid creation-form hidden">
                 <label>اسم المنتج عربي<input name="titleAr" required></label>
                 <label>Product English<input name="titleEn" required></label>
                 <label class="span-2">التصنيف<select id="product-category" name="categoryId"><option value="">بدون تصنيف</option></select></label>
@@ -464,6 +466,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042519"></script>
+  <script src="/app.js?v=2026042520"></script>
 </body>
 </html>

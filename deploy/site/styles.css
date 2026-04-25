@@ -463,6 +463,14 @@ body[data-auth-mode="login"] .register-panel {
   margin-bottom: 16px;
 }
 
+.creation-form {
+  margin-bottom: 18px;
+}
+
+.creation-form.hidden {
+  display: none;
+}
+
 .variant-builder {
   border: 1px solid var(--line);
   border-radius: 22px;
