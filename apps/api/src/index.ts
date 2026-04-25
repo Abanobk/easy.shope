@@ -165,6 +165,8 @@ function absoluteUrl(request: { headers: Record<string, string | string[] | unde
 
 function paymobCheckoutUrl(publicKey: string, clientSecret: string) {
   const params = new URLSearchParams({
+    publicKey,
+    clientSecret,
     public_key: publicKey,
     client_secret: clientSecret,
   });
