@@ -145,7 +145,6 @@ async function api(path, options = {}) {
     if (response.status === 401 && path !== "/api/auth/login") {
       clearAuthState();
       setOnboardingMode("login");
-      setView("onboarding");
     }
     const baseMessage = response.status === 401 ? "انتهت جلسة تسجيل الدخول. سجّل دخول كتاجر مرة أخرى ثم أعد إنشاء الفاتورة." : data.message || `Request failed: ${response.status}`;
     const error = new Error(data.hint ? `${baseMessage} - ${data.hint}` : baseMessage);
