@@ -132,13 +132,13 @@ function absoluteUrl(request: { headers: Record<string, string | string[] | unde
   return `${proto || "https"}://${host || "shope.easytecheg.net"}${path}`;
 }
 
-function paymobErrorMessage(payload: unknown) {
+function paymobErrorMessage(payload: unknown): string {
   if (!payload || typeof payload !== "object") return "Paymob rejected the payment request";
   const body = payload as Record<string, unknown>;
   const direct = body.message || body.detail || body.error;
   if (typeof direct === "string") return direct;
-  const errors = Object.entries(body)
-    .map(([key, value]) => {
+  const errors: string[] = Object.entries(body)
+    .map(([key, value]): string => {
       if (Array.isArray(value)) return `${key}: ${value.join(", ")}`;
       if (typeof value === "string") return `${key}: ${value}`;
       if (value && typeof value === "object") return `${key}: ${paymobErrorMessage(value)}`;
