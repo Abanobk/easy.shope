@@ -233,15 +233,12 @@ function setPaymentsTab(tab = "subscription") {
 
 function setView(view, options = {}) {
   updateNavigation();
-  const navButton = document.querySelector(`[data-view="${view}"]`);
-  if (navButton?.hidden || !$(`view-${view}`)) {
-    view = defaultViewForScope();
-  }
+  if (!$(`view-${view}`)) view = defaultViewForScope();
   document.body.dataset.view = view;
   document.querySelectorAll(".view").forEach((element) => element.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
   $(`view-${view}`)?.classList.add("active");
-  document.querySelector(`[data-view="${view}"]`)?.classList.add("active");
+  document.querySelector(`.nav-item[data-view="${view}"]:not([hidden])`)?.classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
   if (view === "payments") {
     const requested = options.paymentsTab;
@@ -1154,6 +1151,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (document.body.dataset.view !== "catalog") return;
       const view = button.dataset.view;
       if (view === "payments") {
+        document.querySelectorAll('.merchant-side-item[data-view="payments"]').forEach((el) => el.classList.remove("active"));
+        button.classList.add("active");
         setView("payments", { paymentsTab: button.dataset.paymentsTab || "subscription" });
         if (!["platform_owner", "platform_admin"].includes(state.role)) {
           loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
