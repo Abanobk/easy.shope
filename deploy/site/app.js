@@ -231,7 +231,7 @@ function setPaymentsTab(tab = "subscription") {
   });
 }
 
-function setView(view) {
+function setView(view, options = {}) {
   updateNavigation();
   const navButton = document.querySelector(`[data-view="${view}"]`);
   if (navButton?.hidden || !$(`view-${view}`)) {
@@ -243,7 +243,11 @@ function setView(view) {
   $(`view-${view}`)?.classList.add("active");
   document.querySelector(`[data-view="${view}"]`)?.classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
-  if (view === "payments") setPaymentsTab("subscription");
+  if (view === "payments") {
+    const requested = options.paymentsTab;
+    const current = document.querySelector("[data-payments-tab].active")?.dataset?.paymentsTab;
+    setPaymentsTab(requested || current || "subscription");
+  }
 }
 
 async function refreshMe() {
@@ -1148,10 +1152,15 @@ document.addEventListener("DOMContentLoaded", () => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
       if (document.body.dataset.view !== "catalog") return;
-      setView(button.dataset.view);
-      if (button.dataset.view === "payments" && !["platform_owner", "platform_admin"].includes(state.role)) {
-        loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
+      const view = button.dataset.view;
+      if (view === "payments") {
+        setView("payments", { paymentsTab: button.dataset.paymentsTab || "subscription" });
+        if (!["platform_owner", "platform_admin"].includes(state.role)) {
+          loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
+        }
+        return;
       }
+      setView(view);
     });
   });
 
