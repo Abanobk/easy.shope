@@ -33,6 +33,15 @@ function fillPaymobCallbackUrls() {
   if (response) response.value = `${origin}/?payment=paymob`;
 }
 
+function clearAuthState() {
+  state.token = "";
+  state.role = "";
+  state.tenantSlug = "";
+  localStorage.removeItem("easyShopeToken");
+  localStorage.removeItem("easyShopeTenantSlug");
+  localStorage.removeItem("easyShopeRole");
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
@@ -43,7 +52,16 @@ async function api(path, options = {}) {
     },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || `Request failed: ${response.status}`);
+  if (!response.ok) {
+    if (response.status === 401 && path !== "/api/auth/login") {
+      clearAuthState();
+      setView("auth");
+    }
+    const baseMessage = response.status === 401 ? "انتهت جلسة تسجيل الدخول. سجّل دخول كتاجر مرة أخرى ثم أعد إنشاء الفاتورة." : data.message || `Request failed: ${response.status}`;
+    const error = new Error(data.hint ? `${baseMessage} - ${data.hint}` : baseMessage);
+    error.details = data.details;
+    throw error;
+  }
   return data;
 }
 
@@ -574,9 +592,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   renderCart();
   $("logout").addEventListener("click", () => {
-    localStorage.removeItem("easyShopeToken");
-    localStorage.removeItem("easyShopeTenantSlug");
-    localStorage.removeItem("easyShopeRole");
+    clearAuthState();
     location.reload();
   });
   bootstrap();

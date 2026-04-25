@@ -312,6 +312,32 @@ button,
   grid-column: 1 / -1;
 }
 
+.billing-card {
+  background:
+    radial-gradient(circle at 85% 5%, rgba(56, 189, 248, .18), transparent 30%),
+    linear-gradient(135deg, rgba(15, 23, 42, .92), rgba(8, 47, 73, .44));
+}
+
+.billing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(320px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.billing-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin: 14px 0;
+}
+
+.invoice-list li {
+  align-items: center;
+  background: rgba(14, 165, 233, .08);
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -663,6 +689,8 @@ tr:last-child td {
   .storefront-hero,
   .storefront-grid,
   .store-product-grid,
+  .billing-layout,
+  .billing-form,
   .grid.two,
   .grid.three,
   .grid.four,

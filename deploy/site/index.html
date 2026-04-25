@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042509" />
+  <link rel="stylesheet" href="/styles.css?v=2026042510" />
 </head>
 <body>
   <div class="app-shell">
@@ -234,6 +234,29 @@
 
       <section class="view" id="view-payments">
         <div class="grid two">
+          <article class="panel billing-card span-2">
+            <div class="panel-heading">
+              <span class="eyebrow">Platform billing</span>
+              <h2>اشتراك التاجر للمنصة</h2>
+            </div>
+            <div class="billing-layout">
+              <div>
+                <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
+                <form id="subscription-form" class="billing-form">
+                  <label>الخطة<select id="planCode" name="planCode"></select></label>
+                  <button>إنشاء فاتورة اشتراك</button>
+                </form>
+                <div class="hint-box">
+                  <strong>الدفع الرسمي للمنصة</strong>
+                  <p>الفاتورة تُدفع عبر Paymob الخاص بالسوبر أدمن. بعد نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
+                </div>
+              </div>
+              <div>
+                <h3>فواتير الاشتراك</h3>
+                <ul id="subscription-invoices" class="list invoice-list"></ul>
+              </div>
+            </div>
+          </article>
           <article class="panel">
             <div class="panel-heading">
               <span class="eyebrow">EasyCash</span>
@@ -275,22 +298,6 @@
               <button>حفظ Paymob</button>
               <button type="button" class="secondary" id="test-paymob">اختبار الاتصال</button>
             </form>
-          </article>
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Platform billing</span>
-              <h2>اشتراك التاجر للمنصة</h2>
-            </div>
-            <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
-            <form id="subscription-form" class="form-stack">
-              <label>الخطة<select id="planCode" name="planCode"></select></label>
-              <button>إنشاء فاتورة اشتراك</button>
-            </form>
-            <ul id="subscription-invoices" class="list"></ul>
-            <div class="hint-box">
-              <strong>ملاحظة</strong>
-              <p>زر الدفع يستخدم Paymob الخاص بالمنصة. عند نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
-            </div>
           </article>
         </div>
       </section>
@@ -357,6 +364,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042509"></script>
+  <script src="/app.js?v=2026042510"></script>
 </body>
 </html>

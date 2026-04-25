@@ -132,6 +132,22 @@ function absoluteUrl(request: { headers: Record<string, string | string[] | unde
   return `${proto || "https"}://${host || "shope.easytecheg.net"}${path}`;
 }
 
+function paymobErrorMessage(payload: unknown) {
+  if (!payload || typeof payload !== "object") return "Paymob rejected the payment request";
+  const body = payload as Record<string, unknown>;
+  const direct = body.message || body.detail || body.error;
+  if (typeof direct === "string") return direct;
+  const errors = Object.entries(body)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) return `${key}: ${value.join(", ")}`;
+      if (typeof value === "string") return `${key}: ${value}`;
+      if (value && typeof value === "object") return `${key}: ${paymobErrorMessage(value)}`;
+      return "";
+    })
+    .filter(Boolean);
+  return errors.join(" | ") || "Paymob rejected the payment request";
+}
+
 async function expireOverdueSubscriptions() {
   await pool.query(
     `UPDATE tenants
@@ -923,9 +939,14 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
   const user = requireTenantUser(request);
   const params = z.object({ invoiceId: z.string().uuid() }).parse(request.params);
   const invoiceResult = await pool.query(
-    `SELECT invoices.*, tenants.name_en AS tenant_name
+    `SELECT invoices.*,
+            tenants.name_en AS tenant_name,
+            users.name AS merchant_name,
+            users.email AS merchant_email,
+            users.phone AS merchant_phone
      FROM platform_subscription_invoices invoices
      JOIN tenants ON tenants.id = invoices.tenant_id
+     LEFT JOIN users ON users.tenant_id = tenants.id AND users.role = 'merchant_owner'
      WHERE invoices.id = $1 AND invoices.tenant_id = $2`,
     [params.invoiceId, user.tenantId],
   );
@@ -938,6 +959,7 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
 
   const secret = decodeSecret<{ secretKey: string }>(gateway.encrypted_secret);
   const publicConfig = gateway.public_config as { publicKey: string; cardIntegrationId: number; currency?: string };
+  const merchantName = splitName(String(invoice.merchant_name || invoice.tenant_name || "Merchant Store"));
   const intentionResponse = await fetch("https://accept.paymob.com/v1/intention/", {
     method: "POST",
     headers: { Authorization: `Token ${secret.secretKey}`, "Content-Type": "application/json" },
@@ -954,10 +976,10 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
         },
       ],
       billing_data: {
-        first_name: invoice.tenant_name || "Merchant",
-        last_name: "Store",
-        phone_number: "01000000000",
-        email: "merchant@example.com",
+        first_name: merchantName.firstName,
+        last_name: merchantName.lastName,
+        phone_number: invoice.merchant_phone || "01000000000",
+        email: invoice.merchant_email || "merchant@example.com",
         country: "EG",
         city: "Cairo",
         street: "NA",
@@ -973,7 +995,11 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
   });
   const intention = await intentionResponse.json().catch(() => ({}));
   if (!intentionResponse.ok || !intention.client_secret) {
-    return reply.code(400).send({ message: intention.message || "Paymob intention creation failed", details: intention });
+    return reply.code(400).send({
+      message: paymobErrorMessage(intention),
+      details: intention,
+      hint: `Check platform Paymob mode (${gateway.mode}), public key, secret key, and card integration ID (${publicConfig.cardIntegrationId}).`,
+    });
   }
   const checkoutUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(publicConfig.publicKey)}&clientSecret=${encodeURIComponent(
     intention.client_secret,
