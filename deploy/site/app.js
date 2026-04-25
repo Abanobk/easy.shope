@@ -307,6 +307,7 @@ async function login(event) {
 async function createCategory(event) {
   event.preventDefault();
   event.stopPropagation();
+  const formEl = event.currentTarget;
   const button = event.currentTarget.querySelector("[data-submit-category]");
   try {
     button.disabled = true;
@@ -318,7 +319,7 @@ async function createCategory(event) {
     if (imageUrl) payload.imageUrl = imageUrl;
     await api("/api/merchant/categories", { method: "POST", body: JSON.stringify(payload) });
     showMessage("تم إنشاء التصنيف.");
-    event.currentTarget.reset();
+    formEl?.reset?.();
     $("category-filter").value = "";
     await loadMerchantData();
     setCreationForm("category-form", false);
@@ -365,6 +366,7 @@ function collectVariants() {
 async function createProduct(event) {
   event.preventDefault();
   event.stopPropagation();
+  const formEl = event.currentTarget;
   const button = event.currentTarget.querySelector("[data-submit-product]");
   try {
     button.disabled = true;
@@ -401,7 +403,7 @@ async function createProduct(event) {
     showMessage("جارٍ حفظ المنتج...");
     await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload), timeoutMs: 25000 });
     showMessage("تم إنشاء المنتج.");
-    event.currentTarget.reset();
+    formEl?.reset?.();
     $("product-filter").value = "";
     $("product-filter-category").value = "";
     $("product-filter-status").value = "";
