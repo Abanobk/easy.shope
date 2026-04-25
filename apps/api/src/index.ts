@@ -163,6 +163,14 @@ function absoluteUrl(request: { headers: Record<string, string | string[] | unde
   return `${proto || "https"}://${host || "shope.easytecheg.net"}${path}`;
 }
 
+function paymobCheckoutUrl(publicKey: string, clientSecret: string) {
+  const params = new URLSearchParams({
+    public_key: publicKey,
+    client_secret: clientSecret,
+  });
+  return `https://accept.paymob.com/unifiedcheckout/?${params.toString()}`;
+}
+
 function paymobErrorMessage(payload: unknown): string {
   if (!payload || typeof payload !== "object") return "Paymob rejected the payment request";
   const body = payload as Record<string, unknown>;
@@ -1128,9 +1136,7 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
         payment: { status: "pending", provider: "paymob", message: intention.message || "Paymob intention creation failed", details: intention },
       });
     }
-    const checkoutUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(publicConfig.publicKey)}&clientSecret=${encodeURIComponent(
-      intention.client_secret,
-    )}`;
+    const checkoutUrl = paymobCheckoutUrl(publicConfig.publicKey, intention.client_secret);
     const updatedOrder = await pool.query(
       `UPDATE orders SET payment_provider = 'paymob', payment_reference = $2, checkout_url = $3 WHERE id = $1 RETURNING *`,
       [order.rows[0].id, String(intention.id || intention.intention_order_id || ""), checkoutUrl],
@@ -1331,9 +1337,7 @@ app.post("/api/merchant/subscription-invoices/:invoiceId/pay", async (request, r
       hint: `Check platform Paymob mode (${gateway.mode}), public key, secret key, and card integration ID (${publicConfig.cardIntegrationId}).`,
     });
   }
-  const checkoutUrl = `https://accept.paymob.com/unifiedcheckout/?publicKey=${encodeURIComponent(publicConfig.publicKey)}&clientSecret=${encodeURIComponent(
-    intention.client_secret,
-  )}`;
+  const checkoutUrl = paymobCheckoutUrl(publicConfig.publicKey, intention.client_secret);
   const result = await pool.query(
     `UPDATE platform_subscription_invoices
      SET status = 'pending',
