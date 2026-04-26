@@ -480,6 +480,11 @@ body[data-auth-mode="login"] .register-panel {
   font-size: 13px;
 }
 
+.data-table td input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
 .order-dialog {
   width: min(760px, calc(100% - 24px));
   border: 1px solid rgba(148, 163, 184, .18);

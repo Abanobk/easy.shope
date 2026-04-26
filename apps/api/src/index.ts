@@ -335,6 +335,9 @@ async function migrate() {
       status text NOT NULL DEFAULT 'trial',
       plan_code text NOT NULL DEFAULT 'trial',
       subscription_expires_at timestamptz,
+      checkout_provider text NOT NULL DEFAULT 'paymob',
+      brand_color text,
+      logo_url text,
       created_at timestamptz NOT NULL DEFAULT now()
     );
 
@@ -464,6 +467,9 @@ async function migrate() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_provider text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS checkout_url text;
+    ALTER TABLE tenants ADD COLUMN IF NOT EXISTS checkout_provider text NOT NULL DEFAULT 'paymob';
+    ALTER TABLE tenants ADD COLUMN IF NOT EXISTS brand_color text;
+    ALTER TABLE tenants ADD COLUMN IF NOT EXISTS logo_url text;
   `);
 
   const plans = [
@@ -979,16 +985,30 @@ app.patch("/api/merchant/store", async (request) => {
       nameAr: z.string().min(2).optional(),
       nameEn: z.string().min(2).optional(),
       country: z.string().min(2).optional(),
+      checkoutProvider: z.enum(["paymob", "easycash"]).optional(),
+      brandColor: z.string().min(3).max(32).optional(),
+      logoUrl: z.string().min(1).max(2_000_000).optional(),
     })
     .parse(request.body);
   const result = await pool.query(
     `UPDATE tenants
      SET name_ar = coalesce($2, name_ar),
          name_en = coalesce($3, name_en),
-         country = coalesce($4, country)
+         country = coalesce($4, country),
+         checkout_provider = coalesce($5, checkout_provider),
+         brand_color = coalesce($6, brand_color),
+         logo_url = coalesce($7, logo_url)
      WHERE id = $1
      RETURNING *`,
-    [user.tenantId, body.nameAr ?? null, body.nameEn ?? null, body.country ?? null],
+    [
+      user.tenantId,
+      body.nameAr ?? null,
+      body.nameEn ?? null,
+      body.country ?? null,
+      body.checkoutProvider ?? null,
+      body.brandColor ?? null,
+      body.logoUrl ?? null,
+    ],
   );
   return { store: result.rows[0] };
 });
@@ -1156,10 +1176,14 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
     }
     await client.query("COMMIT");
 
-    const paymob = await pool.query(
-      `SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob' AND is_enabled = true`,
-      [tenant.id],
-    );
+    const preferred = String(tenant.checkout_provider || "paymob");
+    if (preferred !== "paymob") {
+      return reply
+        .code(201)
+        .send({ order: order.rows[0], payment: { status: "pending", provider: preferred, message: "Checkout provider is not integrated yet. Connect Paymob for live checkout." } });
+    }
+
+    const paymob = await pool.query(`SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob' AND is_enabled = true`, [tenant.id]);
     const credentials = paymob.rows[0];
     if (!credentials) {
       return reply.code(201).send({ order: order.rows[0], payment: { status: "pending", provider: "manual_until_paymob_connected" } });

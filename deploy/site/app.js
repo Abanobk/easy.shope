@@ -456,8 +456,11 @@ async function createProduct(event) {
 
 async function saveStoreSettings(event) {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const formEl = event.currentTarget;
+  const form = new FormData(formEl);
   const payload = Object.fromEntries([...form.entries()].filter(([, value]) => String(value).trim()));
+  const logoFile = $("store-logo-file")?.files?.[0];
+  if (logoFile) payload.logoUrl = await fileToDataUrl(logoFile);
   const data = await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify(payload) });
   showMessage("تم حفظ إعدادات المتجر.");
   fillStoreSettings(data.store);
@@ -506,6 +509,17 @@ function fillStoreSettings(store) {
   $("store-name-ar").value = store.name_ar || "";
   $("store-name-en").value = store.name_en || "";
   $("store-country").value = store.country || "";
+  if ($("store-brand-color")) $("store-brand-color").value = store.brand_color || "";
+  if ($("checkout-provider")) $("checkout-provider").value = store.checkout_provider || "paymob";
+  const url = `${window.location.origin}/#store/${store.slug || state.tenantSlug || ""}`;
+  if ($("storefront-url")) $("storefront-url").textContent = url;
+}
+
+async function saveCheckoutProvider() {
+  const value = $("checkout-provider")?.value || "paymob";
+  await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify({ checkoutProvider: value }) });
+  showMessage("تم حفظ طريقة الدفع الافتراضية.");
+  await loadMerchantData();
 }
 
 async function saveEasyCash(event) {
@@ -784,18 +798,26 @@ async function loadStaff() {
     element.disabled = false;
   });
   const data = await api("/api/merchant/staff");
+  const filter = ($("staff-filter")?.value || "").trim().toLowerCase();
+  const rows = (data.staff || []).filter((m) => {
+    if (!filter) return true;
+    return `${m.name} ${m.email}`.toLowerCase().includes(filter);
+  });
   staffList.innerHTML =
-    data.staff
+    rows
       .map(
         (member) => `<li>
-          <strong>${member.name}<small>${member.email} - ${member.status}</small></strong>
+          <div class="provider-line">
+            <strong>${member.name}<br><small>${member.email}${member.phone ? ` • ${member.phone}` : ""}</small></strong>
+            <span class="status-badge ${member.status === "active" ? "ok" : "off"}">${member.status}</span>
+          </div>
           <span class="row-actions">
-            <button data-staff-status="${member.id}:${member.status === "active" ? "disabled" : "active"}">${member.status === "active" ? "تعطيل" : "تفعيل"}</button>
-            <button class="danger-button" data-staff-delete="${member.id}">حذف</button>
+            <button class="mini-button" data-staff-status="${member.id}:${member.status === "active" ? "disabled" : "active"}">${member.status === "active" ? "تعطيل" : "تفعيل"}</button>
+            <button class="mini-button danger-button" data-staff-delete="${member.id}">حذف</button>
           </span>
         </li>`,
       )
-      .join("") || "<li>لا يوجد موظفون بعد.</li>";
+      .join("") || "<li>لا يوجد موظفون مطابقون.</li>";
   bindStaffActions();
 }
 
@@ -1310,6 +1332,13 @@ document.addEventListener("DOMContentLoaded", () => {
   $("order-form").addEventListener("submit", placeOrder);
   $("customer-register-form").addEventListener("submit", registerCustomer);
   $("customer-orders-button").addEventListener("click", loadCustomerOrders);
+  $("staff-filter")?.addEventListener("input", loadStaff);
+  $("save-checkout-provider")?.addEventListener("click", saveCheckoutProvider);
+  $("copy-storefront-url")?.addEventListener("click", async () => {
+    const value = $("storefront-url")?.textContent || "";
+    await navigator.clipboard?.writeText(value);
+    showMessage("تم نسخ رابط واجهة المتجر.");
+  });
   fillPaymobCallbackUrls();
   document.querySelectorAll(".callback-box input[readonly]").forEach((input) => {
     input.addEventListener("click", async () => {
