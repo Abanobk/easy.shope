@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042538" />
+  <link rel="stylesheet" href="/styles.css?v=2026042539" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -327,7 +327,18 @@
                   <input id="category-filter" placeholder="ابحث عن صنف">
                   <button type="button" id="show-category-form">إضافة صنف جديد</button>
                 </div>
-                <ul id="categories" class="list media-list"></ul>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>الصنف</th>
+                        <th>Slug</th>
+                        <th>عدد المنتجات</th>
+                      </tr>
+                    </thead>
+                    <tbody id="categories-table"></tbody>
+                  </table>
+                </div>
               </div>
               <form id="category-form" class="form-grid creation-form hidden" hidden>
                 <div class="span-2 form-header-row">
@@ -353,7 +364,28 @@
                   <select id="product-filter-status"><option value="">كل الحالات</option><option value="published">Published</option><option value="draft">Draft</option></select>
                   <button type="button" id="show-product-form">إضافة منتج جديد</button>
                 </div>
-                <ul id="products" class="list media-list"></ul>
+                <div class="section-tools">
+                  <label class="check"><input id="products-select-all" type="checkbox"> تحديد الكل</label>
+                  <button type="button" class="secondary" id="products-bulk-publish">نشر المحدد</button>
+                  <button type="button" class="secondary" id="products-bulk-draft">إخفاء المحدد</button>
+                  <button type="button" class="danger-button" id="products-bulk-delete">حذف المحدد</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>المنتج</th>
+                        <th>السعر</th>
+                        <th>المخزون</th>
+                        <th>الصنف</th>
+                        <th>الحالة</th>
+                        <th>إجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody id="products-table"></tbody>
+                  </table>
+                </div>
               </div>
               <form id="product-form" class="form-grid creation-form hidden" hidden>
                 <div class="span-2 form-header-row">
@@ -543,6 +575,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042538"></script>
+  <script src="/app.js?v=2026042539"></script>
 </body>
 </html>

@@ -155,6 +155,31 @@ async function api(path, options = {}) {
   return data;
 }
 
+function selectedProductIds() {
+  return Array.from(document.querySelectorAll("[data-product-select]"))
+    .filter((input) => input.checked)
+    .map((input) => input.dataset.productSelect);
+}
+
+async function bulkUpdateProductsStatus(status) {
+  const ids = selectedProductIds();
+  if (!ids.length) return showMessage("اختر منتجًا واحدًا على الأقل.", true);
+  await Promise.all(ids.map((id) => api(`/api/merchant/products/${id}`, { method: "PATCH", body: JSON.stringify({ status }) })));
+  showMessage(status === "published" ? "تم نشر المنتجات المحددة." : "تم إخفاء المنتجات المحددة.");
+  await loadMerchantData();
+  if (state.tenantSlug) await loadStorefront();
+}
+
+async function bulkDeleteProducts() {
+  const ids = selectedProductIds();
+  if (!ids.length) return showMessage("اختر منتجًا واحدًا على الأقل.", true);
+  if (!confirm(`هل تريد حذف ${ids.length} منتج؟`)) return;
+  await Promise.all(ids.map((id) => api(`/api/merchant/products/${id}`, { method: "DELETE", body: JSON.stringify({}) })));
+  showMessage("تم حذف المنتجات المحددة.");
+  await loadMerchantData();
+  if (state.tenantSlug) await loadStorefront();
+}
+
 async function customerApi(path, options = {}) {
   const controller = new AbortController();
   const timeoutMs = Number(options.timeoutMs || 25000);
@@ -687,15 +712,24 @@ function renderMerchantOrders() {
 function renderMerchantCategories() {
   const filter = $("category-filter")?.value.trim().toLowerCase() || "";
   const rows = state.merchantCategories.filter((item) => `${item.name_ar} ${item.name_en}`.toLowerCase().includes(filter));
-  $("categories").innerHTML =
+  const table = $("categories-table");
+  if (!table) return;
+  const counts = new Map();
+  (state.merchantProducts || []).forEach((product) => {
+    if (!product.category_id) return;
+    counts.set(product.category_id, (counts.get(product.category_id) || 0) + 1);
+  });
+  table.innerHTML =
     rows
-      .map(
-        (item) => `<li>
-          <strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.name_ar}<small>${item.name_en}</small></strong>
-          <span>${item.slug}</span>
-        </li>`,
-      )
-      .join("") || "<li>لا توجد تصنيفات مطابقة.</li>";
+      .map((item) => {
+        const count = counts.get(item.id) || 0;
+        return `<tr>
+          <td><strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.name_ar}<br><small>${item.name_en}</small></strong></td>
+          <td><small>${item.slug}</small></td>
+          <td><span class="status-badge">${count}</span></td>
+        </tr>`;
+      })
+      .join("") || `<tr><td colspan="3">لا توجد تصنيفات مطابقة.</td></tr>`;
 }
 
 function renderMerchantProducts() {
@@ -709,22 +743,30 @@ function renderMerchantProducts() {
     const matchesStatus = !status || item.status === status;
     return matchesQuery && matchesCategory && matchesStatus;
   });
-  $("products").innerHTML =
+  const tbody = $("products-table");
+  if (!tbody) return;
+  tbody.innerHTML =
     rows
       .map((item) => {
-        const variantCount = Array.isArray(item.variants) ? item.variants.length : 0;
-        const hasVideo = Boolean(item.video_url);
-        return `<li>
-          <strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.title_ar}
-            <small>${money(item.price_cents)}${item.discount_percent ? ` - خصم ${item.discount_percent}%` : ""} - مخزون ${item.stock_quantity} - ${categoryById.get(item.category_id) || "بدون تصنيف"}${variantCount ? ` - ${variantCount} خيار` : ""}${hasVideo ? " - فيديو" : ""}</small>
-          </strong>
-          <span class="row-actions">
-            <button data-product-status="${item.id}:${item.status === "published" ? "draft" : "published"}">${item.status === "published" ? "إخفاء" : "نشر"}</button>
-            <button class="danger-button" data-product-delete="${item.id}">حذف</button>
-          </span>
-        </li>`;
+        const categoryName = categoryById.get(item.category_id) || "بدون تصنيف";
+        const statusBadge = `<span class="status-badge ${item.status === "published" ? "ok" : "off"}">${item.status}</span>`;
+        return `<tr>
+          <td><input type="checkbox" class="product-select" data-product-select="${item.id}"></td>
+          <td><strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.title_ar}<br><small>${item.title_en || ""}</small></strong></td>
+          <td>${money(item.price_cents)}${item.discount_percent ? ` <small class="discount-badge">خصم ${item.discount_percent}%</small>` : ""}</td>
+          <td><small>${item.stock_quantity}</small></td>
+          <td><small>${categoryName}</small></td>
+          <td>${statusBadge}</td>
+          <td>
+            <div class="row-actions">
+              <button class="mini-button" data-product-status="${item.id}:${item.status === "published" ? "draft" : "published"}">${item.status === "published" ? "إخفاء" : "نشر"}</button>
+              <button class="mini-button danger-button" data-product-delete="${item.id}">حذف</button>
+            </div>
+          </td>
+        </tr>`;
       })
-      .join("") || "<li>لا توجد منتجات مطابقة.</li>";
+      .join("") || `<tr><td colspan="7">لا توجد منتجات مطابقة.</td></tr>`;
+
   bindMerchantActions("products");
 }
 
@@ -964,7 +1006,18 @@ async function loadBillingData() {
 
 function renderBilling(store, invoices) {
   const activeText = store.status === "active" ? "الخدمة مفعلة" : store.status === "trial" ? "فترة تجربة / بانتظار الاشتراك" : store.status;
-  $("subscription-status").innerHTML = `<strong>${activeText}</strong><p>الخطة: ${store.plan_code} - ينتهي: ${store.subscription_expires_at || "غير محدد"}</p>`;
+  const expiry = store.subscription_expires_at ? new Date(store.subscription_expires_at) : null;
+  const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+  const expiryText = expiry ? expiry.toLocaleDateString("ar-EG") : "غير محدد";
+  const expiryBadge =
+    daysLeft === null
+      ? ""
+      : daysLeft < 0
+        ? `<span class="status-badge off">منتهي</span>`
+        : daysLeft <= 7
+          ? `<span class="status-badge off">ينتهي خلال ${daysLeft} يوم</span>`
+          : `<span class="status-badge ok">متبقي ${daysLeft} يوم</span>`;
+  $("subscription-status").innerHTML = `<div class="provider-line"><strong>${activeText}</strong>${expiryBadge}</div><p>الخطة: ${store.plan_code} - ينتهي: ${expiryText}</p>`;
   const paid = (invoices || []).filter((invoice) => invoice.status === "paid");
   const open = (invoices || []).filter((invoice) => invoice.status !== "paid");
 
@@ -1226,6 +1279,13 @@ document.addEventListener("DOMContentLoaded", () => {
   $("show-product-form").addEventListener("click", () => setCreationForm("product-form", true));
   $("cancel-product-form").addEventListener("click", () => setCreationForm("product-form", false));
   $("add-variant").addEventListener("click", () => addVariantRow());
+  $("products-select-all")?.addEventListener("change", (event) => {
+    const checked = Boolean(event.currentTarget.checked);
+    document.querySelectorAll("[data-product-select]").forEach((input) => (input.checked = checked));
+  });
+  $("products-bulk-publish")?.addEventListener("click", () => bulkUpdateProductsStatus("published"));
+  $("products-bulk-draft")?.addEventListener("click", () => bulkUpdateProductsStatus("draft"));
+  $("products-bulk-delete")?.addEventListener("click", () => bulkDeleteProducts());
   $("orders-filter")?.addEventListener("input", renderMerchantOrders);
   $("orders-filter-status")?.addEventListener("change", renderMerchantOrders);
   $("order-dialog-close")?.addEventListener("click", () => $("order-dialog")?.close());
