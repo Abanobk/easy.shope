@@ -206,15 +206,10 @@ function setOnboardingMode(mode = "register") {
   document.body.dataset.authMode = mode === "login" ? "login" : "register";
 }
 
-function setMerchantTab(tab = "overview", options = {}) {
-  const paymentsTab = options.paymentsTab || "subscription";
+function setMerchantTab(tab = "overview") {
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
     if (button.dataset.merchantTab !== tab) {
       button.classList.remove("active");
-      return;
-    }
-    if (tab === "payments") {
-      button.classList.toggle("active", (button.dataset.paymentsTab || "subscription") === paymentsTab);
       return;
     }
     button.classList.add("active");
@@ -225,30 +220,14 @@ function setMerchantTab(tab = "overview", options = {}) {
       button.classList.remove("active");
       return;
     }
-    if (tab === "payments") {
-      button.classList.toggle("active", (button.dataset.paymentsTab || "subscription") === paymentsTab);
-      return;
-    }
     button.classList.add("active");
   });
   document.querySelectorAll("[data-merchant-panel]").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
   });
-  if (tab === "payments") {
-    setPaymentsTab(paymentsTab);
-    loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
-  }
+  if (tab === "billing") loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
   if (tab !== "categories") setCreationForm("category-form", false);
   if (tab !== "products") setCreationForm("product-form", false);
-}
-
-function setPaymentsTab(tab = "subscription") {
-  document.querySelectorAll("[data-payments-tab]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.paymentsTab === tab);
-  });
-  document.querySelectorAll("[data-payments-panel]").forEach((panel) => {
-    panel.classList.toggle("active", panel.dataset.paymentsPanel === tab);
-  });
 }
 
 function setView(view, options = {}) {
@@ -260,11 +239,6 @@ function setView(view, options = {}) {
   $(`view-${view}`)?.classList.add("active");
   document.querySelector(`.nav-item[data-view="${view}"]:not([hidden])`)?.classList.add("active");
   window.scrollTo({ top: 0, behavior: "smooth" });
-  if (view === "payments") {
-    const requested = options.paymentsTab;
-    const current = document.querySelector("[data-payments-tab].active")?.dataset?.paymentsTab;
-    setPaymentsTab(requested || current || "subscription");
-  }
 }
 
 async function refreshMe() {
@@ -971,7 +945,7 @@ async function handlePaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   if (params.has("subscription_invoice")) {
     setView("catalog");
-    setMerchantTab("payments", { paymentsTab: "subscription" });
+    setMerchantTab("billing");
     showMessage("رجعت من Paymob. نتحقق من نتيجة الدفع الآن...");
     try {
       const payload = Object.fromEntries(params.entries());
@@ -1169,13 +1143,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
-      setMerchantTab(button.dataset.merchantTab, { paymentsTab: button.dataset.paymentsTab });
-    });
-  });
-  document.querySelectorAll("[data-payments-tab]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      setPaymentsTab(button.dataset.paymentsTab);
+      setMerchantTab(button.dataset.merchantTab);
     });
   });
   // Billing lives inside merchant dashboard; no standalone payments view handlers.

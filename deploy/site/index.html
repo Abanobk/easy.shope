@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042536" />
+  <link rel="stylesheet" href="/styles.css?v=2026042537" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -134,8 +134,8 @@
               <button type="button" class="merchant-side-item" data-merchant-tab="orders"><strong>الطلبات</strong><small>إدارة وتتبع</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="products"><strong>المنتجات</strong><small>قائمة وإضافة</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="categories"><strong>الأصناف</strong><small>تنظيم وتصنيف</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="payments" data-payments-tab="subscription"><strong>اشتراك المنصة</strong><small>الفواتير والخطة</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="payments" data-payments-tab="providers"><strong>إعدادات الدفع</strong><small>Paymob و EasyCash</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="billing"><strong>اشتراك المنصة</strong><small>الفواتير والخطة</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="providers"><strong>إعدادات الدفع</strong><small>Paymob و EasyCash</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="team"><strong>الفريق والصلاحيات</strong><small>موظفون وأمان</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="settings"><strong>إعدادات المتجر</strong><small>البيانات والهوية</small></button>
             </nav>
@@ -189,44 +189,39 @@
               <ul id="merchant-latest-orders" class="list"></ul>
             </article>
 
-            <article class="panel merchant-tab" data-merchant-panel="payments">
-              <div class="payments-tabs">
-                <button type="button" class="payments-tab active" data-payments-tab="subscription">اشتراك المنصة</button>
-                <button type="button" class="payments-tab" data-payments-tab="providers">إعدادات الدفع للمتجر</button>
+            <article class="panel merchant-tab" data-merchant-panel="billing">
+              <div class="panel-heading">
+                <span class="eyebrow">Platform billing</span>
+                <h2>اشتراك التاجر للمنصة</h2>
               </div>
-              <div class="grid two payments-panel active" data-payments-panel="subscription">
-                <article class="panel billing-card span-2">
-                  <div class="panel-heading">
-                    <span class="eyebrow">Platform billing</span>
-                    <h2>اشتراك التاجر للمنصة</h2>
+              <div class="billing-layout">
+                <div>
+                  <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
+                  <form id="subscription-form" class="billing-form">
+                    <label>الخطة<select id="planCode" name="planCode"></select></label>
+                    <button>إنشاء فاتورة اشتراك</button>
+                  </form>
+                  <div class="hint-box">
+                    <strong>الدفع الرسمي للمنصة</strong>
+                    <p>الفاتورة تُدفع عبر Paymob الخاص بالسوبر أدمن. بعد نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
                   </div>
-                  <div class="billing-layout">
-                    <div>
-                      <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
-                      <form id="subscription-form" class="billing-form">
-                        <label>الخطة<select id="planCode" name="planCode"></select></label>
-                        <button>إنشاء فاتورة اشتراك</button>
-                      </form>
-                      <div class="hint-box">
-                        <strong>الدفع الرسمي للمنصة</strong>
-                        <p>الفاتورة تُدفع عبر Paymob الخاص بالسوبر أدمن. بعد نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
-                      </div>
-                    </div>
-                    <div>
-                      <h3>فواتير الاشتراك</h3>
-                      <div class="invoice-section">
-                        <strong class="section-title">مدفوعة</strong>
-                        <ul id="subscription-invoices-paid" class="list invoice-list"></ul>
-                      </div>
-                      <div class="invoice-section">
-                        <strong class="section-title">غير مدفوعة</strong>
-                        <ul id="subscription-invoices-open" class="list invoice-list"></ul>
-                      </div>
-                    </div>
+                </div>
+                <div>
+                  <h3>فواتير الاشتراك</h3>
+                  <div class="invoice-section">
+                    <strong class="section-title">مدفوعة</strong>
+                    <ul id="subscription-invoices-paid" class="list invoice-list"></ul>
                   </div>
-                </article>
+                  <div class="invoice-section">
+                    <strong class="section-title">غير مدفوعة</strong>
+                    <ul id="subscription-invoices-open" class="list invoice-list"></ul>
+                  </div>
+                </div>
               </div>
-              <div class="grid two payments-panel" data-payments-panel="providers">
+            </article>
+
+            <article class="panel merchant-tab" data-merchant-panel="providers">
+              <div class="grid two">
                 <article class="panel">
                   <div class="panel-heading">
                     <span class="eyebrow">EasyCash</span>
@@ -502,6 +497,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042536"></script>
+  <script src="/app.js?v=2026042537"></script>
 </body>
 </html>
