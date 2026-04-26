@@ -1147,7 +1147,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
     button.addEventListener("click", () => {
       setOnboardingMode(button.dataset.authMode);
-      if (!button.dataset.jump) setView("onboarding");
+      // Only guests should navigate to onboarding explicitly.
+      if (!button.dataset.jump && currentScope() === "public") setView("onboarding");
     });
   });
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
