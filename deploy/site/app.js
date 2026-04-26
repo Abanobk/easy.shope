@@ -206,17 +206,38 @@ function setOnboardingMode(mode = "register") {
   document.body.dataset.authMode = mode === "login" ? "login" : "register";
 }
 
-function setMerchantTab(tab = "overview") {
+function setMerchantTab(tab = "overview", options = {}) {
+  const paymentsTab = options.paymentsTab || "subscription";
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.merchantTab === tab);
+    if (button.dataset.merchantTab !== tab) {
+      button.classList.remove("active");
+      return;
+    }
+    if (tab === "payments") {
+      button.classList.toggle("active", (button.dataset.paymentsTab || "subscription") === paymentsTab);
+      return;
+    }
+    button.classList.add("active");
   });
   document.querySelectorAll(".merchant-side-item").forEach((button) => {
     if (!button.dataset.merchantTab) return;
-    button.classList.toggle("active", button.dataset.merchantTab === tab);
+    if (button.dataset.merchantTab !== tab) {
+      button.classList.remove("active");
+      return;
+    }
+    if (tab === "payments") {
+      button.classList.toggle("active", (button.dataset.paymentsTab || "subscription") === paymentsTab);
+      return;
+    }
+    button.classList.add("active");
   });
   document.querySelectorAll("[data-merchant-panel]").forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
   });
+  if (tab === "payments") {
+    setPaymentsTab(paymentsTab);
+    loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
+  }
   if (tab !== "categories") setCreationForm("category-form", false);
   if (tab !== "products") setCreationForm("product-form", false);
 }
@@ -934,7 +955,8 @@ function renderBilling(store, invoices) {
 async function handlePaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   if (params.has("subscription_invoice")) {
-    setView("payments");
+    setView("catalog");
+    setMerchantTab("payments", { paymentsTab: "subscription" });
     showMessage("رجعت من Paymob. نتحقق من نتيجة الدفع الآن...");
     try {
       const payload = Object.fromEntries(params.entries());
@@ -1114,10 +1136,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", async () => {
       setView(button.dataset.view);
-      if (button.dataset.view === "payments" && !["platform_owner", "platform_admin"].includes(state.role)) {
-        await loadPlans();
-        await loadBillingData();
-      }
     });
   });
   document.querySelectorAll("[data-jump]").forEach((button) => {
@@ -1135,7 +1153,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
-      setMerchantTab(button.dataset.merchantTab);
+      setMerchantTab(button.dataset.merchantTab, { paymentsTab: button.dataset.paymentsTab });
     });
   });
   document.querySelectorAll("[data-payments-tab]").forEach((button) => {
@@ -1144,26 +1162,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setPaymentsTab(button.dataset.paymentsTab);
     });
   });
-  document.querySelectorAll(".merchant-side-item[data-view]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      if (document.body.dataset.view !== "catalog") return;
-      const view = button.dataset.view;
-      if (view === "payments") {
-        document.querySelectorAll('.merchant-side-item[data-view="payments"]').forEach((el) => el.classList.remove("active"));
-        button.classList.add("active");
-        setView("payments", { paymentsTab: button.dataset.paymentsTab || "subscription" });
-        if (!["platform_owner", "platform_admin"].includes(state.role)) {
-          loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
-        }
-        return;
-      }
-      setView(view);
-    });
-  });
-
-  // Prevent any unexpected global click handlers from interfering with billing screen.
-  $("view-payments")?.addEventListener("click", (event) => event.stopPropagation());
+  // Billing lives inside merchant dashboard; no standalone payments view handlers.
   $("category-filter").addEventListener("input", renderMerchantCategories);
   $("show-category-form").addEventListener("click", () => setCreationForm("category-form", true));
   $("cancel-category-form").addEventListener("click", () => setCreationForm("category-form", false));

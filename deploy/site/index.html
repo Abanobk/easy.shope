@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042531" />
+  <link rel="stylesheet" href="/styles.css?v=2026042534" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -21,7 +21,6 @@
         <button class="nav-item" data-view="onboarding" data-scope="public"><strong>إنشاء متجر / دخول</strong><small>ابدأ أو ادخل لحسابك</small></button>
         <button class="nav-item" data-view="catalog" data-scope="merchant"><strong>لوحة المتجر</strong><small>نظرة عامة وإدارة يومية</small></button>
         <button class="nav-item" data-view="storefront" data-scope="merchant,customer"><strong>واجهة المتجر</strong><small>عرض المتجر العام</small></button>
-        <button class="nav-item" data-view="payments" data-scope="merchant"><strong>الدفع والاشتراكات</strong><small>Paymob والفواتير</small></button>
         <button class="nav-item" data-view="admin" data-scope="admin"><strong>لوحة السوبر أدمن</strong><small>التجار والخطط والدفع</small></button>
       </nav>
     </aside>
@@ -135,8 +134,8 @@
               <button type="button" class="merchant-side-item" data-merchant-tab="orders"><strong>الطلبات</strong><small>إدارة وتتبع</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="products"><strong>المنتجات</strong><small>قائمة وإضافة</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="categories"><strong>الأصناف</strong><small>تنظيم وتصنيف</small></button>
-              <button type="button" class="merchant-side-item" data-view="payments" data-payments-tab="subscription"><strong>اشتراك المنصة</strong><small>الفواتير والخطة</small></button>
-              <button type="button" class="merchant-side-item" data-view="payments" data-payments-tab="providers"><strong>إعدادات الدفع</strong><small>Paymob و EasyCash</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="payments" data-payments-tab="subscription"><strong>اشتراك المنصة</strong><small>الفواتير والخطة</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="payments" data-payments-tab="providers"><strong>إعدادات الدفع</strong><small>Paymob و EasyCash</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="team"><strong>الفريق والصلاحيات</strong><small>موظفون وأمان</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="settings"><strong>إعدادات المتجر</strong><small>البيانات والهوية</small></button>
             </nav>
@@ -188,6 +187,82 @@
               <ul id="orders" class="list"></ul>
               <h3>آخر الطلبات</h3>
               <ul id="merchant-latest-orders" class="list"></ul>
+            </article>
+
+            <article class="panel merchant-tab" data-merchant-panel="payments">
+              <div class="payments-tabs">
+                <button type="button" class="payments-tab active" data-payments-tab="subscription">اشتراك المنصة</button>
+                <button type="button" class="payments-tab" data-payments-tab="providers">إعدادات الدفع للمتجر</button>
+              </div>
+              <div class="grid two payments-panel active" data-payments-panel="subscription">
+                <article class="panel billing-card span-2">
+                  <div class="panel-heading">
+                    <span class="eyebrow">Platform billing</span>
+                    <h2>اشتراك التاجر للمنصة</h2>
+                  </div>
+                  <div class="billing-layout">
+                    <div>
+                      <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
+                      <form id="subscription-form" class="billing-form">
+                        <label>الخطة<select id="planCode" name="planCode"></select></label>
+                        <button>إنشاء فاتورة اشتراك</button>
+                      </form>
+                      <div class="hint-box">
+                        <strong>الدفع الرسمي للمنصة</strong>
+                        <p>الفاتورة تُدفع عبر Paymob الخاص بالسوبر أدمن. بعد نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
+                      </div>
+                    </div>
+                    <div>
+                      <h3>فواتير الاشتراك</h3>
+                      <ul id="subscription-invoices" class="list invoice-list"></ul>
+                    </div>
+                  </div>
+                </article>
+              </div>
+              <div class="grid two payments-panel" data-payments-panel="providers">
+                <article class="panel">
+                  <div class="panel-heading">
+                    <span class="eyebrow">EasyCash</span>
+                    <h2>إعدادات دفع المتجر</h2>
+                  </div>
+                  <form id="easycash-form" class="form-stack">
+                    <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+                    <label>Merchant ID<input name="merchantId" required></label>
+                    <label>API Key<input name="apiKey" required></label>
+                    <label>Secret<input name="secret" required></label>
+                    <label class="check"><input name="enabled" type="checkbox"> تفعيل</label>
+                    <button>حفظ إعدادات الدفع</button>
+                  </form>
+                  <ul id="payment-providers" class="list"></ul>
+                </article>
+                <article class="panel">
+                  <div class="panel-heading">
+                    <span class="eyebrow">Paymob Accept</span>
+                    <h2>ربط Paymob للتاجر</h2>
+                  </div>
+                  <div class="hint-box">
+                    <strong>بيانات Paymob المطلوبة للتاجر</strong>
+                    <p>من Paymob: Settings هات Public Key و Secret Key، ومن Developers > Payment Integrations هات ID الخاص بـ Online Card. بعد أول حفظ تقدر تفعل/تعطل بدون إدخال المفاتيح مرة أخرى.</p>
+                  </div>
+                  <div class="callback-box">
+                    <label>Transaction processed callback<input id="merchant-paymob-processed-callback" readonly></label>
+                    <label>Transaction response callback<input id="merchant-paymob-response-callback" readonly></label>
+                    <small>ضع اللينكين دول في Paymob داخل Developers > Payment Integrations > Edit callbacks. اللينكات ثابتة للمنصة وتتعرف على الطلب والتاجر تلقائيًا من رقم الطلب.</small>
+                  </div>
+                  <form id="paymob-form" class="form-grid">
+                    <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+                    <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
+                    <label class="span-2">Public Key<input name="publicKey" placeholder="pk_..."></label>
+                    <label class="span-2">Secret Key<input name="secretKey" placeholder="sk_..."></label>
+                    <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري الآن، مطلوب للتحقق الكامل من webhook"></label>
+                    <label>Card Integration ID<input name="cardIntegrationId" type="number"></label>
+                    <label>Wallet Integration ID اختياري<input name="walletIntegrationId" type="number"></label>
+                    <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob على Checkout المتجر</label>
+                    <button>حفظ Paymob</button>
+                    <button type="button" class="secondary" id="test-paymob">اختبار الاتصال</button>
+                  </form>
+                </article>
+              </div>
             </article>
 
             <article class="panel merchant-tab panel-mode-list" data-merchant-panel="categories" id="categories-panel">
@@ -354,82 +429,6 @@
         </article>
       </section>
 
-      <section class="view" id="view-payments">
-        <div class="payments-tabs">
-          <button type="button" class="payments-tab active" data-payments-tab="subscription">اشتراك المنصة</button>
-          <button type="button" class="payments-tab" data-payments-tab="providers">إعدادات الدفع للمتجر</button>
-        </div>
-        <div class="grid two payments-panel active" data-payments-panel="subscription">
-          <article class="panel billing-card span-2">
-            <div class="panel-heading">
-              <span class="eyebrow">Platform billing</span>
-              <h2>اشتراك التاجر للمنصة</h2>
-            </div>
-            <div class="billing-layout">
-              <div>
-                <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
-                <form id="subscription-form" class="billing-form">
-                  <label>الخطة<select id="planCode" name="planCode"></select></label>
-                  <button>إنشاء فاتورة اشتراك</button>
-                </form>
-                <div class="hint-box">
-                  <strong>الدفع الرسمي للمنصة</strong>
-                  <p>الفاتورة تُدفع عبر Paymob الخاص بالسوبر أدمن. بعد نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
-                </div>
-              </div>
-              <div>
-                <h3>فواتير الاشتراك</h3>
-                <ul id="subscription-invoices" class="list invoice-list"></ul>
-              </div>
-            </div>
-          </article>
-        </div>
-        <div class="grid two payments-panel" data-payments-panel="providers">
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">EasyCash</span>
-              <h2>إعدادات دفع المتجر</h2>
-            </div>
-            <form id="easycash-form" class="form-stack">
-              <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
-              <label>Merchant ID<input name="merchantId" required></label>
-              <label>API Key<input name="apiKey" required></label>
-              <label>Secret<input name="secret" required></label>
-              <label class="check"><input name="enabled" type="checkbox"> تفعيل</label>
-              <button>حفظ إعدادات الدفع</button>
-            </form>
-            <ul id="payment-providers" class="list"></ul>
-          </article>
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Paymob Accept</span>
-              <h2>ربط Paymob للتاجر</h2>
-            </div>
-            <div class="hint-box">
-              <strong>بيانات Paymob المطلوبة للتاجر</strong>
-              <p>من Paymob: Settings هات Public Key و Secret Key، ومن Developers > Payment Integrations هات ID الخاص بـ Online Card. بعد أول حفظ تقدر تفعل/تعطل بدون إدخال المفاتيح مرة أخرى.</p>
-            </div>
-            <div class="callback-box">
-              <label>Transaction processed callback<input id="merchant-paymob-processed-callback" readonly></label>
-              <label>Transaction response callback<input id="merchant-paymob-response-callback" readonly></label>
-              <small>ضع اللينكين دول في Paymob داخل Developers > Payment Integrations > Edit callbacks. اللينكات ثابتة للمنصة وتتعرف على الطلب والتاجر تلقائيًا من رقم الطلب.</small>
-            </div>
-            <form id="paymob-form" class="form-grid">
-              <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
-              <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
-              <label class="span-2">Public Key<input name="publicKey" placeholder="pk_..."></label>
-              <label class="span-2">Secret Key<input name="secretKey" placeholder="sk_..."></label>
-              <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري الآن، مطلوب للتحقق الكامل من webhook"></label>
-              <label>Card Integration ID<input name="cardIntegrationId" type="number"></label>
-              <label>Wallet Integration ID اختياري<input name="walletIntegrationId" type="number"></label>
-              <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob على Checkout المتجر</label>
-              <button>حفظ Paymob</button>
-              <button type="button" class="secondary" id="test-paymob">اختبار الاتصال</button>
-            </form>
-          </article>
-        </div>
-      </section>
-
       <section class="view" id="view-admin">
         <div class="grid four" id="admin-kpis">
           <div class="metric compact"><span>التجار</span><strong id="admin-tenants-total">0</strong><small id="admin-tenants-active">0 active</small></div>
@@ -492,6 +491,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042533"></script>
+  <script src="/app.js?v=2026042534"></script>
 </body>
 </html>
