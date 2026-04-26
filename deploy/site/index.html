@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042540" />
+  <link rel="stylesheet" href="/styles.css?v=2026042541" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -442,6 +442,22 @@
                 <label class="span-2">شعار المتجر (اختياري)<input id="store-logo-file" type="file" accept="image/*"></label>
                 <label>لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
                 <div class="span-2 hint-box">
+                  <strong>اختيار تمبلت واجهة المتجر</strong>
+                  <p>اختر شكل واجهة المتجر من ٦ قوالب جاهزة بألوان مختلفة.</p>
+                  <div class="theme-grid" id="theme-grid">
+                    <button type="button" class="theme-tile" data-storefront-theme="ocean"><span class="swatch"></span><strong>Ocean</strong><small>أزرق سماوي</small></button>
+                    <button type="button" class="theme-tile" data-storefront-theme="violet"><span class="swatch"></span><strong>Violet</strong><small>بنفسجي</small></button>
+                    <button type="button" class="theme-tile" data-storefront-theme="emerald"><span class="swatch"></span><strong>Emerald</strong><small>أخضر</small></button>
+                    <button type="button" class="theme-tile" data-storefront-theme="amber"><span class="swatch"></span><strong>Amber</strong><small>ذهبي</small></button>
+                    <button type="button" class="theme-tile" data-storefront-theme="rose"><span class="swatch"></span><strong>Rose</strong><small>وردي</small></button>
+                    <button type="button" class="theme-tile" data-storefront-theme="slate"><span class="swatch"></span><strong>Slate</strong><small>رمادي أنيق</small></button>
+                  </div>
+                  <div class="provider-line">
+                    <small id="theme-selected">القالب الحالي: Ocean</small>
+                    <button type="button" class="secondary" id="save-storefront-theme">حفظ التمبلت</button>
+                  </div>
+                </div>
+                <div class="span-2 hint-box">
                   <strong>رابط واجهة المتجر</strong>
                   <p id="storefront-url">سيظهر بعد تحميل المتجر.</p>
                   <button type="button" class="secondary" id="copy-storefront-url">نسخ الرابط</button>
@@ -602,6 +618,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042540"></script>
+  <script src="/app.js?v=2026042541"></script>
 </body>
 </html>

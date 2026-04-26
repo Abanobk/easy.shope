@@ -14,6 +14,13 @@
   --shadow: 0 24px 90px rgba(2, 6, 23, .45);
 }
 
+body[data-theme="ocean"] { --accent: #38bdf8; --accent-2: #a78bfa; }
+body[data-theme="violet"] { --accent: #a78bfa; --accent-2: #38bdf8; }
+body[data-theme="emerald"] { --accent: #34d399; --accent-2: #22c55e; }
+body[data-theme="amber"] { --accent: #fbbf24; --accent-2: #fb7185; }
+body[data-theme="rose"] { --accent: #fb7185; --accent-2: #f472b6; }
+body[data-theme="slate"] { --accent: #cbd5e1; --accent-2: #38bdf8; }
+
 * {
   box-sizing: border-box;
 }
@@ -144,10 +151,10 @@ button,
 
 .nav-item:hover,
 .nav-item.active {
-  border-color: rgba(56, 189, 248, .34);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   background:
-    radial-gradient(circle at 10% 20%, rgba(56, 189, 248, .18), transparent 42%),
-    rgba(56, 189, 248, .10);
+    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 42%),
+    color-mix(in srgb, var(--accent) 14%, transparent);
   color: #e0f2fe;
 }
 
@@ -483,6 +490,48 @@ body[data-auth-mode="login"] .register-panel {
 .data-table td input[type="checkbox"] {
   width: 18px;
   height: 18px;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.theme-tile {
+  text-align: right;
+  border: 1px solid rgba(148, 163, 184, .14);
+  background: rgba(15, 23, 42, .48);
+  border-radius: 18px;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.theme-tile .swatch {
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 1px solid rgba(148, 163, 184, .18);
+}
+
+.theme-tile small {
+  font-weight: 700;
+}
+
+.theme-tile.active {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, rgba(15, 23, 42, .48));
+}
+
+@media (max-width: 900px) {
+  .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .theme-grid { grid-template-columns: 1fr; }
 }
 
 .order-dialog {

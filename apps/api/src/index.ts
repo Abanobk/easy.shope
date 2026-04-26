@@ -336,6 +336,7 @@ async function migrate() {
       plan_code text NOT NULL DEFAULT 'trial',
       subscription_expires_at timestamptz,
       checkout_provider text NOT NULL DEFAULT 'paymob',
+      storefront_theme text NOT NULL DEFAULT 'ocean',
       brand_color text,
       logo_url text,
       created_at timestamptz NOT NULL DEFAULT now()
@@ -468,6 +469,7 @@ async function migrate() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS checkout_url text;
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS checkout_provider text NOT NULL DEFAULT 'paymob';
+    ALTER TABLE tenants ADD COLUMN IF NOT EXISTS storefront_theme text NOT NULL DEFAULT 'ocean';
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS brand_color text;
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS logo_url text;
   `);
@@ -986,6 +988,7 @@ app.patch("/api/merchant/store", async (request) => {
       nameEn: z.string().min(2).optional(),
       country: z.string().min(2).optional(),
       checkoutProvider: z.enum(["paymob", "easycash"]).optional(),
+      storefrontTheme: z.enum(["ocean", "violet", "emerald", "amber", "rose", "slate"]).optional(),
       brandColor: z.string().min(3).max(32).optional(),
       logoUrl: z.string().min(1).max(2_000_000).optional(),
     })
@@ -996,8 +999,9 @@ app.patch("/api/merchant/store", async (request) => {
          name_en = coalesce($3, name_en),
          country = coalesce($4, country),
          checkout_provider = coalesce($5, checkout_provider),
-         brand_color = coalesce($6, brand_color),
-         logo_url = coalesce($7, logo_url)
+         storefront_theme = coalesce($6, storefront_theme),
+         brand_color = coalesce($7, brand_color),
+         logo_url = coalesce($8, logo_url)
      WHERE id = $1
      RETURNING *`,
     [
@@ -1006,6 +1010,7 @@ app.patch("/api/merchant/store", async (request) => {
       body.nameEn ?? null,
       body.country ?? null,
       body.checkoutProvider ?? null,
+      body.storefrontTheme ?? null,
       body.brandColor ?? null,
       body.logoUrl ?? null,
     ],
@@ -1017,9 +1022,13 @@ app.get("/api/store/:tenantSlug", async (request, reply) => {
   const params = z.object({ tenantSlug: z.string() }).parse(request.params);
   await expireOverdueSubscriptions();
   const [tenant, categories, products] = await Promise.all([
-    pool.query(`SELECT id, name_ar, name_en, slug, country, status, plan_code FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [
+    pool.query(
+      `SELECT id, name_ar, name_en, slug, country, status, plan_code, storefront_theme, brand_color, logo_url
+       FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`,
+      [
       params.tenantSlug,
-    ]),
+      ],
+    ),
     pool.query(
       `SELECT categories.id, categories.name_ar, categories.name_en, categories.slug, count(products.id)::int AS products_count
        FROM categories

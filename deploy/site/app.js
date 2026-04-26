@@ -8,6 +8,7 @@ const state = {
   merchantCategories: [],
   merchantProducts: [],
   merchantOrders: [],
+  storefrontThemeDraft: "ocean",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -511,8 +512,24 @@ function fillStoreSettings(store) {
   $("store-country").value = store.country || "";
   if ($("store-brand-color")) $("store-brand-color").value = store.brand_color || "";
   if ($("checkout-provider")) $("checkout-provider").value = store.checkout_provider || "paymob";
+  state.storefrontThemeDraft = store.storefront_theme || "ocean";
+  updateThemePickerUi();
   const url = `${window.location.origin}/#store/${store.slug || state.tenantSlug || ""}`;
   if ($("storefront-url")) $("storefront-url").textContent = url;
+}
+
+function updateThemePickerUi() {
+  document.querySelectorAll("[data-storefront-theme]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.storefrontTheme === state.storefrontThemeDraft);
+  });
+  if ($("theme-selected")) $("theme-selected").textContent = `القالب الحالي: ${state.storefrontThemeDraft}`;
+}
+
+async function saveStorefrontTheme() {
+  await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify({ storefrontTheme: state.storefrontThemeDraft }) });
+  showMessage("تم حفظ تمبلت واجهة المتجر.");
+  await loadMerchantData();
+  if (state.tenantSlug) await loadStorefront();
 }
 
 async function saveCheckoutProvider() {
@@ -902,6 +919,7 @@ async function loadStorefront(event) {
   state.tenantSlug = slug;
   localStorage.setItem("easyShopeTenantSlug", slug);
   const store = await api(`/api/store/${slug}`);
+  document.body.dataset.theme = store.store.storefront_theme || "ocean";
   const data = await api(`/api/store/${slug}/products${queryString({ q: $("storefront-query").value.trim(), category: state.storefrontCategory })}`);
   $("storefront-title").textContent = store.store.name_ar || store.store.name_en;
   $("storefront-subtitle").textContent = `${store.store.name_en} - ${store.store.country} - ${store.store.status}`;
@@ -1334,6 +1352,13 @@ document.addEventListener("DOMContentLoaded", () => {
   $("customer-orders-button").addEventListener("click", loadCustomerOrders);
   $("staff-filter")?.addEventListener("input", loadStaff);
   $("save-checkout-provider")?.addEventListener("click", saveCheckoutProvider);
+  document.querySelectorAll("[data-storefront-theme]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.storefrontThemeDraft = button.dataset.storefrontTheme;
+      updateThemePickerUi();
+    });
+  });
+  $("save-storefront-theme")?.addEventListener("click", saveStorefrontTheme);
   $("copy-storefront-url")?.addEventListener("click", async () => {
     const value = $("storefront-url")?.textContent || "";
     await navigator.clipboard?.writeText(value);
