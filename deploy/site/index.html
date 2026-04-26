@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042537" />
+  <link rel="stylesheet" href="/styles.css?v=2026042538" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -143,9 +143,12 @@
 
           <div class="merchant-main">
             <article class="panel merchant-tab active" data-merchant-panel="overview">
-              <div class="panel-heading">
-                <span class="eyebrow">Merchant dashboard</span>
-                <h2>نظرة عامة على أداء المتجر</h2>
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">لوحة المتجر <span>/</span> نظرة عامة</div>
+                  <h2>نظرة عامة على أداء المتجر</h2>
+                  <p class="page-subtitle">ملخص سريع لمؤشرات الأداء، التنبيهات، والإجراءات المقترحة لتشغيل متجرك.</p>
+                </div>
               </div>
               <div class="grid four">
                 <div class="metric compact"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
@@ -168,25 +171,68 @@
                 <div class="chart-card">
                   <div class="panel-heading">
                     <span class="eyebrow">Next actions</span>
-                    <h3>اقتراحات تشغيلية</h3>
+                    <h3>تنبيهات وإجراءات سريعة</h3>
                   </div>
-                  <ul class="insight-list">
-                    <li>أضف أول تصنيف ثم اربط المنتجات به.</li>
-                    <li>انشر المنتجات الجاهزة حتى تظهر في واجهة المتجر.</li>
-                    <li>راجع فواتير الاشتراك قبل اختبار الدفع الكامل.</li>
+                  <ul class="insight-list" id="overview-alerts">
+                    <li>جاري تحميل التنبيهات...</li>
                   </ul>
+                  <div class="quick-actions-grid" id="overview-quick-actions">
+                    <button type="button" class="mini-cta" data-merchant-jump="products">إضافة منتج</button>
+                    <button type="button" class="mini-cta" data-merchant-jump="categories">إضافة صنف</button>
+                    <button type="button" class="mini-cta" data-merchant-jump="billing">فواتير الاشتراك</button>
+                    <button type="button" class="mini-cta" data-merchant-jump="providers">إعدادات الدفع</button>
+                  </div>
                 </div>
               </div>
+              <div class="panel-divider"></div>
+              <div class="panel-heading">
+                <span class="eyebrow">Latest</span>
+                <h3>آخر الطلبات</h3>
+              </div>
+              <ul id="merchant-latest-orders" class="list"></ul>
             </article>
 
             <article class="panel merchant-tab" data-merchant-panel="orders">
-              <div class="panel-heading">
-                <span class="eyebrow">Orders</span>
-                <h2>الطلبات</h2>
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">لوحة المتجر <span>/</span> الطلبات</div>
+                  <h2>الطلبات</h2>
+                  <p class="page-subtitle">إدارة وتتبع الطلبات، تغيير الحالة، ومراجعة تفاصيل كل طلب.</p>
+                </div>
               </div>
-              <ul id="orders" class="list"></ul>
-              <h3>آخر الطلبات</h3>
-              <ul id="merchant-latest-orders" class="list"></ul>
+              <div class="section-tools">
+                <input id="orders-filter" placeholder="ابحث باسم العميل أو رقم الطلب">
+                <select id="orders-filter-status">
+                  <option value="">كل الحالات</option>
+                  <option value="pending">pending</option>
+                  <option value="processing">processing</option>
+                  <option value="shipped">shipped</option>
+                  <option value="delivered">delivered</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>العميل</th>
+                      <th>الإجمالي</th>
+                      <th>الدفع</th>
+                      <th>الحالة</th>
+                      <th>تاريخ</th>
+                      <th>إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="orders-table"></tbody>
+                </table>
+              </div>
+              <dialog id="order-dialog" class="order-dialog">
+                <div class="dialog-head">
+                  <strong id="order-dialog-title">تفاصيل الطلب</strong>
+                  <button type="button" class="ghost" id="order-dialog-close">إغلاق</button>
+                </div>
+                <div id="order-dialog-body" class="dialog-body"></div>
+              </dialog>
             </article>
 
             <article class="panel merchant-tab" data-merchant-panel="billing">
@@ -497,6 +543,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042537"></script>
+  <script src="/app.js?v=2026042538"></script>
 </body>
 </html>

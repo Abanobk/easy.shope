@@ -410,6 +410,118 @@ body[data-auth-mode="login"] .register-panel {
   gap: 16px;
 }
 
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.breadcrumb {
+  color: var(--muted);
+  font-weight: 800;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.breadcrumb span {
+  opacity: .6;
+}
+
+.page-subtitle {
+  margin: 6px 0 0;
+  color: #cbd5e1;
+}
+
+.panel-divider {
+  margin: 18px 0;
+  border-top: 1px solid rgba(148, 163, 184, .14);
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mini-cta {
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-weight: 900;
+  border: 1px solid rgba(148, 163, 184, .14);
+  background: rgba(15, 23, 42, .48);
+  color: #e0f2fe;
+}
+
+.mini-cta:hover {
+  border-color: rgba(56, 189, 248, .36);
+  background: rgba(56, 189, 248, .10);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, .12);
+  text-align: right;
+  vertical-align: top;
+}
+
+.data-table th {
+  color: var(--muted);
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.order-dialog {
+  width: min(760px, calc(100% - 24px));
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 22px;
+  background: rgba(2, 6, 23, .92);
+  color: var(--text);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.order-dialog::backdrop {
+  background: rgba(2, 6, 23, .65);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dialog-body {
+  display: grid;
+  gap: 12px;
+}
+
+.dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .dialog-grid {
+    grid-template-columns: 1fr;
+  }
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .payments-tabs {
   display: flex;
   gap: 10px;

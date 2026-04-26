@@ -7,6 +7,7 @@ const state = {
   storefrontCategory: "",
   merchantCategories: [],
   merchantProducts: [],
+  merchantOrders: [],
 };
 
 const $ = (id) => document.getElementById(id);
@@ -586,32 +587,23 @@ async function loadMerchantData() {
   $("chart-orders-bar").style.setProperty("--value", `${Math.max(10, (Number(dashboard.revenue.count || 0) / maxChartValue) * 100)}%`);
   $("chart-revenue-bar").style.setProperty("--value", `${Math.max(10, ((Number(dashboard.revenue.total_cents || 0) / 100) / maxChartValue) * 100)}%`);
   fillStoreSettings(dashboard.tenant);
-  $("merchant-latest-orders").innerHTML =
-    dashboard.latestOrders.map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} - ${order.status}</span></li>`).join("") ||
+  const latestOrders = dashboard.latestOrders || [];
+  const latestMarkup =
+    latestOrders.map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} - ${order.status}</span></li>`).join("") ||
     "<li>لا توجد طلبات حديثة.</li>";
+  if ($("merchant-latest-orders")) $("merchant-latest-orders").innerHTML = latestMarkup;
+
+  renderOverviewAlerts(dashboard, billing?.invoices || []);
   state.merchantCategories = categories.categories || [];
   state.merchantProducts = products.products || [];
+  state.merchantOrders = orders.orders || [];
   $("product-category").innerHTML =
     `<option value="">بدون تصنيف</option>` + categories.categories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
   $("product-filter-category").innerHTML =
     `<option value="">كل الأصناف</option>` + categories.categories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
   renderMerchantCategories();
   renderMerchantProducts();
-  $("orders").innerHTML =
-    orders.orders
-      .map(
-        (item) => `<li>
-          <strong>${item.customer_name}<small>${money(item.total_cents)} - دفع: ${item.payment_status}</small></strong>
-          <span class="row-actions">
-            <button data-order-details="${item.id}">تفاصيل</button>
-            <button data-order-status="${item.id}:processing">تجهيز</button>
-            <button data-order-status="${item.id}:shipped">شحن</button>
-            <button class="success-button" data-order-status="${item.id}:delivered">تسليم</button>
-            <button class="danger-button" data-order-status="${item.id}:cancelled">إلغاء</button>
-          </span>
-        </li>`,
-      )
-      .join("") || "<li>لا توجد طلبات بعد.</li>";
+  renderMerchantOrders();
   $("payment-providers").innerHTML =
     providers.providers
       .map(
@@ -629,6 +621,67 @@ async function loadMerchantData() {
   renderBilling(dashboard.tenant, billing.invoices);
   bindMerchantActions("orders");
   await loadStaff();
+}
+
+function renderOverviewAlerts(dashboard, invoices) {
+  const alerts = [];
+  const tenant = dashboard?.tenant || {};
+  const products = dashboard?.products || {};
+  const categories = dashboard?.categories || {};
+  const revenue = dashboard?.revenue || {};
+  const openInvoices = (invoices || []).filter((inv) => inv.status !== "paid");
+
+  if (tenant.status !== "active") alerts.push("حالة المتجر ليست مفعلة بالكامل. راجع الاشتراك أو حالة الخدمة.");
+  if (!Number(categories.total || 0)) alerts.push("ابدأ بإضافة أول صنف لتنظيم الكتالوج.");
+  if (!Number(products.total || 0)) alerts.push("أضف أول منتج ليظهر في واجهة المتجر.");
+  if (Number(products.published || 0) === 0 && Number(products.total || 0) > 0) alerts.push("لديك منتجات غير منشورة. انشر المنتجات الجاهزة ليبدأ البيع.");
+  if (openInvoices.length) alerts.push(`لديك ${openInvoices.length} فاتورة اشتراك غير مدفوعة.`);
+  if (Number(revenue.count || 0) === 0) alerts.push("لا توجد طلبات بعد. شارك رابط واجهة المتجر لبدء استقبال الطلبات.");
+
+  const el = $("overview-alerts");
+  if (!el) return;
+  el.innerHTML = (alerts.length ? alerts : ["كل شيء جاهز. تابع إضافة المنتجات وربط الدفع."]).map((text) => `<li>${text}</li>`).join("");
+}
+
+function renderMerchantOrders() {
+  const tbody = $("orders-table");
+  if (!tbody) return;
+  const query = ($("orders-filter")?.value || "").trim().toLowerCase();
+  const status = ($("orders-filter-status")?.value || "").trim();
+
+  const rows = (state.merchantOrders || []).filter((order) => {
+    const haystack = `${order.id} ${order.customer_name || ""} ${order.customer_phone || ""}`.toLowerCase();
+    const matchesQuery = !query || haystack.includes(query);
+    const matchesStatus = !status || String(order.status) === status;
+    return matchesQuery && matchesStatus;
+  });
+
+  tbody.innerHTML =
+    rows
+      .map((order) => {
+        const created = order.created_at ? new Date(order.created_at).toLocaleString("ar-EG") : "-";
+        const statusBadge = `<span class="status-badge">${order.status}</span>`;
+        const payBadge = `<span class="status-badge ${order.payment_status === "paid" ? "ok" : "off"}">${order.payment_status || "-"}</span>`;
+        return `<tr>
+          <td><strong>${order.customer_name || "-"}</strong><br><small>${order.id}</small></td>
+          <td>${money(order.total_cents)}</td>
+          <td>${payBadge}</td>
+          <td>${statusBadge}</td>
+          <td><small>${created}</small></td>
+          <td>
+            <div class="row-actions">
+              <button class="mini-button" data-order-details="${order.id}">تفاصيل</button>
+              <button class="mini-button" data-order-status="${order.id}:processing">تجهيز</button>
+              <button class="mini-button" data-order-status="${order.id}:shipped">شحن</button>
+              <button class="mini-button success-button" data-order-status="${order.id}:delivered">تسليم</button>
+              <button class="mini-button danger-button" data-order-status="${order.id}:cancelled">إلغاء</button>
+            </div>
+          </td>
+        </tr>`;
+      })
+      .join("") || `<tr><td colspan="6">لا توجد طلبات مطابقة.</td></tr>`;
+
+  bindMerchantActions("orders");
 }
 
 function renderMerchantCategories() {
@@ -756,10 +809,21 @@ function bindMerchantActions(scope = "all") {
   document.querySelectorAll("[data-order-details]").forEach((button) => {
     button.addEventListener("click", async () => {
       const data = await api(`/api/merchant/orders/${button.dataset.orderDetails}`);
-      $("message").className = "message ok";
-      $("message").innerHTML = `<strong>طلب ${data.order.id}</strong><br>${data.items
-        .map((item) => `${item.title} x ${item.quantity} = ${money(item.total_cents)}`)
-        .join("<br>")}`;
+      const dialog = $("order-dialog");
+      const title = $("order-dialog-title");
+      const body = $("order-dialog-body");
+      if (!dialog || !title || !body) return;
+      title.textContent = `طلب ${data.order.id}`;
+      body.innerHTML = `
+        <div class="dialog-grid">
+          <div class="hint-box"><strong>العميل</strong><p>${data.order.customer_name || "-"}</p><small>${data.order.customer_phone || ""}</small></div>
+          <div class="hint-box"><strong>الإجمالي</strong><p>${money(data.order.total_cents)}</p><small>الدفع: ${data.order.payment_status || "-"}</small></div>
+        </div>
+        <div class="hint-box"><strong>العناصر</strong><p>${data.items
+          .map((item) => `${item.title} × ${item.quantity} = ${money(item.total_cents)}`)
+          .join("<br>")}</p></div>
+      `;
+      dialog.showModal();
     });
   });
 }
@@ -1140,6 +1204,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!button.dataset.jump && currentScope() === "public") setView("onboarding");
     });
   });
+  document.querySelectorAll("[data-merchant-jump]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      setMerchantTab(button.dataset.merchantJump);
+    });
+  });
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
@@ -1156,6 +1226,9 @@ document.addEventListener("DOMContentLoaded", () => {
   $("show-product-form").addEventListener("click", () => setCreationForm("product-form", true));
   $("cancel-product-form").addEventListener("click", () => setCreationForm("product-form", false));
   $("add-variant").addEventListener("click", () => addVariantRow());
+  $("orders-filter")?.addEventListener("input", renderMerchantOrders);
+  $("orders-filter-status")?.addEventListener("change", renderMerchantOrders);
+  $("order-dialog-close")?.addEventListener("click", () => $("order-dialog")?.close());
   document.querySelectorAll("#product-form input, #product-form select, #product-form textarea, #category-form input").forEach((element) => {
     element.addEventListener("click", (event) => event.stopPropagation());
     element.addEventListener("focus", (event) => event.stopPropagation());
