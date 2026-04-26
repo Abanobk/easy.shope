@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042541" />
+  <link rel="stylesheet" href="/styles.css?v=2026042542" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -435,35 +435,106 @@
                   <p class="page-subtitle">هوية المتجر، بيانات التواصل، وإعدادات الواجهة.</p>
                 </div>
               </div>
-              <form id="store-settings-form" class="form-grid">
-                <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
-                <label>Store name English<input id="store-name-en" name="nameEn"></label>
-                <label class="span-2">البلد<input id="store-country" name="country"></label>
-                <label class="span-2">شعار المتجر (اختياري)<input id="store-logo-file" type="file" accept="image/*"></label>
-                <label>لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
-                <div class="span-2 hint-box">
-                  <strong>اختيار تمبلت واجهة المتجر</strong>
-                  <p>اختر شكل واجهة المتجر من ٦ قوالب جاهزة بألوان مختلفة.</p>
-                  <div class="theme-grid" id="theme-grid">
-                    <button type="button" class="theme-tile" data-storefront-theme="ocean"><span class="swatch"></span><strong>Ocean</strong><small>أزرق سماوي</small></button>
-                    <button type="button" class="theme-tile" data-storefront-theme="violet"><span class="swatch"></span><strong>Violet</strong><small>بنفسجي</small></button>
-                    <button type="button" class="theme-tile" data-storefront-theme="emerald"><span class="swatch"></span><strong>Emerald</strong><small>أخضر</small></button>
-                    <button type="button" class="theme-tile" data-storefront-theme="amber"><span class="swatch"></span><strong>Amber</strong><small>ذهبي</small></button>
-                    <button type="button" class="theme-tile" data-storefront-theme="rose"><span class="swatch"></span><strong>Rose</strong><small>وردي</small></button>
-                    <button type="button" class="theme-tile" data-storefront-theme="slate"><span class="swatch"></span><strong>Slate</strong><small>رمادي أنيق</small></button>
+              <div class="grid two">
+                <article class="panel">
+                  <div class="panel-heading">
+                    <span class="eyebrow">Brand</span>
+                    <h3>بيانات وهوية المتجر</h3>
                   </div>
-                  <div class="provider-line">
-                    <small id="theme-selected">القالب الحالي: Ocean</small>
-                    <button type="button" class="secondary" id="save-storefront-theme">حفظ التمبلت</button>
-                  </div>
+                  <form id="store-settings-form" class="form-grid">
+                    <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
+                    <label>Store name English<input id="store-name-en" name="nameEn"></label>
+                    <label class="span-2">البلد<input id="store-country" name="country"></label>
+                    <label class="span-2">شعار المتجر (اختياري)<input id="store-logo-file" type="file" accept="image/*"></label>
+                    <label class="span-2">لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
+                    <button class="span-2">حفظ بيانات المتجر</button>
+                  </form>
+                </article>
+
+                <div class="stack">
+                  <article class="panel">
+                    <div class="panel-heading">
+                      <span class="eyebrow">Themes</span>
+                      <h3>اختيار تمبلت واجهة المتجر</h3>
+                    </div>
+                    <p class="muted">اختر شكل واجهة المتجر من ٦ قوالب جاهزة مع معاينة على شكل موبايل.</p>
+                    <div class="theme-grid theme-grid-pro" id="theme-grid">
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="ocean" data-preview-theme="ocean">
+                        <div class="phone-preview">
+                          <div class="phone-top"></div>
+                          <div class="phone-hero"></div>
+                          <div class="phone-row">
+                            <span class="phone-chip"></span><span class="phone-chip"></span><span class="phone-chip"></span>
+                          </div>
+                          <div class="phone-cards">
+                            <span class="phone-card"></span><span class="phone-card"></span>
+                          </div>
+                          <div class="phone-cta"></div>
+                        </div>
+                        <div class="theme-meta"><strong>Ocean</strong><small>أزرق سماوي</small></div>
+                      </button>
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="violet" data-preview-theme="violet">
+                        <div class="phone-preview">
+                          <div class="phone-top"></div><div class="phone-hero"></div>
+                          <div class="phone-row"><span class="phone-chip"></span><span class="phone-chip"></span><span class="phone-chip"></span></div>
+                          <div class="phone-cards"><span class="phone-card"></span><span class="phone-card"></span></div>
+                          <div class="phone-cta"></div>
+                        </div>
+                        <div class="theme-meta"><strong>Violet</strong><small>بنفسجي</small></div>
+                      </button>
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="emerald" data-preview-theme="emerald">
+                        <div class="phone-preview">
+                          <div class="phone-top"></div><div class="phone-hero"></div>
+                          <div class="phone-row"><span class="phone-chip"></span><span class="phone-chip"></span><span class="phone-chip"></span></div>
+                          <div class="phone-cards"><span class="phone-card"></span><span class="phone-card"></span></div>
+                          <div class="phone-cta"></div>
+                        </div>
+                        <div class="theme-meta"><strong>Emerald</strong><small>أخضر</small></div>
+                      </button>
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="amber" data-preview-theme="amber">
+                        <div class="phone-preview">
+                          <div class="phone-top"></div><div class="phone-hero"></div>
+                          <div class="phone-row"><span class="phone-chip"></span><span class="phone-chip"></span><span class="phone-chip"></span></div>
+                          <div class="phone-cards"><span class="phone-card"></span><span class="phone-card"></span></div>
+                          <div class="phone-cta"></div>
+                        </div>
+                        <div class="theme-meta"><strong>Amber</strong><small>ذهبي</small></div>
+                      </button>
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="rose" data-preview-theme="rose">
+                        <div class="phone-preview">
+                          <div class="phone-top"></div><div class="phone-hero"></div>
+                          <div class="phone-row"><span class="phone-chip"></span><span class="phone-chip"></span><span class="phone-chip"></span></div>
+                          <div class="phone-cards"><span class="phone-card"></span><span class="phone-card"></span></div>
+                          <div class="phone-cta"></div>
+                        </div>
+                        <div class="theme-meta"><strong>Rose</strong><small>وردي</small></div>
+                      </button>
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="slate" data-preview-theme="slate">
+                        <div class="phone-preview">
+                          <div class="phone-top"></div><div class="phone-hero"></div>
+                          <div class="phone-row"><span class="phone-chip"></span><span class="phone-chip"></span><span class="phone-chip"></span></div>
+                          <div class="phone-cards"><span class="phone-card"></span><span class="phone-card"></span></div>
+                          <div class="phone-cta"></div>
+                        </div>
+                        <div class="theme-meta"><strong>Slate</strong><small>رمادي أنيق</small></div>
+                      </button>
+                    </div>
+                    <div class="provider-line">
+                      <small id="theme-selected">القالب الحالي: Ocean</small>
+                      <button type="button" class="secondary" id="save-storefront-theme">حفظ التمبلت</button>
+                    </div>
+                  </article>
+
+                  <article class="panel">
+                    <div class="panel-heading">
+                      <span class="eyebrow">Link</span>
+                      <h3>رابط واجهة المتجر</h3>
+                    </div>
+                    <p id="storefront-url">سيظهر بعد تحميل المتجر.</p>
+                    <button type="button" class="secondary" id="copy-storefront-url">نسخ الرابط</button>
+                  </article>
                 </div>
-                <div class="span-2 hint-box">
-                  <strong>رابط واجهة المتجر</strong>
-                  <p id="storefront-url">سيظهر بعد تحميل المتجر.</p>
-                  <button type="button" class="secondary" id="copy-storefront-url">نسخ الرابط</button>
-                </div>
-                <button class="span-2">حفظ بيانات المتجر</button>
-              </form>
+              </div>
             </article>
 
             <article class="panel merchant-tab" data-merchant-panel="team">
@@ -618,6 +689,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042541"></script>
+  <script src="/app.js?v=2026042542"></script>
 </body>
 </html>
