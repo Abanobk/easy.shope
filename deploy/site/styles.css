@@ -439,6 +439,50 @@ body[data-auth-mode="login"] .register-panel {
   display: grid;
 }
 
+.invoice-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, .12);
+}
+
+.section-title {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  letter-spacing: .2px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 900;
+  border: 1px solid rgba(148, 163, 184, .18);
+  background: rgba(15, 23, 42, .58);
+  color: #dbeafe;
+}
+
+.status-badge.ok {
+  border-color: rgba(134, 239, 172, .25);
+  background: rgba(134, 239, 172, .10);
+  color: #bbf7d0;
+}
+
+.status-badge.off {
+  border-color: rgba(252, 165, 165, .22);
+  background: rgba(252, 165, 165, .08);
+  color: #fecaca;
+}
+
+.provider-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .merchant-tab {
   display: none;
 }

@@ -642,9 +642,13 @@ async function loadMerchantData() {
     providers.providers
       .map(
         (item) =>
-          `<li><strong>${item.provider}</strong><span>${item.mode} - ${item.is_enabled ? "enabled" : "disabled"} ${
-            item.provider === "paymob" ? `- card ${item.public_config.cardIntegrationId || ""}` : ""
-          }</span></li>`,
+          `<li>
+            <div class="provider-line">
+              <strong>${item.provider}</strong>
+              <span class="status-badge ${item.is_enabled ? "ok" : "off"}">${item.is_enabled ? "Active" : "Inactive"}</span>
+            </div>
+            <small>${item.mode}${item.provider === "paymob" ? ` • Card integration: ${item.public_config.cardIntegrationId || "-"}` : ""}</small>
+          </li>`,
       )
       .join("") || "<li>لم يتم ربط دفع بعد.</li>";
   await loadPlans();
@@ -923,14 +927,25 @@ async function loadBillingData() {
 function renderBilling(store, invoices) {
   const activeText = store.status === "active" ? "الخدمة مفعلة" : store.status === "trial" ? "فترة تجربة / بانتظار الاشتراك" : store.status;
   $("subscription-status").innerHTML = `<strong>${activeText}</strong><p>الخطة: ${store.plan_code} - ينتهي: ${store.subscription_expires_at || "غير محدد"}</p>`;
-  $("subscription-invoices").innerHTML =
-    invoices
+  const paid = (invoices || []).filter((invoice) => invoice.status === "paid");
+  const open = (invoices || []).filter((invoice) => invoice.status !== "paid");
+
+  $("subscription-invoices-paid").innerHTML =
+    paid
+      .map(
+        (invoice) =>
+          `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}<small>${invoice.provider || ""} ${invoice.provider_reference || ""}</small></strong><span class="status-badge ok">Paid</span></li>`,
+      )
+      .join("") || "<li>لا توجد فواتير مدفوعة بعد.</li>";
+
+  $("subscription-invoices-open").innerHTML =
+    open
       .map(
         (invoice) => `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}<small>${invoice.provider || ""} ${invoice.provider_reference || ""}</small></strong><span>${invoice.status} ${
-          invoice.status === "paid" ? "" : `<button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button>`
+          `<button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button>`
         }</span></li>`,
       )
-      .join("") || "<li>لا توجد فواتير اشتراك بعد.</li>";
+      .join("") || "<li>لا توجد فواتير غير مدفوعة.</li>";
   document.querySelectorAll("[data-pay-invoice]").forEach((button) => {
     button.addEventListener("click", async () => {
       try {
