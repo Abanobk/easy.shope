@@ -800,38 +800,37 @@ body[data-auth-mode="login"] .register-panel {
   color: #f1f5f9;
 }
 
-/* —— Storefront vitrine previews (16:10 aspect, pixel-aligned) —— */
-/* Portrait phone frame (~9:19.5) — narrow + tall, centered; matches mobile, not landscape tablets */
+/* —— Storefront vitrine: fixed-height frame + scaled phone mock (no vertical stretch) —— */
+.theme-tile-pro > .theme-vitrine {
+  flex: 0 0 auto;
+}
+
 .theme-vitrine {
   box-sizing: border-box;
   position: relative;
-  width: min(240px, 90%);
+  width: min(240px, 100%);
+  max-width: 280px;
   margin-inline: auto;
-  aspect-ratio: 9 / 19.5;
-  height: auto;
-  border-radius: 16px;
+  height: 320px;
+  padding: 20px;
+  background: #0b0f1a;
+  border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, .18);
-  background: #0f172a;
-  padding: 25px;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.1),
     0 1px 3px rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  flex-shrink: 0;
 }
 
 .theme-vitrine img {
-  width: 90%;
-  height: auto;
-  max-height: 220px;
+  max-height: 100%;
+  width: auto;
   object-fit: contain;
-  margin: auto;
-  display: block;
 }
 
 .theme-vitrine--live.theme-vitrine--ocean {
@@ -886,10 +885,15 @@ body[data-auth-mode="login"] .register-panel {
 .vitrine-device {
   box-sizing: border-box;
   position: relative;
-  flex: 1;
+  flex: 0 1 auto;
+  align-self: center;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 9 / 19.5;
   min-height: 0;
-  width: 100%;
-  padding: 12px 10px 12px;
+  padding: 10px 8px 10px;
   display: flex;
   flex-direction: column;
 }
@@ -1332,9 +1336,8 @@ body[data-auth-mode="login"] .register-panel {
 }
 
 .vitrine-hero--live img {
-  width: 90%;
-  height: auto;
-  max-height: min(220px, 100%);
+  max-height: 100%;
+  width: auto;
   object-fit: contain;
   margin: 0 auto;
   display: block;
@@ -2121,9 +2124,10 @@ body[data-auth-mode="login"] .register-panel {
   align-items: flex-start;
   text-align: start;
   width: 100%;
-  margin-top: 20px;
+  margin-top: 16px;
   gap: 0.5rem;
   flex: 0 0 auto;
+  min-width: 0;
 }
 
 .theme-meta strong {
@@ -2657,7 +2661,8 @@ body[data-auth-mode="login"] .register-panel {
   }
 
   .theme-vitrine {
-    width: min(220px, 78vw);
+    width: min(220px, 92vw);
+    max-width: 280px;
   }
 }
 
