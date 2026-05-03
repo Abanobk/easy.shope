@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042632" />
+  <link rel="stylesheet" href="/styles.css?v=2026050401" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -790,6 +790,7 @@
                   <p class="page-subtitle">يطلب صاحب المتجر بناء APK مخصّص يمر عبر GitHub Actions ويُسجَّل هنا مع رابط التنزيل عند النجاح.</p>
                 </div>
               </div>
+              <div id="android-integration-banner" class="android-integration-banner" hidden aria-live="polite"></div>
               <div class="hint-box">
                 على <strong>خادم الـ API</strong> (ملف <code>.env</code> بجانب docker-compose): <code>GITHUB_ACTIONS_DISPATCH_TOKEN</code>، <code>GITHUB_REPOSITORY</code>، <code>ANDROID_BUILD_CALLBACK_SECRET</code>. على <strong>مستودع GitHub</strong> (أسرار Actions): <code>EASY_SHOPE_API_URL</code>، <code>ANDROID_BUILD_CALLBACK_SECRET</code> (نفس الخادم)، <code>MOBILE_APP_REPOSITORY</code>، <code>MOBILE_REPO_PAT</code>. التطبيق يُبنى من مستودع Flutter white-label ويستقبل <code>TENANT_SLUG</code> عند البناء.
               </div>
@@ -964,6 +965,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042633"></script>
+  <script src="/app.js?v=2026050401"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ const state = {
   merchantProducts: [],
   merchantOrders: [],
   merchantAndroidBuilds: [],
+  androidIntegration: null,
   storefrontThemeDraft: "ocean",
 };
 
@@ -969,10 +970,40 @@ function escapeHtmlText(value) {
     .replace(/"/g, "&quot;");
 }
 
+function renderAndroidIntegrationBanner() {
+  const el = $("android-integration-banner");
+  const btn = $("merchant-android-build-request");
+  if (!el) return;
+  const integ = state.androidIntegration;
+  if (!integ) {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
+  el.hidden = false;
+  const ready = Boolean(integ.dispatchReady && integ.callbackReady);
+  if (ready) {
+    el.className = "hint-box android-integration-banner android-integration--ready";
+    el.innerHTML =
+      "<strong>خادم الـ API جاهز لاستقبال طلب البناء</strong><p class=\"muted\" style=\"margin:8px 0 0\">تأكد أيضًا من أسرار GitHub ومستودع Flutter كما في الإرشادات أدناه، ثم اضغط «طلب بناء APK جديد».</p>";
+  } else {
+    const parts = [];
+    if (!integ.dispatchReady) parts.push("<code>GITHUB_ACTIONS_DISPATCH_TOKEN</code> و <code>GITHUB_REPOSITORY</code> في <code>.env</code> على خادم النشر");
+    if (!integ.callbackReady) parts.push("<code>ANDROID_BUILD_CALLBACK_SECRET</code> في <code>.env</code> على خادم النشر");
+    el.className = "hint-box android-integration-banner android-integration--blocked";
+    el.innerHTML = `<strong>البناء غير مفعّل على الخادم بعد</strong><p class="muted" style="margin:8px 0 0">ينقص: ${parts.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API.</p>`;
+  }
+  if (btn && state.role === "merchant_owner") {
+    btn.disabled = !ready;
+    btn.title = ready ? "" : "أكمل ضبط متغيرات الخادم أولًا (انظر الصندوق أعلاه).";
+  }
+}
+
 function renderMerchantAndroidBuilds() {
   const ul = $("merchant-android-builds");
   const btn = $("merchant-android-build-request");
   if (btn) btn.hidden = state.role !== "merchant_owner";
+  renderAndroidIntegrationBanner();
   if (!ul) return;
   const rows = state.merchantAndroidBuilds || [];
   if (!rows.length) {
@@ -998,8 +1029,10 @@ async function loadAndroidBuildsOnly() {
   try {
     const data = await api("/api/merchant/android-builds");
     state.merchantAndroidBuilds = data.builds || [];
+    state.androidIntegration = data.integration || null;
   } catch {
     state.merchantAndroidBuilds = [];
+    state.androidIntegration = null;
   }
   renderMerchantAndroidBuilds();
 }

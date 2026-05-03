@@ -1100,7 +1100,12 @@ app.get("/api/merchant/android-builds", async (request) => {
      LIMIT 40`,
     [user.tenantId],
   );
-  return { builds: result.rows };
+  const dispatchReady = Boolean(env.githubActionsDispatchToken.trim() && env.githubRepository.trim());
+  const callbackReady = Boolean(env.androidBuildCallbackSecret.trim());
+  return {
+    builds: result.rows,
+    integration: { dispatchReady, callbackReady },
+  };
 });
 
 app.post("/api/merchant/android-build", async (request, reply) => {

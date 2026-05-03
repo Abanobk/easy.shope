@@ -3025,6 +3025,20 @@ body[data-auth-mode="login"] .register-panel {
   background: rgba(30, 41, 59, .66);
 }
 
+.android-integration-banner {
+  margin-top: 14px;
+}
+
+.hint-box.android-integration--ready {
+  border-color: rgba(52, 211, 153, 0.42);
+  background: rgba(6, 78, 59, 0.22);
+}
+
+.hint-box.android-integration--blocked {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(69, 47, 6, 0.22);
+}
+
 .metric strong {
   display: block;
   margin: 8px 0;
