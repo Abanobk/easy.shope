@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042620" />
+  <link rel="stylesheet" href="/styles.css?v=2026042621" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -672,26 +672,30 @@
 
       <section class="view" id="view-storefront">
         <article class="storefront-shell" id="storefront-shell" data-storefront-layout="ocean">
-          <div class="storefront-hero">
-            <div class="storefront-hero-text">
-              <span class="eyebrow storefront-hero-eyebrow">Public storefront</span>
-              <h2 id="storefront-title">متجر عام جاهز للبيع</h2>
-              <p id="storefront-subtitle">حمّل متجرًا بالـ slug، اعرض المنتجات، أضف للسلة، وأنشئ Checkout كامل.</p>
-            </div>
-            <form id="storefront-form" class="storefront-search">
-              <input id="tenant-slug" placeholder="store slug">
-              <input id="storefront-query" placeholder="ابحث عن منتج">
-              <button>تحميل / بحث</button>
-            </form>
-          </div>
-          <div id="storefront-stories" class="storefront-stories" hidden></div>
-          <div id="storefront-spotlight" class="storefront-spotlight" hidden></div>
-          <div id="storefront-categories" class="category-pills"></div>
-          <div class="grid storefront-grid">
-            <div class="storefront-main-col">
-              <div id="storefront-products" class="store-product-grid"></div>
-            </div>
-            <aside class="cart-panel" id="storefront-cart-panel">
+          <header id="storefront-chrome-bar" class="storefront-chrome-bar" hidden aria-label="شريط المتجر"></header>
+          <div class="storefront-layout-split">
+            <aside id="storefront-category-rail" class="storefront-category-rail" hidden aria-label="أقسام القائمة"></aside>
+            <div class="storefront-layout-main">
+              <div class="storefront-hero">
+                <div class="storefront-hero-text">
+                  <span class="eyebrow storefront-hero-eyebrow">Public storefront</span>
+                  <h2 id="storefront-title">متجر عام جاهز للبيع</h2>
+                  <p id="storefront-subtitle">حمّل متجرًا بالـ slug، اعرض المنتجات، أضف للسلة، وأنشئ Checkout كامل.</p>
+                </div>
+                <form id="storefront-form" class="storefront-search">
+                  <input id="tenant-slug" placeholder="store slug">
+                  <input id="storefront-query" placeholder="ابحث عن منتج">
+                  <button>تحميل / بحث</button>
+                </form>
+              </div>
+              <div id="storefront-stories" class="storefront-stories" hidden></div>
+              <div id="storefront-spotlight" class="storefront-spotlight" hidden></div>
+              <div id="storefront-categories" class="category-pills"></div>
+              <div class="grid storefront-grid">
+                <div class="storefront-main-col">
+                  <div id="storefront-products" class="store-product-grid"></div>
+                </div>
+                <aside class="cart-panel" id="storefront-cart-panel">
               <div class="panel-heading">
                 <span class="eyebrow">Cart</span>
                 <h2>السلة</h2>
@@ -719,8 +723,11 @@
                 <button>Checkout وإنشاء الطلب</button>
               </form>
               <div id="checkout-result" class="hint-box">نتيجة الطلب ستظهر هنا.</div>
-            </aside>
+                </aside>
+              </div>
+            </div>
           </div>
+          <nav id="storefront-bottom-nav" class="storefront-bottom-nav" hidden aria-label="تنقّل المتجر"></nav>
         </article>
       </section>
 
@@ -786,6 +793,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042620"></script>
+  <script src="/app.js?v=2026042621"></script>
 </body>
 </html>

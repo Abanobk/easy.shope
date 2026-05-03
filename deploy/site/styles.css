@@ -2452,6 +2452,308 @@ tr:last-child td {
   box-shadow: var(--shadow);
 }
 
+/* —— Storefront chrome (per-theme top bar, rail, bottom nav) —— */
+.storefront-chrome-bar {
+  margin: -6px -6px 16px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .2);
+  background: rgba(2, 6, 23, .55);
+}
+
+.storefront-chrome-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+}
+
+.storefront-chrome-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.storefront-chrome-brand strong {
+  display: block;
+  font-size: 1.05rem;
+  color: #f8fafc;
+}
+
+.storefront-chrome-brand small {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.storefront-chrome-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  flex-shrink: 0;
+}
+
+.storefront-chrome-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0;
+  flex: 1 1 280px;
+  justify-content: flex-end;
+  scrollbar-width: thin;
+}
+
+.storefront-chrome-tabs .storefront-tab {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: rgba(30, 41, 59, .55);
+  color: #cbd5e1;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.storefront-chrome-tabs .storefront-tab:hover {
+  border-color: rgba(56, 189, 248, .35);
+}
+
+.storefront-chrome-tabs .storefront-tab.active {
+  color: #0f172a;
+  background: linear-gradient(135deg, #e0f2fe, var(--accent));
+  border-color: transparent;
+}
+
+.storefront-chrome--ocean {
+  background: linear-gradient(120deg, rgba(56, 189, 248, .12), rgba(167, 139, 250, .08), rgba(15, 23, 42, .92));
+}
+
+.storefront-chrome--violet {
+  background: linear-gradient(120deg, rgba(167, 139, 250, .2), rgba(56, 189, 248, .08), rgba(30, 27, 75, .75));
+}
+
+.storefront-chrome-pill {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(244, 114, 182, .2);
+  color: #fbcfe8;
+  border: 1px solid rgba(244, 114, 182, .35);
+}
+
+.storefront-chrome--emerald {
+  background: linear-gradient(120deg, rgba(52, 211, 153, .12), rgba(15, 23, 42, .95));
+  border-bottom: 1px solid rgba(52, 211, 153, .25);
+}
+
+.storefront-chrome-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(52, 211, 153, .15);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, .3);
+}
+
+.storefront-chrome--amber {
+  background: linear-gradient(120deg, rgba(251, 146, 60, .22), rgba(180, 83, 9, .35), rgba(15, 23, 42, .88));
+}
+
+.storefront-delivery-badge {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(254, 243, 199, .95);
+  color: #78350f;
+  white-space: nowrap;
+}
+
+.storefront-chrome--rose {
+  background: linear-gradient(120deg, rgba(253, 224, 71, .12), rgba(15, 23, 42, .9));
+  border-bottom: 1px solid rgba(253, 224, 71, .2);
+}
+
+.storefront-chrome--slate-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.storefront-chrome-art {
+  position: absolute;
+  inset: -40% -20% auto;
+  height: 140%;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(167, 139, 250, .45), transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(56, 189, 248, .35), transparent 45%),
+    radial-gradient(ellipse at 50% 80%, rgba(244, 114, 182, .3), transparent 40%);
+  opacity: .85;
+  pointer-events: none;
+}
+
+.storefront-chrome--slate {
+  position: relative;
+  background: rgba(2, 6, 23, .72);
+}
+
+.storefront-layout-split {
+  display: block;
+}
+
+#storefront-shell[data-storefront-layout="amber"] .storefront-layout-split {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+#storefront-shell[data-storefront-layout="amber"] .storefront-category-rail {
+  flex: 0 0 220px;
+  max-width: 100%;
+}
+
+#storefront-shell[data-storefront-layout="amber"] .storefront-layout-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.storefront-category-rail {
+  border-radius: 20px;
+  border: 1px solid rgba(251, 146, 60, .35);
+  background: linear-gradient(180deg, rgba(120, 53, 15, .35), rgba(15, 23, 42, .75));
+  padding: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+}
+
+.storefront-rail-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #ffedd5;
+  margin-bottom: 10px;
+  letter-spacing: .02em;
+}
+
+.storefront-rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.storefront-rail-btn {
+  width: 100%;
+  text-align: start;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(254, 243, 199, .15);
+  background: rgba(15, 23, 42, .4);
+  color: #ffedd5;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.storefront-rail-btn:hover {
+  border-color: rgba(251, 146, 60, .45);
+  background: rgba(251, 146, 60, .12);
+}
+
+.storefront-rail-btn.active {
+  background: linear-gradient(135deg, rgba(251, 146, 60, .85), rgba(234, 88, 12, .75));
+  color: #0f172a;
+  border-color: transparent;
+}
+
+.storefront-bottom-nav {
+  margin: 16px -6px -6px;
+  padding-top: 8px;
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+}
+
+.storefront-bottom-nav-inner {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px calc(10px + env(safe-area-inset-bottom, 0));
+  border-radius: 20px 20px 0 0;
+  border: 1px solid rgba(52, 211, 153, .25);
+  background: rgba(2, 6, 23, .92);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, .35);
+}
+
+.storefront-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: #94a3b8;
+  font: inherit;
+  cursor: pointer;
+  max-width: 88px;
+}
+
+.storefront-nav-item small {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.storefront-nav-item .storefront-nav-ic {
+  font-size: 18px;
+  line-height: 1;
+  opacity: .85;
+}
+
+.storefront-nav-item.is-active {
+  color: #6ee7b7;
+  background: rgba(52, 211, 153, .12);
+}
+
+#storefront-shell[data-storefront-layout="emerald"] {
+  background: linear-gradient(165deg, rgba(2, 6, 23, .95), rgba(6, 78, 59, .25), rgba(15, 23, 42, .92));
+  padding-bottom: 8px;
+}
+
+#storefront-shell[data-storefront-layout="emerald"] .store-product-card {
+  background: rgba(2, 6, 23, .55);
+  border-color: rgba(52, 211, 153, .18);
+}
+
+#storefront-shell[data-storefront-layout="emerald"] .storefront-hero {
+  opacity: .95;
+}
+
+#storefront-shell[data-storefront-layout="violet"] .store-product-card--violet {
+  border-radius: 26px;
+  border-color: rgba(167, 139, 250, .25);
+  background: linear-gradient(145deg, rgba(30, 27, 75, .45), rgba(15, 23, 42, .5));
+  box-shadow: 0 16px 48px rgba(0, 0, 0, .2);
+}
+
+#storefront-shell[data-storefront-layout="violet"] .store-product-card--violet .store-product-media {
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 2px rgba(244, 114, 182, .2);
+}
+
 .storefront-hero {
   display: grid;
   grid-template-columns: 1fr minmax(320px, .8fr);
@@ -3028,6 +3330,37 @@ tr:last-child td {
   .sidebar {
     position: static;
     height: auto;
+  }
+
+  #storefront-shell[data-storefront-layout="amber"] .storefront-layout-split {
+    flex-direction: column;
+  }
+
+  #storefront-shell[data-storefront-layout="amber"] .storefront-category-rail {
+    flex: none;
+    width: 100%;
+  }
+
+  #storefront-shell[data-storefront-layout="amber"] .storefront-rail-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  #storefront-shell[data-storefront-layout="amber"] .storefront-rail-btn {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .storefront-chrome-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .storefront-chrome-tabs {
+    justify-content: flex-start;
   }
 
   .hero-panel,

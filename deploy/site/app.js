@@ -109,6 +109,87 @@ function normalizeStorefrontLayout(theme) {
   return STOREFRONT_LAYOUTS.has(theme) ? theme : "ocean";
 }
 
+function storefrontCategoryControlsHtml(categories, mode) {
+  const active = state.storefrontCategory ?? "";
+  const extra = mode === "tabs" ? "storefront-tab" : mode === "rail" ? "storefront-rail-btn" : "";
+  const row = (slug, label, isOn) => {
+    const cls = [isOn ? "active" : "", extra].filter(Boolean).join(" ").trim();
+    return `<button type="button" class="${cls}" data-store-category="${slug}">${label}</button>`;
+  };
+  return [
+    row("", "الكل", active === ""),
+    ...categories.map((c) => row(c.slug, `${c.name_ar} (${c.products_count})`, active === c.slug)),
+  ].join("");
+}
+
+function renderStorefrontChrome(layout, store, categories) {
+  const bar = $("storefront-chrome-bar");
+  const rail = $("storefront-category-rail");
+  const bottom = $("storefront-bottom-nav");
+  const pills = $("storefront-categories");
+  if (!bar || !rail || !bottom || !pills) return;
+
+  const name = store.name_ar || store.name_en || "المتجر";
+  const catTabs = storefrontCategoryControlsHtml(categories, "tabs");
+  const catRail = storefrontCategoryControlsHtml(categories, "rail");
+  const catPills = storefrontCategoryControlsHtml(categories, "pills");
+
+  bar.hidden = false;
+  rail.hidden = layout !== "amber";
+  bottom.hidden = layout !== "emerald";
+
+  if (layout === "ocean") {
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--ocean"><div class="storefront-chrome-brand"><span class="storefront-chrome-dot" aria-hidden="true"></span><div><strong>${name}</strong><small>أزياء وإكسسوارات · شبكة منتجات</small></div></div><div id="storefront-chrome-tabs" class="storefront-chrome-tabs">${catTabs}</div></div>`;
+    rail.innerHTML = "";
+    bottom.innerHTML = "";
+    pills.innerHTML = "";
+    pills.hidden = true;
+  } else if (layout === "violet") {
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--violet"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>تجميل وعناية · قصص وبطاقات</small></div></div><span class="storefront-chrome-pill">Beauty</span></div>`;
+    rail.innerHTML = "";
+    bottom.innerHTML = "";
+    pills.innerHTML = catPills;
+    pills.hidden = false;
+  } else if (layout === "emerald") {
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--emerald"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>إلكترونيات وتقنية</small></div></div><span class="storefront-chrome-chip">Tech hub</span></div>`;
+    rail.innerHTML = "";
+    bottom.innerHTML = `<div class="storefront-bottom-nav-inner">
+      <button type="button" class="storefront-nav-item is-active" data-store-nav="home"><span class="storefront-nav-ic" aria-hidden="true">⌂</span><small>الرئيسية</small></button>
+      <button type="button" class="storefront-nav-item" data-store-nav="cats"><span class="storefront-nav-ic" aria-hidden="true">≡</span><small>الأقسام</small></button>
+      <button type="button" class="storefront-nav-item" data-store-nav="cart"><span class="storefront-nav-ic" aria-hidden="true">◆</span><small>السلة</small></button>
+      <button type="button" class="storefront-nav-item" data-store-nav="account"><span class="storefront-nav-ic" aria-hidden="true">◎</span><small>حسابي</small></button>
+    </div>`;
+    pills.innerHTML = catPills;
+    pills.hidden = false;
+  } else if (layout === "amber") {
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--amber"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>مطعم ومأكولات · قائمة يومية</small></div></div><span class="storefront-delivery-badge">توصيل متاح</span></div>`;
+    rail.innerHTML = `<div class="storefront-rail-inner"><div class="storefront-rail-title">القائمة</div><div class="storefront-rail-list">${catRail}</div></div>`;
+    bottom.innerHTML = "";
+    pills.innerHTML = "";
+    pills.hidden = true;
+  } else if (layout === "rose") {
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--rose"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>منزل وديكور · معرض صور</small></div></div></div>`;
+    rail.innerHTML = "";
+    bottom.innerHTML = "";
+    pills.innerHTML = catPills;
+    pills.hidden = false;
+  } else if (layout === "slate") {
+    bar.innerHTML = `<div class="storefront-chrome--slate-wrap"><div class="storefront-chrome-art" aria-hidden="true"></div><div class="storefront-chrome-inner storefront-chrome--slate"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>إبداعي · قائمة بسيطة</small></div></div></div></div>`;
+    rail.innerHTML = "";
+    bottom.innerHTML = "";
+    pills.innerHTML = catPills;
+    pills.hidden = false;
+  } else {
+    bar.hidden = true;
+    rail.hidden = true;
+    bottom.hidden = true;
+    rail.innerHTML = "";
+    bottom.innerHTML = "";
+    pills.innerHTML = catPills;
+    pills.hidden = false;
+  }
+}
+
 function storefrontProductHtml(item, layout) {
   const letter = item.title_ar.slice(0, 1);
   const imgInner = item.image_url
@@ -117,9 +198,10 @@ function storefrontProductHtml(item, layout) {
   const title = item.title_ar;
   const desc = item.description || "منتج متاح في المتجر.";
   const price = productPriceHtml(item);
+  const addLabel = layout === "amber" ? "اطلب الآن" : "أضف للسلة";
   const actions = `<div class="store-product-actions">
     <button type="button" data-view-product="${item.slug}">تفاصيل</button>
-    <button type="button" class="success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${item.price_cents}">أضف للسلة</button>
+    <button type="button" class="success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${item.price_cents}">${addLabel}</button>
   </div>`;
 
   if (layout === "violet") {
@@ -218,9 +300,9 @@ function renderStorefrontSpotlight(store, products, layout) {
     const bg = img ? ` style="--spotlight-img:url('${img}')"` : "";
     el.innerHTML = `<div class="storefront-spotlight-inner storefront-spotlight--amber"${bg}>
       <div class="storefront-spotlight-copy">
-        <span class="storefront-spotlight-kicker">عروض مميزة</span>
+        <span class="storefront-spotlight-kicker">قائمة اليوم · توصيل متاح</span>
         <strong>${store.name_ar || "تسوق الآن"}</strong>
-        <p>اكتشف أحدث المنتجات المختارة لك.</p>
+        <p>تصفّح الأصناف من القائمة الجانبية واختر وجبتك المفضلة.</p>
       </div>
     </div>`;
     return;
@@ -1115,6 +1197,26 @@ async function loadStorefront(event) {
   const slug = $("tenant-slug").value.trim();
   if (!slug) {
     $("storefront-products").innerHTML = "<p>بعد تسجيل التاجر سيظهر slug المتجر هنا تلقائيًا.</p>";
+    const bar = $("storefront-chrome-bar");
+    const rail = $("storefront-category-rail");
+    const bottom = $("storefront-bottom-nav");
+    const pills = $("storefront-categories");
+    if (bar) {
+      bar.hidden = true;
+      bar.innerHTML = "";
+    }
+    if (rail) {
+      rail.hidden = true;
+      rail.innerHTML = "";
+    }
+    if (bottom) {
+      bottom.hidden = true;
+      bottom.innerHTML = "";
+    }
+    if (pills) {
+      pills.hidden = false;
+      pills.innerHTML = "";
+    }
     return;
   }
   state.tenantSlug = slug;
@@ -1125,18 +1227,10 @@ async function loadStorefront(event) {
   document.body.dataset.theme = theme;
   const shell = $("storefront-shell");
   if (shell) shell.dataset.storefrontLayout = layout;
+  renderStorefrontChrome(layout, store.store, store.categories);
   const data = await api(`/api/store/${slug}/products${queryString({ q: $("storefront-query").value.trim(), category: state.storefrontCategory })}`);
   $("storefront-title").textContent = store.store.name_ar || store.store.name_en;
   $("storefront-subtitle").textContent = `${store.store.name_en} - ${store.store.country} - ${store.store.status}`;
-  $("storefront-categories").innerHTML =
-    [`<button type="button" class="${state.storefrontCategory ? "" : "active"}" data-store-category="">الكل</button>`]
-      .concat(
-        store.categories.map(
-          (category) =>
-            `<button type="button" class="${state.storefrontCategory === category.slug ? "active" : ""}" data-store-category="${category.slug}">${category.name_ar} (${category.products_count})</button>`,
-        ),
-      )
-      .join("");
   renderStorefrontStories(store.categories, layout);
   renderStorefrontSpotlight(store.store, data.products, layout);
   $("storefront-products").innerHTML =
@@ -1194,7 +1288,23 @@ function initStorefrontDelegation() {
   if (!shell || shell.dataset.delegationBound === "1") return;
   shell.dataset.delegationBound = "1";
   shell.addEventListener("click", async (e) => {
-    const categoryBtn = e.target.closest("#storefront-categories [data-store-category], #storefront-stories [data-store-category]");
+    const navBtn = e.target.closest("#storefront-bottom-nav [data-store-nav]");
+    if (navBtn) {
+      e.preventDefault();
+      const id = navBtn.dataset.storeNav;
+      if (id === "cart") $("storefront-cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (id === "cats") $("storefront-categories")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      else if (id === "account") {
+        const det = document.querySelector("#storefront-cart-panel .customer-account");
+        if (det && !det.open) det.open = true;
+        document.querySelector("#customer-register-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else $("storefront-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelectorAll("#storefront-bottom-nav [data-store-nav]").forEach((b) => b.classList.toggle("is-active", b === navBtn));
+      return;
+    }
+    const categoryBtn = e.target.closest(
+      "#storefront-categories [data-store-category], #storefront-stories [data-store-category], #storefront-chrome-tabs [data-store-category], #storefront-category-rail [data-store-category]",
+    );
     if (categoryBtn) {
       e.preventDefault();
       state.storefrontCategory = categoryBtn.dataset.storeCategory ?? "";
