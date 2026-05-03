@@ -1124,16 +1124,20 @@ app.post("/api/merchant/android-build", async (request, reply) => {
   const tenant = await pool.query(`SELECT slug FROM tenants WHERE id = $1`, [user.tenantId]);
   const slugRow = tenant.rows[0];
   if (!slugRow) return reply.code(404).send({ message: "المتجر غير موجود" });
+  const tenantId = user.tenantId;
+  const tenantSlug = slugRow.slug;
+  if (!tenantId) return reply.code(403).send({ message: "Tenant required" });
+  if (!tenantSlug) return reply.code(500).send({ message: "المتجر بدون slug" });
 
   const insert = await pool.query(
     `INSERT INTO tenant_android_builds (tenant_id, status, requested_by_user_id)
      VALUES ($1, 'queued', $2)
      RETURNING id`,
-    [user.tenantId, user.userId],
+    [tenantId, user.userId],
   );
   const buildId = insert.rows[0].id as string;
   try {
-    await dispatchTenantApkWorkflow({ buildId, tenantId: user.tenantId, tenantSlug: slugRow.slug });
+    await dispatchTenantApkWorkflow({ buildId, tenantId, tenantSlug });
   } catch (error) {
     const message = (error as Error).message.slice(0, 2000);
     await pool.query(
