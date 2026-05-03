@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042623" />
+  <link rel="stylesheet" href="/styles.css?v=2026042624" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -458,7 +458,7 @@
                         <span class="eyebrow">Storefront</span>
                         <h3>مكتبة تخطيطات الصفحة الرئيسية</h3>
                       </div>
-                      <p class="muted theme-library-lead">تخيّل شكل متجرك قبل ما يطلع للعملاء: كل قالب يوحي بنشاط مختلف (موضة، تجميل، مطعم…). المعاينة توضيح بصري — ألوانك وهويتك تطبّق على الواجهة الحقيقية بعد الحفظ.</p>
+                      <p class="muted theme-library-lead">معاينة حية لكل قالب: صور وعناوين وأسعار تجريبية من الإنترنت لمساعدة عميلك على تخيّل متجره — ثم تُستبدل بمنتجاتك الحقيقية بعد النشر. ألوانك من إعدادات المتجر تُكمّل الهوية على الواجهة العامة.</p>
                       <div class="theme-filter-chips" id="theme-filter-chips" role="tablist" aria-label="تصفية القوالب">
                         <button type="button" class="theme-chip active" data-theme-filter="all">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 8h4V4H4v4zm6-4h4v4h-4V4zm6 0h4v4h-4V4zM4 14h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg>
@@ -501,19 +501,37 @@
                     <div class="theme-grid theme-grid-pro theme-library-grid" id="theme-grid">
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="ocean" data-preview-theme="ocean" data-theme-tags="all bestseller fashion grid">
                         <span class="theme-badge theme-badge--bestseller"><span class="theme-badge-en">MOST REQUESTED</span><span class="theme-badge-ar">الأكثر طلباً</span></span>
-                        <div class="theme-vitrine theme-vitrine--ocean" aria-hidden="true">
+                        <div class="theme-vitrine theme-vitrine--ocean theme-vitrine--live" data-palette="bold" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
                             <div class="vitrine-app vitrine-app--light vitrine-app--fashion-pro">
                               <header class="vitrine-appbar"><span class="vitrine-brand-text"></span><span class="vitrine-icon-btn"></span></header>
                               <div class="vitrine-search vitrine-search--light"></div>
                               <div class="vitrine-tabs vitrine-tabs--prominent"><span class="on"></span><span></span><span></span><span></span></div>
-                              <div class="vitrine-hero vitrine-hero--fashion"></div>
-                              <div class="vitrine-product-grid vitrine-product-grid--fashion-wire">
-                                <div class="vitrine-cell vitrine-cell--wire-yellow"><span class="vitrine-price">٤٢٩</span></div>
-                                <div class="vitrine-cell vitrine-cell--wire-blue"><span class="vitrine-price vitrine-price--on-dark">٦٩٩</span></div>
-                                <div class="vitrine-cell vitrine-cell--wire-coral"><span class="vitrine-price">٨٩٩</span></div>
-                                <div class="vitrine-cell vitrine-cell--wire-violet"><span class="vitrine-price">٣٥٩</span></div>
+                              <div class="vitrine-hero vitrine-hero--live">
+                                <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&amp;fit=crop&amp;w=400&amp;h=200&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                              </div>
+                              <div class="vitrine-product-grid vitrine-product-grid--live">
+                                <div class="vitrine-live-card">
+                                  <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&amp;fit=crop&amp;w=280&amp;h=280&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-title">تيشرت قطن شبابي</span>
+                                  <span class="vitrine-live-price">٥٩٩ ج.م</span>
+                                </div>
+                                <div class="vitrine-live-card">
+                                  <img src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&amp;fit=crop&amp;w=280&amp;h=280&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-title">جاكيت جينز فضفاض</span>
+                                  <span class="vitrine-live-price">١٬٢٩٩ ج.م</span>
+                                </div>
+                                <div class="vitrine-live-card">
+                                  <img src="https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&amp;fit=crop&amp;w=280&amp;h=280&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-title">بنطلون قصة مستقيمة</span>
+                                  <span class="vitrine-live-price">٨٤٩ ج.م</span>
+                                </div>
+                                <div class="vitrine-live-card">
+                                  <img src="https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&amp;fit=crop&amp;w=280&amp;h=280&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-title">حذاء رياضي أبيض</span>
+                                  <span class="vitrine-live-price">١٬٤٩٩ ج.م</span>
+                                </div>
                               </div>
                               <div class="vitrine-micronav vitrine-micronav--light" title="شريط تنقّل تطبيقي">
                                 <span class="vitrine-mnav-ic" title="الرئيسية"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg></span>
@@ -525,52 +543,84 @@
                           </div>
                         </div>
                         <div class="theme-meta">
+                          <span class="theme-palette-tag theme-palette-tag--bold">طاقة عالية · ألوان جريئة</span>
                           <span class="theme-caption" lang="en">Classic Apparel · Fashion grid</span>
                           <strong>أزياء كلاسيكية <span class="theme-code">Ocean</span></strong>
-                          <small>متجر أنيق بشبكة منتجات وتبويبات — مثالي للملابس والإكسسوارات</small>
+                          <small>تصميم شبكي أنيق مع تبويبات — مثالي لعرض مجموعات ملابس وإكسسوارات كبيرة لجمهور يبحث عن مظهر عصري وواضح.</small>
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="violet" data-preview-theme="violet" data-theme-tags="all new feed beauty">
                         <span class="theme-badge theme-badge--new"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">جديد</span></span>
-                        <div class="theme-vitrine theme-vitrine--violet" aria-hidden="true">
+                        <div class="theme-vitrine theme-vitrine--violet theme-vitrine--live" data-palette="pastel" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
                             <div class="vitrine-app vitrine-app--beauty vitrine-app--beauty-pro">
                               <header class="vitrine-appbar vitrine-appbar--soft"><span class="vitrine-brand-text vitrine-brand-text--soft"></span><span class="vitrine-heart-ico" aria-hidden="true">♥</span></header>
                               <div class="vitrine-stories vitrine-stories--pro">
-                                <span class="vitrine-story-ring"></span>
-                                <span class="vitrine-story-ring vitrine-story-ring--live"></span>
-                                <span class="vitrine-story-ring"></span>
-                                <span class="vitrine-story-ring"></span>
-                                <span class="vitrine-story-ring vitrine-story-ring--new"></span>
+                                <span class="vitrine-story-ring"><img src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+                                <span class="vitrine-story-ring vitrine-story-ring--live"><img src="https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+                                <span class="vitrine-story-ring"><img src="https://images.unsplash.com/photo-1608248543803-ba9887d3cd97?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+                                <span class="vitrine-story-ring"><img src="https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+                                <span class="vitrine-story-ring vitrine-story-ring--new"><img src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
                               </div>
-                              <div class="vitrine-hero vitrine-hero--beauty"></div>
-                              <div class="vitrine-masonry vitrine-masonry--beauty">
-                                <div class="vitrine-tile vitrine-tile--tall vitrine-tile--serum"></div>
-                                <div class="vitrine-tile vitrine-tile--sq vitrine-tile--cream"></div>
-                                <div class="vitrine-tile vitrine-tile--sq vitrine-tile--mist"></div>
-                                <div class="vitrine-tile vitrine-tile--wide vitrine-tile--palette"></div>
+                              <div class="vitrine-hero vitrine-hero--live vitrine-hero--beauty-narrow">
+                                <img src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&amp;fit=crop&amp;w=400&amp;h=180&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                              </div>
+                              <div class="vitrine-masonry vitrine-masonry--beauty vitrine-masonry--live">
+                                <div class="vitrine-tile vitrine-tile--tall vitrine-tile--live">
+                                  <img src="https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?auto=format&amp;fit=crop&amp;w=320&amp;h=480&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-cap">سيروم ليلي مركّز</span>
+                                  <span class="vitrine-live-price vitrine-live-price--sm">٤٨٩ ج.م</span>
+                                </div>
+                                <div class="vitrine-tile vitrine-tile--sq vitrine-tile--live">
+                                  <img src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&amp;fit=crop&amp;w=200&amp;h=200&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-cap">مرطّب SPF</span>
+                                  <span class="vitrine-live-price vitrine-live-price--sm">٣٢٠ ج.م</span>
+                                </div>
+                                <div class="vitrine-tile vitrine-tile--sq vitrine-tile--live">
+                                  <img src="https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&amp;fit=crop&amp;w=200&amp;h=200&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-cap">عطر ٥٠ مل</span>
+                                  <span class="vitrine-live-price vitrine-live-price--sm">١٬٨٩٠ ج.م</span>
+                                </div>
+                                <div class="vitrine-tile vitrine-tile--wide vitrine-tile--live">
+                                  <img src="https://images.unsplash.com/photo-1570194065650-d99fb4b38b15?auto=format&amp;fit=crop&amp;w=400&amp;h=200&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span class="vitrine-live-cap">مجموعة عناية نهاية الأسبوع</span>
+                                  <span class="vitrine-live-price vitrine-live-price--sm">٧٩٩ ج.م</span>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                         <div class="theme-meta">
+                          <span class="theme-palette-tag theme-palette-tag--pastel">باستيل ناعم · لطيف</span>
                           <span class="theme-caption" lang="en">Luxury Beauty · Stories &amp; feed</span>
                           <strong>تجميل وفخامة <span class="theme-code">Violet</span></strong>
-                          <small>قصص دائرية وبطاقات منتجات — مناسب لمستحضرات العناية والعطور</small>
+                          <small>قصص دائرية بصور حقيقية وخليط فيد يشبه إنستغرام — مثالي لعطور ومستحضرات العناية والعلامات الراقية التي تعتمد على الصورة.</small>
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="emerald" data-preview-theme="emerald" data-theme-tags="all bestseller list tech">
                         <span class="theme-badge theme-badge--gold"><span class="theme-badge-en">BEST SELLER</span><span class="theme-badge-ar">الأكثر مبيعاً</span></span>
-                        <div class="theme-vitrine theme-vitrine--emerald" aria-hidden="true">
+                        <div class="theme-vitrine theme-vitrine--emerald theme-vitrine--live" data-palette="bold" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
                             <div class="vitrine-app vitrine-app--tech">
                               <header class="vitrine-appbar vitrine-appbar--dark"><span class="vitrine-brand-text vitrine-brand-text--glow"></span><span class="vitrine-signal-dots" aria-hidden="true"><span></span><span></span><span></span></span></header>
-                              <div class="vitrine-tech-list">
-                                <div class="vitrine-tech-row"><span class="vitrine-tech-thumb vitrine-tech-thumb--lap"></span><span class="vitrine-tech-info"><span></span><span class="short"></span></span><span class="vitrine-tech-price">١٢٬٩٩٩</span></div>
-                                <div class="vitrine-tech-row"><span class="vitrine-tech-thumb vitrine-tech-thumb--phone"></span><span class="vitrine-tech-info"><span></span><span class="short"></span></span><span class="vitrine-tech-price">٢٤٬٥٠٠</span></div>
-                                <div class="vitrine-tech-row"><span class="vitrine-tech-thumb vitrine-tech-thumb--watch"></span><span class="vitrine-tech-info"><span></span><span class="short"></span></span><span class="vitrine-tech-price">٧٬٩٩٩</span></div>
+                              <div class="vitrine-tech-list vitrine-tech-list--live">
+                                <div class="vitrine-tech-row">
+                                  <span class="vitrine-tech-thumb vitrine-tech-thumb--img"><img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&amp;fit=crop&amp;w=160&amp;h=160&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+                                  <div class="vitrine-tech-copy"><strong>لابتوب Pro ١٤″</strong><small>Apple M3 · ١٦ جيجا RAM</small></div>
+                                  <span class="vitrine-tech-price">٤٢٬٩٩٩ ج.م</span>
+                                </div>
+                                <div class="vitrine-tech-row">
+                                  <span class="vitrine-tech-thumb vitrine-tech-thumb--img"><img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&amp;fit=crop&amp;w=160&amp;h=160&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+                                  <div class="vitrine-tech-copy"><strong>هاتف ذكي ٥G</strong><small>شاشة ٦٫٧″ · ٢٥٦ جيجا</small></div>
+                                  <span class="vitrine-tech-price">٢٨٬٥٠٠ ج.م</span>
+                                </div>
+                                <div class="vitrine-tech-row">
+                                  <span class="vitrine-tech-thumb vitrine-tech-thumb--img"><img src="https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?auto=format&amp;fit=crop&amp;w=160&amp;h=160&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>
+                                  <div class="vitrine-tech-copy"><strong>ساعة ذكية Ultra</strong><small>GPS · مقاومة ماء</small></div>
+                                  <span class="vitrine-tech-price">١٢٬٩٩٩ ج.م</span>
+                                </div>
                               </div>
                               <div class="vitrine-micronav vitrine-micronav--dark" title="شريط سفلي داكن">
                                 <span class="vitrine-mnav-ic vitrine-mnav-ic--on"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg></span>
@@ -582,14 +632,15 @@
                           </div>
                         </div>
                         <div class="theme-meta">
+                          <span class="theme-palette-tag theme-palette-tag--neon">تقني داكن · ألوان نيون</span>
                           <span class="theme-caption" lang="en">Tech Hub · List + cart bar</span>
                           <strong>إلكترونيات وتقنية <span class="theme-code">Emerald</span></strong>
-                          <small>قائمة منتجات مع صور مصغّرة وشريط سلة ثابت — مناسب للأجهزة والإكسسوارات</small>
+                          <small>قائمة حية بمواصفات وأسعار — مثالي لمتاجر الأجهزة والملحقات حيث يهمّ العميل المقارنة السريعة والثقة في التفاصيل.</small>
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="amber" data-preview-theme="amber" data-theme-tags="all promo food">
                         <span class="theme-badge theme-badge--info"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">مطعم · قائمة</span></span>
-                        <div class="theme-vitrine theme-vitrine--amber" aria-hidden="true">
+                        <div class="theme-vitrine theme-vitrine--amber theme-vitrine--live" data-palette="warm" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
                             <div class="vitrine-app vitrine-app--food">
@@ -604,68 +655,111 @@
                                 </aside>
                                 <div class="vitrine-food-stage">
                                   <header class="vitrine-appbar vitrine-appbar--food"><span></span><span></span></header>
-                                  <div class="vitrine-hero vitrine-hero--food"></div>
-                                  <div class="vitrine-food-plates">
-                                    <div class="vitrine-plate"><span class="vitrine-plate-inner"></span></div>
-                                    <div class="vitrine-plate"><span class="vitrine-plate-inner vitrine-plate-inner--2"></span></div>
-                                    <div class="vitrine-plate"><span class="vitrine-plate-inner vitrine-plate-inner--3"></span></div>
+                                  <div class="vitrine-hero vitrine-hero--live vitrine-hero--food-tall">
+                                    <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&amp;fit=crop&amp;w=400&amp;h=220&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                                   </div>
-                                  <div class="vitrine-cta-row"><span class="vitrine-cta-pill"></span><span class="vitrine-cta-pill strong"></span></div>
+                                  <div class="vitrine-food-plates vitrine-food-plates--live">
+                                    <div class="vitrine-dish-card">
+                                      <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&amp;fit=crop&amp;w=200&amp;h=200&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                      <span class="vitrine-dish-name">برجر لحم بلدي</span>
+                                      <b class="vitrine-dish-price">١٢٩ ج.م</b>
+                                    </div>
+                                    <div class="vitrine-dish-card">
+                                      <img src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&amp;fit=crop&amp;w=200&amp;h=200&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                      <span class="vitrine-dish-name">سلطة كينوا</span>
+                                      <b class="vitrine-dish-price">٧٩ ج.م</b>
+                                    </div>
+                                    <div class="vitrine-dish-card">
+                                      <img src="https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&amp;fit=crop&amp;w=200&amp;h=200&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                      <span class="vitrine-dish-name">باستا ترافل</span>
+                                      <b class="vitrine-dish-price">١٥٩ ج.م</b>
+                                    </div>
+                                  </div>
+                                  <div class="vitrine-cta-row vitrine-cta-row--live"><span class="vitrine-cta-pill">توصيل ٣٠ دقيقة</span><span class="vitrine-cta-pill strong">اطلب الآن</span></div>
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
                         <div class="theme-meta">
+                          <span class="theme-palette-tag theme-palette-tag--warm">دافئ وجريء · شهية</span>
                           <span class="theme-caption" lang="en">Gourmet · Banner &amp; promos</span>
                           <strong>مطعم ومأكولات <span class="theme-code">Amber</span></strong>
-                          <small>بانر دافئ وأطباق بصور دائرية وأزرار قوية — مناسب للمطاعم والعروض اليومية</small>
+                          <small>قائمة جانبية وصور أطباق حقيقية وأسعار واضحة — مثالي لمطاعم الوجبات السريعة والعروض اليومية وطلبات التوصيل.</small>
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="rose" data-preview-theme="rose" data-theme-tags="all new gallery home">
                         <span class="theme-badge theme-badge--new"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">جديد</span></span>
-                        <div class="theme-vitrine theme-vitrine--rose" aria-hidden="true">
+                        <div class="theme-vitrine theme-vitrine--rose theme-vitrine--live" data-palette="minimal" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
-                            <div class="vitrine-app vitrine-app--home">
+                            <div class="vitrine-app vitrine-app--home vitrine-app--home-live">
                               <header class="vitrine-appbar vitrine-appbar--minimal"><span></span><span></span></header>
-                              <div class="vitrine-hero vitrine-hero--home"></div>
+                              <div class="vitrine-hero vitrine-hero--live vitrine-hero--home-wide">
+                                <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&amp;fit=crop&amp;w=480&amp;h=240&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                              </div>
                               <div class="vitrine-dots"><span class="on"></span><span></span><span></span></div>
-                              <div class="vitrine-home-grid">
-                                <div class="vitrine-home-cell vitrine-home-cell--sofa"></div>
-                                <div class="vitrine-home-cell vitrine-home-cell--plant"></div>
-                                <div class="vitrine-home-cell vitrine-home-cell--lamp"></div>
+                              <div class="vitrine-home-grid vitrine-home-grid--live">
+                                <div class="vitrine-home-live">
+                                  <img src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&amp;fit=crop&amp;w=240&amp;h=240&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span>كنبة مخمل رمادي</span>
+                                  <b>٩٬٩٩٩ ج.م</b>
+                                </div>
+                                <div class="vitrine-home-live">
+                                  <img src="https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&amp;fit=crop&amp;w=240&amp;h=240&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span>نبات داخلي كبير</span>
+                                  <b>٤٥٠ ج.م</b>
+                                </div>
+                                <div class="vitrine-home-live">
+                                  <img src="https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&amp;fit=crop&amp;w=240&amp;h=240&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <span>مصباح أرضي نحاسي</span>
+                                  <b>١٬٢٠٠ ج.م</b>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                         <div class="theme-meta">
+                          <span class="theme-palette-tag theme-palette-tag--minimal">أبيض وأسود · راقٍ</span>
                           <span class="theme-caption" lang="en">Home &amp; decor · Gallery</span>
                           <strong>منزل وديكور <span class="theme-code">Rose</span></strong>
-                          <small>معرض صور علوي وشبكة قطع — مناسب للأثاث والديكور والهدايا</small>
+                          <small>معرض صور هادئ وبطاقات منتجات واضحة — مثالي لأثاث منزلي وديكور وعلامات تفضّل الفراغ الأنيق والصور الكبيرة.</small>
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="slate" data-preview-theme="slate" data-theme-tags="all clean creative">
                         <span class="theme-badge theme-badge--clean"><span class="theme-badge-en">ARTISTIC</span><span class="theme-badge-ar">فني</span></span>
-                        <div class="theme-vitrine theme-vitrine--slate" aria-hidden="true">
+                        <div class="theme-vitrine theme-vitrine--slate theme-vitrine--live" data-palette="pastel" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
-                            <div class="vitrine-app vitrine-app--creative">
-                              <header class="vitrine-appbar vitrine-appbar--creative"><span>Shop</span><span></span></header>
-                              <div class="vitrine-creative-blob"></div>
-                              <div class="vitrine-creative-list">
-                                <div class="vitrine-creative-row"><span></span><span></span></div>
-                                <div class="vitrine-creative-row"><span></span><span></span></div>
-                                <div class="vitrine-creative-row"><span></span><span class="accent"></span></div>
+                            <div class="vitrine-app vitrine-app--creative vitrine-app--creative-live">
+                              <header class="vitrine-appbar vitrine-appbar--creative"><span>متجر حِرف</span><span></span></header>
+                              <div class="vitrine-creative-blob vitrine-creative-blob--live"></div>
+                              <div class="vitrine-creative-list vitrine-creative-list--live">
+                                <div class="vitrine-creative-row-live">
+                                  <img src="https://images.unsplash.com/photo-1513519245081-0e0492ca348c?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <div class="vitrine-cr-text"><strong>لوحة أكريليك ٣٠×٤٠</strong><small>إطار خشب طبيعي</small></div>
+                                  <span class="vitrine-cr-price">٨٩٠ ج.م</span>
+                                </div>
+                                <div class="vitrine-creative-row-live">
+                                  <img src="https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <div class="vitrine-cr-text"><strong>حِرف يدوية خزف</strong><small>طقم فنجانين</small></div>
+                                  <span class="vitrine-cr-price">٣٥٠ ج.م</span>
+                                </div>
+                                <div class="vitrine-creative-row-live">
+                                  <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&amp;fit=crop&amp;w=120&amp;h=120&amp;q=80" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                  <div class="vitrine-cr-text"><strong>طباعة فنية محدودة</strong><small>عدد ٥٠ نسخة</small></div>
+                                  <span class="vitrine-cr-price">٤٥٠ ج.م</span>
+                                </div>
                               </div>
-                              <div class="vitrine-creative-cta"></div>
+                              <div class="vitrine-creative-cta vitrine-creative-cta--live">تصفّح المجموعة</div>
                             </div>
                           </div>
                         </div>
                         <div class="theme-meta">
+                          <span class="theme-palette-tag theme-palette-tag--pastel">باستيل إبداعي · فني</span>
                           <span class="theme-caption" lang="en">Arts &amp; crafts · Minimal</span>
                           <strong>إبداعي وفني <span class="theme-code">Slate</span></strong>
-                          <small>خلفية ملوّنة ناعمة وقائمة بسيطة — مناسب للحِرف واللوحات والمنتجات الفريدة</small>
+                          <small>قائمة بصور حقيقية وأسعار — مثالي لفنّانين وورش حِرف ومنتجات يدوية نادرة حيث القصة وراء القطعة مهمة مثل السعر.</small>
                         </div>
                       </button>
                     </div>
@@ -848,6 +942,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042623"></script>
+  <script src="/app.js?v=2026042624"></script>
 </body>
 </html>
