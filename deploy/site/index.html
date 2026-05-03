@@ -791,7 +791,7 @@
                 </div>
               </div>
               <div class="hint-box">
-                يحتاج المسار إلى ضبط أسرار المنصة على الخادم ومستودع GitHub (راجع فريق Easy Shope). التطبيق الفعلي يأتي من مستودع Flutter white-label منفصل يقرأ معرف المتجر (<code>TENANT_SLUG</code>) عند البناء.
+                على <strong>خادم الـ API</strong> (ملف <code>.env</code> بجانب docker-compose): <code>GITHUB_ACTIONS_DISPATCH_TOKEN</code>، <code>GITHUB_REPOSITORY</code>، <code>ANDROID_BUILD_CALLBACK_SECRET</code>. على <strong>مستودع GitHub</strong> (أسرار Actions): <code>EASY_SHOPE_API_URL</code>، <code>ANDROID_BUILD_CALLBACK_SECRET</code> (نفس الخادم)، <code>MOBILE_APP_REPOSITORY</code>، <code>MOBILE_REPO_PAT</code>. التطبيق يُبنى من مستودع Flutter white-label ويستقبل <code>TENANT_SLUG</code> عند البناء.
               </div>
               <div class="section-tools" style="margin-top: 1rem">
                 <button type="button" class="secondary" id="merchant-android-build-request" hidden>طلب بناء APK جديد</button>
