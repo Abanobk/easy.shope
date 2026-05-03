@@ -1,3 +1,6 @@
+# Local upstream clones (not part of this repo)
+_upstream-*/
+
 # Secrets and local env
 .env
 .env.*
