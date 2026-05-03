@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026042621" />
+  <link rel="stylesheet" href="/styles.css?v=2026042622" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -460,20 +460,47 @@
                       </div>
                       <p class="muted theme-library-lead">تخيّل شكل متجرك قبل ما يطلع للعملاء: كل قالب يوحي بنشاط مختلف (موضة، تجميل، مطعم…). المعاينة توضيح بصري — ألوانك وهويتك تطبّق على الواجهة الحقيقية بعد الحفظ.</p>
                       <div class="theme-filter-chips" id="theme-filter-chips" role="tablist" aria-label="تصفية القوالب">
-                        <button type="button" class="theme-chip active" data-theme-filter="all">الكل <span class="theme-chip-count">6</span></button>
-                        <button type="button" class="theme-chip theme-chip--accent" data-theme-filter="bestseller">الأكثر طلباً</button>
-                        <button type="button" class="theme-chip theme-chip--new" data-theme-filter="new">جديد</button>
-                        <button type="button" class="theme-chip" data-theme-filter="fashion">موضة</button>
-                        <button type="button" class="theme-chip" data-theme-filter="beauty">تجميل</button>
-                        <button type="button" class="theme-chip" data-theme-filter="food">مطاعم</button>
-                        <button type="button" class="theme-chip" data-theme-filter="tech">تقني</button>
-                        <button type="button" class="theme-chip" data-theme-filter="home">منزل</button>
-                        <button type="button" class="theme-chip" data-theme-filter="creative">إبداعي</button>
+                        <button type="button" class="theme-chip active" data-theme-filter="all">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 8h4V4H4v4zm6-4h4v4h-4V4zm6 0h4v4h-4V4zM4 14h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg>
+                          الكل <span class="theme-chip-count">6</span>
+                        </button>
+                        <button type="button" class="theme-chip theme-chip--accent" data-theme-filter="bestseller">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.1l1-5.8L3.5 9.2l5.9-.9L12 3z"/></svg>
+                          الأكثر طلباً
+                        </button>
+                        <button type="button" class="theme-chip theme-chip--new" data-theme-filter="new">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l1.8 5.5h5.8l-4.7 3.4 1.8 5.5-4.7-3.4-4.7 3.4 1.8-5.5L4.4 7.5h5.8L12 2z"/></svg>
+                          جديد
+                        </button>
+                        <button type="button" class="theme-chip" data-theme-filter="fashion">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 3l4 4-1.5 1.5L16 6 13.5 8.5 12 7l4-4zm-3 6l2 2-7 7H6v-4l7-7zm-8 9v4h4l10.5-10.5-2-2L5 18z"/></svg>
+                          موضة
+                        </button>
+                        <button type="button" class="theme-chip" data-theme-filter="beauty">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21c-4.4 0-8-3.6-8-8 0-3.7 2.5-6.8 6-7.7V3h4v2.3c3.5.9 6 4 6 7.7 0 4.4-3.6 8-8 8zm0-2c3.3 0 6-2.7 6-6 0-2.5-1.5-4.7-3.8-5.6L14 9h-4l-.2-1.6C7.5 8.3 6 10.5 6 13c0 3.3 2.7 6 6 6z"/></svg>
+                          تجميل
+                        </button>
+                        <button type="button" class="theme-chip" data-theme-filter="food">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+                          مطاعم
+                        </button>
+                        <button type="button" class="theme-chip" data-theme-filter="tech">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3H5v4h4V3zm6 0h-4v4h4V3zm4 0h-4v4h4V3zM9 9H5v4h4V9zm6 0h-4v4h4V9zm4 0h-4v4h4V9zM9 15H5v4h4v-4zm6 0h-4v4h4v-4zm4 0h-4v4h4v-4z"/></svg>
+                          تقني
+                        </button>
+                        <button type="button" class="theme-chip" data-theme-filter="home">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg>
+                          منزل
+                        </button>
+                        <button type="button" class="theme-chip" data-theme-filter="creative">
+                          <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.6 2.3c-.9-.4-2 0-2.5 1l-7.1 12.4-2.9-.9-.9 2.9 4.2 1.3L19.7 6.8c.5-.9.1-2.1-.9-2.6l-.2-.1zM3 20h10v2H3v-2z"/></svg>
+                          إبداعي
+                        </button>
                       </div>
                     </div>
                     <div class="theme-grid theme-grid-pro theme-library-grid" id="theme-grid">
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="ocean" data-preview-theme="ocean" data-theme-tags="all bestseller fashion grid">
-                        <span class="theme-badge theme-badge--bestseller">الأكثر طلباً</span>
+                        <span class="theme-badge theme-badge--bestseller"><span class="theme-badge-en">MOST REQUESTED</span><span class="theme-badge-ar">الأكثر طلباً</span></span>
                         <div class="theme-vitrine theme-vitrine--ocean" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
@@ -488,7 +515,12 @@
                                 <div class="vitrine-cell vitrine-cell--shoe"><span class="vitrine-price">٨٩٩ ج.م</span></div>
                                 <div class="vitrine-cell vitrine-cell--tee"><span class="vitrine-price">٣٥٩ ج.م</span></div>
                               </div>
-                              <div class="vitrine-bottomnav"><span class="dotnav"></span><span class="dotnav on"></span><span class="dotnav"></span><span class="dotnav"></span></div>
+                              <div class="vitrine-micronav vitrine-micronav--light" title="شريط تنقّل تطبيقي">
+                                <span class="vitrine-mnav-ic" title="الرئيسية"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg></span>
+                                <span class="vitrine-mnav-ic vitrine-mnav-ic--on" title="الكتالوج"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M4 8h4V4H4v4zm6-4h4v4h-4V4zm6 0h4v4h-4V4zM4 14h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg></span>
+                                <span class="vitrine-mnav-ic" title="السلة"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zm-9.83-3.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.86-7.01L19.42 4h-.01l-1.1 2-2.76 5H8.53l-.13-.27L6.16 6l-.95-2-.94-2H1v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.13 0-.25-.11-.25-.25z"/></svg></span>
+                                <span class="vitrine-mnav-ic" title="الحساب"><svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -499,7 +531,7 @@
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="violet" data-preview-theme="violet" data-theme-tags="all new feed beauty">
-                        <span class="theme-badge theme-badge--new">جديد</span>
+                        <span class="theme-badge theme-badge--new"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">جديد</span></span>
                         <div class="theme-vitrine theme-vitrine--violet" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
@@ -523,18 +555,23 @@
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="emerald" data-preview-theme="emerald" data-theme-tags="all bestseller list tech">
-                        <span class="theme-badge theme-badge--gold">الأكثر مبيعاً</span>
+                        <span class="theme-badge theme-badge--gold"><span class="theme-badge-en">BEST SELLER</span><span class="theme-badge-ar">الأكثر مبيعاً</span></span>
                         <div class="theme-vitrine theme-vitrine--emerald" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
                             <div class="vitrine-app vitrine-app--tech">
-                              <header class="vitrine-appbar vitrine-appbar--dark"><span class="vitrine-brand-text vitrine-brand-text--glow"></span></header>
+                              <header class="vitrine-appbar vitrine-appbar--dark"><span class="vitrine-brand-text vitrine-brand-text--glow"></span><span class="vitrine-signal-dots" aria-hidden="true"><span></span><span></span><span></span></span></header>
                               <div class="vitrine-tech-list">
                                 <div class="vitrine-tech-row"><span class="vitrine-tech-thumb vitrine-tech-thumb--lap"></span><span class="vitrine-tech-info"><span></span><span class="short"></span></span><span class="vitrine-tech-price">١٢٬٩٩٩</span></div>
                                 <div class="vitrine-tech-row"><span class="vitrine-tech-thumb vitrine-tech-thumb--phone"></span><span class="vitrine-tech-info"><span></span><span class="short"></span></span><span class="vitrine-tech-price">٢٤٬٥٠٠</span></div>
                                 <div class="vitrine-tech-row"><span class="vitrine-tech-thumb vitrine-tech-thumb--watch"></span><span class="vitrine-tech-info"><span></span><span class="short"></span></span><span class="vitrine-tech-price">٧٬٩٩٩</span></div>
                               </div>
-                              <div class="vitrine-cartbar"><span class="vitrine-cartbar-label"></span><span class="vitrine-cartbar-btn"></span></div>
+                              <div class="vitrine-micronav vitrine-micronav--dark" title="شريط سفلي داكن">
+                                <span class="vitrine-mnav-ic vitrine-mnav-ic--on"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg></span>
+                                <span class="vitrine-mnav-ic"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/></svg></span>
+                                <span class="vitrine-mnav-ic"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zM7.2 14h9.7c.7 0 1.3-.4 1.6-1l2.4-4.4c.2-.4-.1-.9-.6-.9H6.2L5.3 6H2v2h2l2.2 6z"/></svg></span>
+                                <span class="vitrine-mnav-ic"><svg viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -545,19 +582,31 @@
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="amber" data-preview-theme="amber" data-theme-tags="all promo food">
-                        <span class="theme-badge theme-badge--promo">قائمة طعام</span>
+                        <span class="theme-badge theme-badge--info"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">مطعم · قائمة</span></span>
                         <div class="theme-vitrine theme-vitrine--amber" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
                             <div class="vitrine-app vitrine-app--food">
-                              <header class="vitrine-appbar vitrine-appbar--food"><span></span><span></span></header>
-                              <div class="vitrine-hero vitrine-hero--food"></div>
-                              <div class="vitrine-food-plates">
-                                <div class="vitrine-plate"><span class="vitrine-plate-inner"></span></div>
-                                <div class="vitrine-plate"><span class="vitrine-plate-inner vitrine-plate-inner--2"></span></div>
-                                <div class="vitrine-plate"><span class="vitrine-plate-inner vitrine-plate-inner--3"></span></div>
+                              <div class="vitrine-food-split">
+                                <aside class="vitrine-food-rail" aria-hidden="true">
+                                  <span class="vitrine-rail-kicker">Menu</span>
+                                  <span class="vitrine-rail-item on"></span>
+                                  <span class="vitrine-rail-item"></span>
+                                  <span class="vitrine-rail-item short"></span>
+                                  <span class="vitrine-rail-item"></span>
+                                  <span class="vitrine-rail-item tiny"></span>
+                                </aside>
+                                <div class="vitrine-food-stage">
+                                  <header class="vitrine-appbar vitrine-appbar--food"><span></span><span></span></header>
+                                  <div class="vitrine-hero vitrine-hero--food"></div>
+                                  <div class="vitrine-food-plates">
+                                    <div class="vitrine-plate"><span class="vitrine-plate-inner"></span></div>
+                                    <div class="vitrine-plate"><span class="vitrine-plate-inner vitrine-plate-inner--2"></span></div>
+                                    <div class="vitrine-plate"><span class="vitrine-plate-inner vitrine-plate-inner--3"></span></div>
+                                  </div>
+                                  <div class="vitrine-cta-row"><span class="vitrine-cta-pill"></span><span class="vitrine-cta-pill strong"></span></div>
+                                </div>
                               </div>
-                              <div class="vitrine-cta-row"><span class="vitrine-cta-pill"></span><span class="vitrine-cta-pill strong"></span></div>
                             </div>
                           </div>
                         </div>
@@ -568,7 +617,7 @@
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="rose" data-preview-theme="rose" data-theme-tags="all new gallery home">
-                        <span class="theme-badge theme-badge--new">جديد</span>
+                        <span class="theme-badge theme-badge--new"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">جديد</span></span>
                         <div class="theme-vitrine theme-vitrine--rose" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
@@ -591,7 +640,7 @@
                         </div>
                       </button>
                       <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="slate" data-preview-theme="slate" data-theme-tags="all clean creative">
-                        <span class="theme-badge theme-badge--clean">فني</span>
+                        <span class="theme-badge theme-badge--clean"><span class="theme-badge-en">ARTISTIC</span><span class="theme-badge-ar">فني</span></span>
                         <div class="theme-vitrine theme-vitrine--slate" aria-hidden="true">
                           <div class="vitrine-device">
                             <div class="vitrine-notch"></div>
@@ -793,6 +842,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042621"></script>
+  <script src="/app.js?v=2026042622"></script>
 </body>
 </html>
