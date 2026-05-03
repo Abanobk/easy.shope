@@ -8,6 +8,7 @@ const state = {
   merchantCategories: [],
   merchantProducts: [],
   merchantOrders: [],
+  merchantAndroidBuilds: [],
   storefrontThemeDraft: "ocean",
 };
 
@@ -494,6 +495,7 @@ function setMerchantTab(tab = "overview") {
     panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
   });
   if (tab === "billing") loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
+  if (tab === "android") void loadAndroidBuildsOnly();
   if (tab !== "categories") setCreationForm("category-form", false);
   if (tab !== "products") setCreationForm("product-form", false);
 }
@@ -951,6 +953,69 @@ async function loadMerchantData() {
   renderMerchantCategories();
   renderMerchantProducts();
   renderMerchantOrders();
+  await loadAndroidBuildsOnly();
+}
+
+function formatAndroidBuildStatus(status) {
+  const map = { queued: "في الانتظار", running: "قيد البناء", succeeded: "نجح", failed: "فشل" };
+  return map[status] || status;
+}
+
+function escapeHtmlText(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderMerchantAndroidBuilds() {
+  const ul = $("merchant-android-builds");
+  const btn = $("merchant-android-build-request");
+  if (btn) btn.hidden = state.role !== "merchant_owner";
+  if (!ul) return;
+  const rows = state.merchantAndroidBuilds || [];
+  if (!rows.length) {
+    ul.innerHTML = "<li>لا توجد عمليات بناء بعد.</li>";
+    return;
+  }
+  ul.innerHTML = rows
+    .map((row) => {
+      const when = row.created_at ? new Date(row.created_at).toLocaleString("ar-EG") : "";
+      const download = row.artifact_url
+        ? `<a href="${row.artifact_url}" target="_blank" rel="noopener noreferrer">تحميل APK</a>`
+        : "";
+      const run = row.github_run_url ? `<a href="${row.github_run_url}" target="_blank" rel="noopener noreferrer">سجل GitHub</a>` : "";
+      const meta = [download, run].filter(Boolean).join(" · ");
+      const err = row.error_message ? `<div class="muted"><small>${escapeHtmlText(row.error_message)}</small></div>` : "";
+      return `<li><div class="provider-line"><strong>${formatAndroidBuildStatus(row.status)}</strong><span>${when}</span></div>${meta ? `<div>${meta}</div>` : ""}${err}</li>`;
+    })
+    .join("");
+}
+
+async function loadAndroidBuildsOnly() {
+  if (!state.token || !["merchant_owner", "merchant_staff"].includes(state.role)) return;
+  try {
+    const data = await api("/api/merchant/android-builds");
+    state.merchantAndroidBuilds = data.builds || [];
+  } catch {
+    state.merchantAndroidBuilds = [];
+  }
+  renderMerchantAndroidBuilds();
+}
+
+async function requestMerchantAndroidBuild() {
+  const btn = $("merchant-android-build-request");
+  try {
+    if (btn) btn.disabled = true;
+    await api("/api/merchant/android-build", { method: "POST", body: JSON.stringify({}) });
+    showMessage("تم طلب بناء التطبيق. راقب القائمة أدناه حتى يكتمل المسار.");
+    await loadAndroidBuildsOnly();
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function renderOverviewAlerts(dashboard, invoices) {
@@ -1687,6 +1752,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
   $("save-storefront-theme")?.addEventListener("click", saveStorefrontTheme);
+  $("merchant-android-build-request")?.addEventListener("click", () => requestMerchantAndroidBuild());
   $("copy-storefront-url")?.addEventListener("click", async () => {
     const value = $("storefront-url")?.textContent || "";
     await navigator.clipboard?.writeText(value);

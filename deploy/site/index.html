@@ -137,6 +137,7 @@
               <button type="button" class="merchant-side-item" data-merchant-tab="billing"><strong>اشتراك المنصة</strong><small>الفواتير والخطة</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="providers"><strong>إعدادات الدفع</strong><small>Paymob و EasyCash</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="team"><strong>الفريق والصلاحيات</strong><small>موظفون وأمان</small></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="android"><strong>تطبيق أندرويد</strong><small>بناء APK للمتجر</small></button>
               <button type="button" class="merchant-side-item" data-merchant-tab="settings"><strong>إعدادات المتجر</strong><small>البيانات والهوية</small></button>
             </nav>
           </aside>
@@ -781,6 +782,27 @@
               </div>
             </article>
 
+            <article class="panel merchant-tab" data-merchant-panel="android">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">لوحة المتجر <span>/</span> تطبيق أندرويد</div>
+                  <h2>تطبيق أندرويد للمتجر</h2>
+                  <p class="page-subtitle">يطلب صاحب المتجر بناء APK مخصّص يمر عبر GitHub Actions ويُسجَّل هنا مع رابط التنزيل عند النجاح.</p>
+                </div>
+              </div>
+              <div class="hint-box">
+                يحتاج المسار إلى ضبط أسرار المنصة على الخادم ومستودع GitHub (راجع فريق Easy Shope). التطبيق الفعلي يأتي من مستودع Flutter white-label منفصل يقرأ معرف المتجر (<code>TENANT_SLUG</code>) عند البناء.
+              </div>
+              <div class="section-tools" style="margin-top: 1rem">
+                <button type="button" class="secondary" id="merchant-android-build-request" hidden>طلب بناء APK جديد</button>
+              </div>
+              <div class="panel-heading" style="margin-top: 1.25rem">
+                <span class="eyebrow">Builds</span>
+                <h3>سجل عمليات البناء</h3>
+              </div>
+              <ul id="merchant-android-builds" class="list"></ul>
+            </article>
+
             <article class="panel merchant-tab" data-merchant-panel="team">
               <div class="page-head">
                 <div>
@@ -942,6 +964,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026042626"></script>
+  <script src="/app.js?v=2026042633"></script>
 </body>
 </html>

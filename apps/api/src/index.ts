@@ -17,6 +17,16 @@ const env = {
   platformOwnerEmail: process.env.PLATFORM_OWNER_EMAIL ?? "owner@easyshope.local",
   platformOwnerPassword: process.env.PLATFORM_OWNER_PASSWORD ?? "ChangeMe123!",
   nodeEnv: process.env.NODE_ENV ?? "development",
+  /** Fine-grained PAT or classic PAT: `repo`, `workflow` — لتشغيل workflow بناء الـ APK */
+  githubActionsDispatchToken: process.env.GITHUB_ACTIONS_DISPATCH_TOKEN ?? "",
+  /** مثل Abanobk/easy.shope — نفس مستودع الـ API عادةً */
+  githubRepository: process.env.GITHUB_REPOSITORY ?? "",
+  /** اسم ملف الـ workflow تحت .github/workflows/ */
+  androidBuildWorkflowFile: process.env.ANDROID_BUILD_WORKFLOW_FILE ?? "build-tenant-apk.yml",
+  /** يطابق سر GitHub Actions عند استدعاء /api/internal/android-build/callback */
+  androidBuildCallbackSecret: process.env.ANDROID_BUILD_CALLBACK_SECRET ?? "",
+  /** فرع GitHub المستخدم عند workflow_dispatch (مثلاً main) */
+  githubDispatchRef: process.env.GITHUB_DISPATCH_REF ?? "main",
 };
 
 type AuthUser = {
@@ -473,6 +483,22 @@ async function migrate() {
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS brand_color text;
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS logo_url text;
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenant_android_builds (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      status text NOT NULL DEFAULT 'queued',
+      github_run_id text,
+      github_run_url text,
+      artifact_url text,
+      error_message text,
+      requested_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_tenant_android_builds_tenant_created
+    ON tenant_android_builds (tenant_id, created_at DESC);
+  `);
 
   const plans = [
     ["monthly", "Monthly", 1, 150000],
@@ -500,6 +526,52 @@ async function migrate() {
   );
   await expireOverdueSubscriptions();
   await migrateEncryptedSecrets();
+}
+
+const androidBuildCallbackBody = z.object({
+  phase: z.enum(["registered", "completed"]),
+  buildId: z.string().uuid(),
+  githubRunId: z.string().max(64).optional().nullable(),
+  githubRunUrl: z.string().max(800).optional().nullable(),
+  status: z.enum(["succeeded", "failed"]).optional(),
+  artifactUrl: z.string().max(4000).optional().nullable(),
+  errorMessage: z.string().max(4000).optional().nullable(),
+});
+
+async function dispatchTenantApkWorkflow(opts: { buildId: string; tenantId: string; tenantSlug: string }) {
+  const token = env.githubActionsDispatchToken.trim();
+  const repo = env.githubRepository.trim();
+  if (!token || !repo) {
+    throw httpError("GitHub workflow dispatch is not configured (GITHUB_ACTIONS_DISPATCH_TOKEN / GITHUB_REPOSITORY).", 503);
+  }
+  const parts = repo.split("/").map((s) => s.trim());
+  const owner = parts[0];
+  const name = parts.slice(1).join("/");
+  if (!owner || !name) {
+    throw httpError("GITHUB_REPOSITORY must look like owner/repo", 500);
+  }
+  const workflow = env.androidBuildWorkflowFile.replace(/^\.github\/workflows\//, "");
+  const url = `https://api.github.com/repos/${owner}/${name}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+    body: JSON.stringify({
+      ref: env.githubDispatchRef,
+      inputs: {
+        build_id: opts.buildId,
+        tenant_id: opts.tenantId,
+        tenant_slug: opts.tenantSlug,
+      },
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw httpError(`GitHub dispatch failed (${res.status}): ${text.slice(0, 500)}`, 502);
+  }
 }
 
 app.get("/health", async () => {
@@ -1016,6 +1088,93 @@ app.patch("/api/merchant/store", async (request) => {
     ],
   );
   return { store: result.rows[0] };
+});
+
+app.get("/api/merchant/android-builds", async (request) => {
+  const user = requireMerchantUser(request);
+  const result = await pool.query(
+    `SELECT id, status, github_run_id, github_run_url, artifact_url, error_message, created_at, updated_at
+     FROM tenant_android_builds
+     WHERE tenant_id = $1
+     ORDER BY created_at DESC
+     LIMIT 40`,
+    [user.tenantId],
+  );
+  return { builds: result.rows };
+});
+
+app.post("/api/merchant/android-build", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  if (user.role !== "merchant_owner") {
+    return reply.code(403).send({ message: "هذا الإجراء متاح لصاحب المتجر فقط." });
+  }
+  if (!env.githubActionsDispatchToken.trim() || !env.githubRepository.trim()) {
+    return reply.code(503).send({ message: "بناء تطبيق أندرويد غير مفعّل على الخادم (أسرار GitHub غير مضبوطة)." });
+  }
+  if (!env.androidBuildCallbackSecret.trim()) {
+    return reply.code(503).send({ message: "ANDROID_BUILD_CALLBACK_SECRET غير مضبوط على الخادم." });
+  }
+  const running = await pool.query(
+    `SELECT id FROM tenant_android_builds WHERE tenant_id = $1 AND status IN ('queued', 'running') LIMIT 1`,
+    [user.tenantId],
+  );
+  if (running.rows[0]) {
+    return reply.code(409).send({ message: "يوجد بناء جارٍ أو في قائمة الانتظار. انتظر اكتماله قبل طلب بناء جديد." });
+  }
+  const tenant = await pool.query(`SELECT slug FROM tenants WHERE id = $1`, [user.tenantId]);
+  const slugRow = tenant.rows[0];
+  if (!slugRow) return reply.code(404).send({ message: "المتجر غير موجود" });
+
+  const insert = await pool.query(
+    `INSERT INTO tenant_android_builds (tenant_id, status, requested_by_user_id)
+     VALUES ($1, 'queued', $2)
+     RETURNING id`,
+    [user.tenantId, user.userId],
+  );
+  const buildId = insert.rows[0].id as string;
+  try {
+    await dispatchTenantApkWorkflow({ buildId, tenantId: user.tenantId, tenantSlug: slugRow.slug });
+  } catch (error) {
+    const message = (error as Error).message.slice(0, 2000);
+    await pool.query(
+      `UPDATE tenant_android_builds SET status = 'failed', error_message = $2, updated_at = now() WHERE id = $1`,
+      [buildId, message],
+    );
+    return reply.code((error as Error & { statusCode?: number }).statusCode || 502).send({ message });
+  }
+  return { build: { id: buildId, status: "queued" } };
+});
+
+app.post("/api/internal/android-build/callback", async (request, reply) => {
+  const header = request.headers["x-easy-shope-build-secret"];
+  const secretHeader = Array.isArray(header) ? header[0] : header;
+  if (!env.androidBuildCallbackSecret.trim() || secretHeader !== env.androidBuildCallbackSecret) {
+    return reply.code(401).send({ message: "Unauthorized" });
+  }
+  const body = androidBuildCallbackBody.parse(request.body);
+  const exists = await pool.query(`SELECT id FROM tenant_android_builds WHERE id = $1`, [body.buildId]);
+  if (!exists.rows[0]) return reply.code(404).send({ message: "Unknown build" });
+
+  if (body.phase === "registered") {
+    await pool.query(
+      `UPDATE tenant_android_builds
+       SET status = 'running', github_run_id = coalesce($2, github_run_id), github_run_url = coalesce($3, github_run_url), updated_at = now()
+       WHERE id = $1`,
+      [body.buildId, body.githubRunId ?? null, body.githubRunUrl ?? null],
+    );
+    return { ok: true };
+  }
+  if (!body.status) {
+    return reply.code(400).send({ message: "status is required when phase is completed" });
+  }
+  const finalStatus = body.status === "succeeded" ? "succeeded" : "failed";
+  await pool.query(
+    `UPDATE tenant_android_builds
+     SET status = $2, artifact_url = $3, error_message = $4, updated_at = now()
+     WHERE id = $1`,
+    [body.buildId, finalStatus, body.artifactUrl ?? null, body.errorMessage ?? null],
+  );
+  return { ok: true };
 });
 
 app.get("/api/store/:tenantSlug", async (request, reply) => {

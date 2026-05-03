@@ -1,0 +1,148 @@
+# بناء APK مخصّص لكل متجر (white-label) عبر workflow_dispatch من الـ API.
+# أسرار مطلوبة على مستودع easy-shope:
+#   EASY_SHOPE_API_URL — قاعدة الـ API العامة (بدون شرطة مائلة أخيرة)
+#   ANDROID_BUILD_CALLBACK_SECRET — نفس قيمة ANDROID_BUILD_CALLBACK_SECRET في بيئة الـ API
+#   MOBILE_APP_REPOSITORY — مثل owner/flutter-easy-shope (مستودع تطبيق Flutter)
+#   MOBILE_REPO_PAT — PAT بصلاحية قراءة لمستودع التطبيق
+name: Build tenant APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        required: true
+        type: string
+      tenant_id:
+        required: true
+        type: string
+      tenant_slug:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register run with API
+        id: register
+        env:
+          CALLBACK_SECRET: ${{ secrets.ANDROID_BUILD_CALLBACK_SECRET }}
+          API_BASE: ${{ secrets.EASY_SHOPE_API_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${API_BASE:-}" || { echo "Missing secret EASY_SHOPE_API_URL"; exit 1; }
+          test -n "${CALLBACK_SECRET:-}" || { echo "Missing secret ANDROID_BUILD_CALLBACK_SECRET"; exit 1; }
+          API_BASE="${API_BASE%/}"
+          BODY=$(jq -n \
+            --arg bid "${{ inputs.build_id }}" \
+            --arg rid "${{ github.run_id }}" \
+            --arg url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{phase:"registered", buildId:$bid, githubRunId:$rid, githubRunUrl:$url}')
+          curl -sS -f -X POST "${API_BASE}/api/internal/android-build/callback" \
+            -H "Content-Type: application/json" \
+            -H "X-Easy-Shope-Build-Secret: ${CALLBACK_SECRET}" \
+            -d "$BODY"
+
+      - name: Discover mobile repository secret
+        id: mobile
+        env:
+          REPO: ${{ secrets.MOBILE_APP_REPOSITORY }}
+        run: |
+          if [ -n "${REPO:-}" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop when mobile repository is not configured
+        id: halt
+        if: steps.mobile.outputs.ok != 'true'
+        env:
+          CALLBACK_SECRET: ${{ secrets.ANDROID_BUILD_CALLBACK_SECRET }}
+          API_BASE: ${{ secrets.EASY_SHOPE_API_URL }}
+        run: |
+          set -euo pipefail
+          API_BASE="${API_BASE%/}"
+          BODY=$(jq -n \
+            --arg bid "${{ inputs.build_id }}" \
+            --arg msg "Set GitHub secret MOBILE_APP_REPOSITORY to your Flutter white-label repo and MOBILE_REPO_PAT (read access)." \
+            '{phase:"completed", buildId:$bid, status:"failed", errorMessage:$msg}')
+          curl -sS -f -X POST "${API_BASE}/api/internal/android-build/callback" \
+            -H "Content-Type: application/json" \
+            -H "X-Easy-Shope-Build-Secret: ${CALLBACK_SECRET}" \
+            -d "$BODY"
+          exit 1
+
+      - name: Checkout mobile (white-label) app
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.MOBILE_APP_REPOSITORY }}
+          token: ${{ secrets.MOBILE_REPO_PAT }}
+          path: mobile
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Build release APK
+        id: flutterbuild
+        working-directory: mobile
+        env:
+          TENANT_SLUG: ${{ inputs.tenant_slug }}
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter build apk --release --dart-define=TENANT_SLUG="${TENANT_SLUG}"
+
+      - name: Publish APK to GitHub Release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: tenant-apk-${{ inputs.build_id }}
+          name: Tenant ${{ inputs.tenant_slug }} APK
+          files: mobile/build/app/outputs/flutter-apk/app-release.apk
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Notify API (success)
+        if: success()
+        env:
+          CALLBACK_SECRET: ${{ secrets.ANDROID_BUILD_CALLBACK_SECRET }}
+          API_BASE: ${{ secrets.EASY_SHOPE_API_URL }}
+          BUILD_ID: ${{ inputs.build_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          API_BASE="${API_BASE%/}"
+          TAG="tenant-apk-${BUILD_ID}"
+          sleep 2
+          ART=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.assets[] | select(.name|endswith(".apk")) | .browser_download_url' | head -1)
+          BODY=$(jq -n --arg bid "$BUILD_ID" --arg url "${ART:-}" '{phase:"completed", buildId:$bid, status:"succeeded", artifactUrl: (if $url == "" then null else $url end)}')
+          curl -sS -X POST "${API_BASE}/api/internal/android-build/callback" \
+            -H "Content-Type: application/json" \
+            -H "X-Easy-Shope-Build-Secret: ${CALLBACK_SECRET}" \
+            -d "$BODY" || true
+
+      - name: Notify API (failure)
+        if: failure() && steps.halt.outcome != 'failure'
+        env:
+          CALLBACK_SECRET: ${{ secrets.ANDROID_BUILD_CALLBACK_SECRET }}
+          API_BASE: ${{ secrets.EASY_SHOPE_API_URL }}
+          BUILD_ID: ${{ inputs.build_id }}
+        run: |
+          set -euo pipefail
+          API_BASE="${API_BASE%/}"
+          BODY=$(jq -n \
+            --arg bid "$BUILD_ID" \
+            --arg msg "APK build failed. Open this workflow run in GitHub Actions for logs." \
+            '{phase:"completed", buildId:$bid, status:"failed", errorMessage:$msg}')
+          curl -sS -X POST "${API_BASE}/api/internal/android-build/callback" \
+            -H "Content-Type: application/json" \
+            -H "X-Easy-Shope-Build-Secret: ${CALLBACK_SECRET}" \
+            -d "$BODY" || true
