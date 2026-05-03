@@ -394,6 +394,8 @@ async function api(path, options = {}) {
     const baseMessage = response.status === 401 ? "انتهت جلسة تسجيل الدخول. سجّل دخول كتاجر مرة أخرى ثم أعد إنشاء الفاتورة." : data.message || `Request failed: ${response.status}`;
     const error = new Error(data.hint ? `${baseMessage} - ${data.hint}` : baseMessage);
     error.details = data.details;
+    error.statusCode = response.status;
+    error.code = typeof data.code === "string" ? data.code : undefined;
     throw error;
   }
   return data;
@@ -442,9 +444,13 @@ async function customerApi(path, options = {}) {
   return data;
 }
 
-function showMessage(message, isError = false) {
-  $("message").textContent = message;
-  $("message").className = isError ? "message error" : "message ok";
+function showMessage(message, kind = "ok") {
+  const el = $("message");
+  if (!el) return;
+  el.textContent = message;
+  const isError = kind === true || kind === "error";
+  const isWarn = kind === "warn";
+  el.className = isError ? "message error" : isWarn ? "message warn" : "message ok";
 }
 
 function currentScope() {
@@ -1045,7 +1051,12 @@ async function requestMerchantAndroidBuild() {
     showMessage("تم طلب بناء التطبيق. راقب القائمة أدناه حتى يكتمل المسار.");
     await loadAndroidBuildsOnly();
   } catch (error) {
-    showMessage(error.message, true);
+    if (error.statusCode === 503 && error.code === "android_build_not_configured") {
+      showMessage("ضبط الخادم لا يزال ناقصًا — راجع المربع التحذيري أعلى الصفحة أو تواصل مع مسؤول المنصة.", "warn");
+      await loadAndroidBuildsOnly();
+    } else {
+      showMessage(error.message, true);
+    }
   } finally {
     if (btn) btn.disabled = false;
   }

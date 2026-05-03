@@ -1115,12 +1115,14 @@ app.post("/api/merchant/android-build", async (request, reply) => {
   }
   if (!env.githubActionsDispatchToken.trim() || !env.githubRepository.trim()) {
     return reply.code(503).send({
+      code: "android_build_not_configured",
       message: "بناء تطبيق أندرويد غير مفعّل على خادم الـ API.",
       hint: "أضِف في ملف .env لـ docker-compose على خادم النشر: GITHUB_ACTIONS_DISPATCH_TOKEN (PAT مع صلاحية workflow) و GITHUB_REPOSITORY (مثل Owner/easy.shope). أسرار مستودع GitHub للـ workflow (EASY_SHOPE_API_URL، MOBILE_APP_REPOSITORY، …) تُضبط منفصلة في إعدادات المستودع على GitHub.",
     });
   }
   if (!env.androidBuildCallbackSecret.trim()) {
     return reply.code(503).send({
+      code: "android_build_not_configured",
       message: "سرّ استدعاء بناء الأندرويد غير مضبوط على خادم الـ API.",
       hint: "عيّن ANDROID_BUILD_CALLBACK_SECRET في .env للخادم، ونفس القيمة في أسرار GitHub (ANDROID_BUILD_CALLBACK_SECRET) لمسار build-tenant-apk.yml.",
     });

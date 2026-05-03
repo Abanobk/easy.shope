@@ -252,6 +252,11 @@ button,
   color: var(--danger);
 }
 
+.message.warn {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
 .dot {
   width: 10px;
   height: 10px;
