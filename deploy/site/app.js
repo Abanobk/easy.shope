@@ -997,7 +997,7 @@ function renderAndroidIntegrationBanner() {
     if (!integ.dispatchReady) parts.push("<code>GITHUB_ACTIONS_DISPATCH_TOKEN</code> و <code>GITHUB_REPOSITORY</code> في <code>.env</code> على خادم النشر");
     if (!integ.callbackReady) parts.push("<code>ANDROID_BUILD_CALLBACK_SECRET</code> في <code>.env</code> على خادم النشر");
     el.className = "hint-box android-integration-banner android-integration--blocked";
-    el.innerHTML = `<strong>البناء غير مفعّل على الخادم بعد</strong><p class="muted" style="margin:8px 0 0">ينقص: ${parts.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API.</p>`;
+    el.innerHTML = `<strong>ضبط خادم الـ API غير مكتمل</strong><p class="muted" style="margin:8px 0 0">ينقص في ملف <code>.env</code> على خادم النشر: ${parts.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API. للقائمة الكاملة (أسرار GitHub ومستودع Flutter) راجع الصندوق التالي.</p>`;
   }
   if (btn && state.role === "merchant_owner") {
     btn.disabled = !ready;
