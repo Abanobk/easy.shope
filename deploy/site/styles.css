@@ -395,6 +395,8 @@ body[data-auth-mode="login"] .register-panel {
   color: #dbeafe;
   display: grid;
   gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.12s ease;
 }
 
 .merchant-side-item:hover,
@@ -403,6 +405,10 @@ body[data-auth-mode="login"] .register-panel {
   background:
     radial-gradient(circle at 10% 20%, rgba(56, 189, 248, .20), transparent 46%),
     rgba(56, 189, 248, .10);
+}
+
+.merchant-side-item:active {
+  transform: scale(0.985);
 }
 
 .merchant-side-item small {
@@ -542,14 +548,15 @@ body[data-auth-mode="login"] .register-panel {
   --p1: #38bdf8;
   --p2: #a78bfa;
   position: relative;
-  height: 140px;
-  border-radius: 20px;
+  height: 176px;
+  border-radius: 22px;
   border: 1px solid rgba(148, 163, 184, .16);
   background:
-    radial-gradient(circle at 75% 20%, color-mix(in srgb, var(--p1) 25%, transparent), transparent 40%),
-    radial-gradient(circle at 25% 80%, color-mix(in srgb, var(--p2) 22%, transparent), transparent 42%),
-    rgba(2, 6, 23, .45);
+    radial-gradient(circle at 75% 18%, color-mix(in srgb, var(--p1) 22%, transparent), transparent 42%),
+    radial-gradient(circle at 25% 85%, color-mix(in srgb, var(--p2) 18%, transparent), transparent 44%),
+    rgba(2, 6, 23, .52);
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, .06);
 }
 
 .theme-tile-pro[data-preview-theme="ocean"] .phone-preview { --p1: #38bdf8; --p2: #a78bfa; }
@@ -559,53 +566,446 @@ body[data-auth-mode="login"] .register-panel {
 .theme-tile-pro[data-preview-theme="rose"] .phone-preview { --p1: #fb7185; --p2: #f472b6; }
 .theme-tile-pro[data-preview-theme="slate"] .phone-preview { --p1: #cbd5e1; --p2: #38bdf8; }
 
-.phone-top {
-  height: 16px;
-  background: rgba(15, 23, 42, .65);
-  border-bottom: 1px solid rgba(148, 163, 184, .12);
+.phone-notch {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .78);
+  border: 1px solid rgba(148, 163, 184, .12);
+  z-index: 2;
 }
 
-.phone-hero {
-  height: 42px;
-  margin: 10px 12px 0;
+.phone-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.phone-status .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .55);
+  box-shadow: none;
+}
+
+.phone-appbar {
+  margin: 22px 10px 0;
+  height: 22px;
   border-radius: 14px;
+  background: rgba(15, 23, 42, .62);
+  border: 1px solid rgba(148, 163, 184, .12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.phone-appbar.minimal {
+  background: rgba(15, 23, 42, .45);
+}
+
+.phone-title {
+  font-size: 10px;
+  font-weight: 900;
+  color: #e2e8f0;
+}
+
+.phone-icon {
+  width: 18px;
+  height: 10px;
+  border-radius: 999px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 55%, transparent), color-mix(in srgb, var(--p2) 40%, transparent));
   border: 1px solid rgba(148, 163, 184, .12);
 }
 
-.phone-row {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px 0;
+.phone-search {
+  margin: 8px 10px 0;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .55);
+  border: 1px solid rgba(148, 163, 184, .12);
 }
 
-.phone-chip {
+.phone-tabs {
+  margin: 8px 10px 0;
+  display: flex;
+  gap: 6px;
+}
+
+.phone-tabs .tab {
   flex: 1;
   height: 10px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, .7);
-  border: 1px solid rgba(148, 163, 184, .12);
+  background: rgba(15, 23, 42, .55);
+  border: 1px solid rgba(148, 163, 184, .10);
 }
 
-.phone-cards {
+.phone-tabs .tab.active {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 45%, transparent), color-mix(in srgb, var(--p2) 35%, transparent));
+  border-color: color-mix(in srgb, var(--p1) 35%, transparent);
+}
+
+.phone-grid2 {
+  margin: 8px 10px 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 10px 12px 0;
+  gap: 6px;
 }
 
-.phone-card {
-  height: 26px;
+.phone-grid2.tight {
+  margin-top: 6px;
+}
+
+.pitem {
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .48);
+  border: 1px solid rgba(148, 163, 184, .10);
+  padding: 6px;
+  display: grid;
+  gap: 6px;
+}
+
+.pimg {
+  height: 28px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 35%, transparent), color-mix(in srgb, var(--p2) 28%, transparent));
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.pimg.tall {
+  height: 44px;
+}
+
+.pline {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .10);
+}
+
+.pbtn {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .12);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.pbtn.strong {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 55%, transparent), color-mix(in srgb, var(--p2) 40%, transparent));
+  border-color: color-mix(in srgb, var(--p1) 35%, transparent);
+}
+
+.phone-bottomnav {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  height: 16px;
   border-radius: 14px;
-  background: rgba(15, 23, 42, .6);
+  background: rgba(15, 23, 42, .62);
+  border: 1px solid rgba(148, 163, 184, .12);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+}
+
+.phone-bottomnav span {
+  width: 16px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .10);
+}
+
+.phone-bottomnav span.active {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 55%, transparent), color-mix(in srgb, var(--p2) 40%, transparent));
+}
+
+.phone-storyrow {
+  margin: 8px 10px 0;
+  display: flex;
+  gap: 6px;
+}
+
+.phone-storyrow span {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--p1) 45%, transparent);
+  background: rgba(15, 23, 42, .45);
+}
+
+.phone-feed {
+  margin: 8px 10px 0;
+  display: grid;
+  gap: 6px;
+}
+
+.fcard {
+  border-radius: 14px;
+  background: rgba(15, 23, 42, .48);
+  border: 1px solid rgba(148, 163, 184, .10);
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.fcard.small {
+  opacity: .92;
+}
+
+.fhero {
+  height: 34px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 40%, transparent), color-mix(in srgb, var(--p2) 30%, transparent));
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.fline {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .10);
+}
+
+.fline.short {
+  width: 70%;
+}
+
+.factions {
+  display: flex;
+  gap: 6px;
+}
+
+.factions .pill {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .10);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.factions .pill.strong {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 55%, transparent), color-mix(in srgb, var(--p2) 40%, transparent));
+  border-color: color-mix(in srgb, var(--p1) 35%, transparent);
+}
+
+.phone-fab {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 60%, transparent), color-mix(in srgb, var(--p2) 45%, transparent));
+  border: 1px solid rgba(148, 163, 184, .14);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, .35);
+}
+
+.phone-list {
+  margin: 8px 10px 0;
+  display: grid;
+  gap: 6px;
+}
+
+.lrow {
+  display: grid;
+  grid-template-columns: 22px 1fr 18px;
+  gap: 6px;
+  align-items: center;
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .45);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.lthumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 40%, transparent), color-mix(in srgb, var(--p2) 30%, transparent));
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.ltext {
+  display: grid;
+  gap: 4px;
+}
+
+.lprice {
+  height: 10px;
+  border-radius: 8px;
+  background: rgba(226, 232, 240, .12);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.phone-cartbar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  height: 18px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, .62);
+  border: 1px solid rgba(148, 163, 184, .12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+}
+
+.carttxt {
+  width: 55%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .10);
+}
+
+.cartcta {
+  width: 34%;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 55%, transparent), color-mix(in srgb, var(--p2) 40%, transparent));
+}
+
+.phone-banner {
+  margin: 8px 10px 0;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 45%, transparent), color-mix(in srgb, var(--p2) 32%, transparent));
   border: 1px solid rgba(148, 163, 184, .12);
 }
 
-.phone-cta {
-  height: 14px;
-  margin: 10px 12px 0;
+.phone-row2 {
+  margin: 6px 10px 0;
+  display: flex;
+  gap: 6px;
+}
+
+.phone-promo-pill {
+  flex: 1;
+  height: 10px;
   border-radius: 999px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 65%, transparent), color-mix(in srgb, var(--p2) 45%, transparent));
+  background: rgba(15, 23, 42, .55);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.phone-promo-pill.soft {
+  background: rgba(226, 232, 240, .08);
+}
+
+.phone-heroimg {
+  margin: 8px 10px 0;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 40%, transparent), color-mix(in srgb, var(--p2) 30%, transparent));
+  border: 1px solid rgba(148, 163, 184, .12);
+}
+
+.phone-dots {
+  margin: 6px 10px 0;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.phone-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .12);
+}
+
+.phone-dots span.on {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 60%, transparent), color-mix(in srgb, var(--p2) 45%, transparent));
+}
+
+.phone-cats {
+  margin: 8px 10px 0;
+  display: flex;
+  gap: 6px;
+}
+
+.phone-cats span {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .55);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.phone-grid3 {
+  margin: 8px 10px 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.phone-grid3 .g {
+  height: 26px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .45);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.phone-divider {
+  margin: 8px 10px 0;
+  height: 1px;
+  background: rgba(148, 163, 184, .14);
+}
+
+.phone-minlist {
+  margin: 8px 10px 0;
+  display: grid;
+  gap: 6px;
+}
+
+.mrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .40);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.mleft {
+  width: 62%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, .10);
+}
+
+.mright {
+  width: 22%;
+  height: 10px;
+  border-radius: 10px;
+  background: rgba(226, 232, 240, .10);
+  border: 1px solid rgba(148, 163, 184, .10);
+}
+
+.mright.strong {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 55%, transparent), color-mix(in srgb, var(--p2) 40%, transparent));
+  border-color: color-mix(in srgb, var(--p1) 35%, transparent);
+}
+
+.phone-cta.minimalcta {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p1) 60%, transparent), color-mix(in srgb, var(--p2) 45%, transparent));
+  border: 1px solid rgba(148, 163, 184, .12);
 }
 
 .theme-tile .swatch {
@@ -756,6 +1156,28 @@ body[data-auth-mode="login"] .register-panel {
 
 .merchant-tab.active {
   display: block;
+  animation: merchant-panel-in 0.24s ease-out;
+}
+
+@keyframes merchant-panel-in {
+  from {
+    opacity: 0.35;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-tab.active {
+    animation: none;
+  }
+
+  .merchant-side-item:active {
+    transform: none;
+  }
 }
 
 .performance-grid {

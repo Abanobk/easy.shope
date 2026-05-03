@@ -11,6 +11,15 @@ const state = {
   storefrontThemeDraft: "ocean",
 };
 
+const STOREFRONT_THEME_LABELS = {
+  ocean: "Ocean — متجر شبكي + شريط سفلي",
+  violet: "Violet — فيد/قصص + بطاقات",
+  emerald: "Emerald — قائمة منتجات + شريط سلة",
+  amber: "Amber — بانر عروض + أزرار قوية",
+  rose: "Rose — معرض صور + شبكة",
+  slate: "Slate — Minimal نظيف",
+};
+
 const $ = (id) => document.getElementById(id);
 
 function money(cents) {
@@ -522,7 +531,7 @@ function updateThemePickerUi() {
   document.querySelectorAll("[data-storefront-theme]").forEach((button) => {
     button.classList.toggle("active", button.dataset.storefrontTheme === state.storefrontThemeDraft);
   });
-  if ($("theme-selected")) $("theme-selected").textContent = `القالب الحالي: ${state.storefrontThemeDraft}`;
+  if ($("theme-selected")) $("theme-selected").textContent = `القالب الحالي: ${STOREFRONT_THEME_LABELS[state.storefrontThemeDraft] || state.storefrontThemeDraft}`;
 }
 
 async function saveStorefrontTheme() {
@@ -619,14 +628,45 @@ async function loadPlans() {
 
 async function loadMerchantData() {
   if (!state.token || !state.tenantSlug || ["platform_owner", "platform_admin"].includes(state.role)) return;
-  const [dashboard, categories, products, orders, providers, billing] = await Promise.all([
-    api("/api/merchant/dashboard"),
-    api("/api/merchant/categories"),
-    api("/api/merchant/products"),
-    api("/api/merchant/orders"),
-    api("/api/merchant/payment-providers"),
-    api("/api/merchant/subscription-invoices"),
-  ]);
+  let dashboard;
+  let billingInvoices = [];
+  try {
+    const [dash, categories, products, orders, providers, billing] = await Promise.all([
+      api("/api/merchant/dashboard"),
+      api("/api/merchant/categories"),
+      api("/api/merchant/products"),
+      api("/api/merchant/orders"),
+      api("/api/merchant/payment-providers"),
+      api("/api/merchant/subscription-invoices"),
+    ]);
+    dashboard = dash;
+    billingInvoices = billing.invoices || [];
+    state.merchantCategories = categories.categories || [];
+    state.merchantProducts = products.products || [];
+    state.merchantOrders = orders.orders || [];
+    $("payment-providers").innerHTML =
+      providers.providers
+        .map(
+          (item) =>
+            `<li>
+            <div class="provider-line">
+              <strong>${item.provider}</strong>
+              <span class="status-badge ${item.is_enabled ? "ok" : "off"}">${item.is_enabled ? "Active" : "Inactive"}</span>
+            </div>
+            <small>${item.mode}${item.provider === "paymob" ? ` • Card integration: ${item.public_config.cardIntegrationId || "-"}` : ""}</small>
+          </li>`,
+        )
+        .join("") || "<li>لم يتم ربط دفع بعد.</li>";
+    await loadPlans();
+    renderBilling(dashboard.tenant, billingInvoices);
+    bindMerchantActions("orders");
+    await loadStaff();
+  } catch (error) {
+    showMessage(error.message, true);
+    const el = $("overview-alerts");
+    if (el) el.innerHTML = `<li>تعذر تحميل بيانات لوحة المتجر: ${error.message}</li>`;
+    return;
+  }
 
   $("merchant-products-total").textContent = dashboard.products.total;
   $("merchant-products-published").textContent = `${dashboard.products.published} منشور`;
@@ -649,34 +689,14 @@ async function loadMerchantData() {
     "<li>لا توجد طلبات حديثة.</li>";
   if ($("merchant-latest-orders")) $("merchant-latest-orders").innerHTML = latestMarkup;
 
-  renderOverviewAlerts(dashboard, billing?.invoices || []);
-  state.merchantCategories = categories.categories || [];
-  state.merchantProducts = products.products || [];
-  state.merchantOrders = orders.orders || [];
+  renderOverviewAlerts(dashboard, billingInvoices);
   $("product-category").innerHTML =
-    `<option value="">بدون تصنيف</option>` + categories.categories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
+    `<option value="">بدون تصنيف</option>` + state.merchantCategories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
   $("product-filter-category").innerHTML =
-    `<option value="">كل الأصناف</option>` + categories.categories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
+    `<option value="">كل الأصناف</option>` + state.merchantCategories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
   renderMerchantCategories();
   renderMerchantProducts();
   renderMerchantOrders();
-  $("payment-providers").innerHTML =
-    providers.providers
-      .map(
-        (item) =>
-          `<li>
-            <div class="provider-line">
-              <strong>${item.provider}</strong>
-              <span class="status-badge ${item.is_enabled ? "ok" : "off"}">${item.is_enabled ? "Active" : "Inactive"}</span>
-            </div>
-            <small>${item.mode}${item.provider === "paymob" ? ` • Card integration: ${item.public_config.cardIntegrationId || "-"}` : ""}</small>
-          </li>`,
-      )
-      .join("") || "<li>لم يتم ربط دفع بعد.</li>";
-  await loadPlans();
-  renderBilling(dashboard.tenant, billing.invoices);
-  bindMerchantActions("orders");
-  await loadStaff();
 }
 
 function renderOverviewAlerts(dashboard, invoices) {
@@ -686,8 +706,17 @@ function renderOverviewAlerts(dashboard, invoices) {
   const categories = dashboard?.categories || {};
   const revenue = dashboard?.revenue || {};
   const openInvoices = (invoices || []).filter((inv) => inv.status !== "paid");
+  const tStatus = tenant.status;
 
-  if (tenant.status !== "active") alerts.push("حالة المتجر ليست مفعلة بالكامل. راجع الاشتراك أو حالة الخدمة.");
+  if (tStatus === "suspended" || tStatus === "expired") {
+    alerts.push("المتجر موقوف أو انتهى الاشتراك. راجع السوبر أدمن أو سدّد فاتورة المنصة.");
+  } else if (tStatus === "trial") {
+    alerts.push(
+      "أنت في وضع التجربة — الواجهة تعمل بشكل طبيعي. ابدأ بإضافة أصناف ومنتجات، ثم ادفع اشتراك المنصة من «اشتراك المنصة» عند الجاهزية.",
+    );
+  } else if (tStatus && tStatus !== "active") {
+    alerts.push("حالة المتجر تحتاج مراجعة من السوبر أدمن أو إكمال الاشتراك.");
+  }
   if (!Number(categories.total || 0)) alerts.push("ابدأ بإضافة أول صنف لتنظيم الكتالوج.");
   if (!Number(products.total || 0)) alerts.push("أضف أول منتج ليظهر في واجهة المتجر.");
   if (Number(products.published || 0) === 0 && Number(products.total || 0) > 0) alerts.push("لديك منتجات غير منشورة. انشر المنتجات الجاهزة ليبدأ البيع.");
