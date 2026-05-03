@@ -12,12 +12,12 @@ const state = {
 };
 
 const STOREFRONT_THEME_LABELS = {
-  ocean: "Ocean — متجر شبكي + شريط سفلي",
-  violet: "Violet — فيد/قصص + بطاقات",
-  emerald: "Emerald — قائمة منتجات + شريط سلة",
-  amber: "Amber — بانر عروض + أزرار قوية",
-  rose: "Rose — معرض صور + شبكة",
-  slate: "Slate — Minimal نظيف",
+  ocean: "Ocean — أزياء كلاسيكية (شبكة + شريط سفلي)",
+  violet: "Violet — تجميل (قصص + بطاقات)",
+  emerald: "Emerald — إلكترونيات (قائمة + سلة)",
+  amber: "Amber — مطعم (بانر + عروض)",
+  rose: "Rose — منزل وديكور (معرض + شبكة)",
+  slate: "Slate — إبداعي (minimal)",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -101,6 +101,156 @@ function productPriceHtml(product) {
   const compareAt = Number(product.compare_at_price_cents || 0);
   const discount = Number(product.discount_percent || 0);
   return `<code>${money(product.price_cents)}</code>${compareAt ? `<small class="old-price">${money(compareAt)}</small>` : ""}${discount ? `<small class="discount-badge">خصم ${discount}%</small>` : ""}`;
+}
+
+const STOREFRONT_LAYOUTS = new Set(["ocean", "violet", "emerald", "amber", "rose", "slate"]);
+
+function normalizeStorefrontLayout(theme) {
+  return STOREFRONT_LAYOUTS.has(theme) ? theme : "ocean";
+}
+
+function storefrontProductHtml(item, layout) {
+  const letter = item.title_ar.slice(0, 1);
+  const imgInner = item.image_url
+    ? `<img src="${item.image_url}" alt="" loading="lazy">`
+    : `<span>${letter}</span>`;
+  const title = item.title_ar;
+  const desc = item.description || "منتج متاح في المتجر.";
+  const price = productPriceHtml(item);
+  const actions = `<div class="store-product-actions">
+    <button type="button" data-view-product="${item.slug}">تفاصيل</button>
+    <button type="button" class="success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${item.price_cents}">أضف للسلة</button>
+  </div>`;
+
+  if (layout === "violet") {
+    return `<article class="store-product-card store-product-card--violet">
+      <div class="store-product-media">${imgInner}</div>
+      <div class="store-product-body">
+        <h3>${title}</h3>
+        <p>${desc}</p>
+        <div class="store-product-meta">${price}</div>
+        ${actions}
+      </div>
+    </article>`;
+  }
+  if (layout === "emerald") {
+    return `<article class="store-product-card store-product-card--emerald">
+      <div class="store-product-thumb">${imgInner}</div>
+      <div class="store-product-body">
+        <h3>${title}</h3>
+        <p class="store-product-desc">${desc}</p>
+        <div class="store-product-meta">${price}</div>
+        ${actions}
+      </div>
+    </article>`;
+  }
+  if (layout === "amber") {
+    return `<article class="store-product-card store-product-card--amber">
+      <div class="store-product-media">${imgInner}</div>
+      <div class="store-product-body">
+        <h3>${title}</h3>
+        <p>${desc}</p>
+        <div class="store-product-meta">${price}</div>
+        ${actions}
+      </div>
+    </article>`;
+  }
+  if (layout === "rose") {
+    return `<article class="store-product-card store-product-card--rose">
+      <div class="store-product-media">${imgInner}</div>
+      <div class="store-product-body">
+        <h3>${title}</h3>
+        <p>${desc}</p>
+        <div class="store-product-meta">${price}</div>
+        ${actions}
+      </div>
+    </article>`;
+  }
+  if (layout === "slate") {
+    return `<article class="store-product-card store-product-card--slate">
+      <div class="store-product-media">${imgInner}</div>
+      <div class="store-product-body">
+        <h3>${title}</h3>
+        <p class="store-product-desc">${desc}</p>
+        <div class="store-product-meta">${price}</div>
+        ${actions}
+      </div>
+    </article>`;
+  }
+  return `<article class="store-product-card store-product-card--ocean">
+    <div class="store-product-media">${imgInner}</div>
+    <div class="store-product-body">
+      <h3>${title}</h3>
+      <p>${desc}</p>
+      <div class="store-product-meta">${price}</div>
+      ${actions}
+    </div>
+  </article>`;
+}
+
+function renderStorefrontStories(categories, layout) {
+  const el = $("storefront-stories");
+  if (!el) return;
+  if (layout !== "violet" || !categories.length) {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
+  el.hidden = false;
+  const active = state.storefrontCategory || "";
+  const items = categories.slice(0, 10).map(
+    (c) =>
+      `<button type="button" class="storefront-story${active && active === c.slug ? " is-active" : ""}" data-store-category="${c.slug}">
+        <span class="storefront-story-avatar">${(c.name_ar || "?").slice(0, 1)}</span>
+        <span class="storefront-story-label">${c.name_ar}</span>
+      </button>`,
+  );
+  el.innerHTML = `<div class="storefront-stories-track">${items.join("")}</div>`;
+}
+
+function renderStorefrontSpotlight(store, products, layout) {
+  const el = $("storefront-spotlight");
+  if (!el) return;
+  const first = products[0];
+  const img = first?.image_url || "";
+  if (layout === "amber") {
+    el.hidden = false;
+    const bg = img ? ` style="--spotlight-img:url('${img}')"` : "";
+    el.innerHTML = `<div class="storefront-spotlight-inner storefront-spotlight--amber"${bg}>
+      <div class="storefront-spotlight-copy">
+        <span class="storefront-spotlight-kicker">عروض مميزة</span>
+        <strong>${store.name_ar || "تسوق الآن"}</strong>
+        <p>اكتشف أحدث المنتجات المختارة لك.</p>
+      </div>
+    </div>`;
+    return;
+  }
+  if (layout === "rose") {
+    if (!products.length) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    el.hidden = false;
+    const slides = products.slice(0, 4).map(
+      (p, i) =>
+        `<div class="storefront-spotlight-slide${i === 0 ? " is-active" : ""}" data-slide="${i}">
+          ${p.image_url ? `<img src="${p.image_url}" alt="">` : `<div class="storefront-spotlight-placeholder">${p.title_ar.slice(0, 1)}</div>`}
+          <div class="storefront-spotlight-caption"><span>${p.title_ar}</span></div>
+        </div>`,
+    );
+    const dots = products
+      .slice(0, 4)
+      .map((_, i) => `<button type="button" class="storefront-spotlight-dot${i === 0 ? " is-active" : ""}" data-slide-to="${i}" aria-label="شريحة ${i + 1}"></button>`)
+      .join("");
+    el.innerHTML = `<div class="storefront-spotlight-inner storefront-spotlight--rose">
+      <div class="storefront-spotlight-carousel">${slides.join("")}</div>
+      <div class="storefront-spotlight-dots">${dots}</div>
+    </div>`;
+    return;
+  }
+  el.hidden = true;
+  el.innerHTML = "";
 }
 
 function productMediaHtml(product) {
@@ -970,28 +1120,27 @@ async function loadStorefront(event) {
   state.tenantSlug = slug;
   localStorage.setItem("easyShopeTenantSlug", slug);
   const store = await api(`/api/store/${slug}`);
-  document.body.dataset.theme = store.store.storefront_theme || "ocean";
+  const theme = store.store.storefront_theme || "ocean";
+  const layout = normalizeStorefrontLayout(theme);
+  document.body.dataset.theme = theme;
+  const shell = $("storefront-shell");
+  if (shell) shell.dataset.storefrontLayout = layout;
   const data = await api(`/api/store/${slug}/products${queryString({ q: $("storefront-query").value.trim(), category: state.storefrontCategory })}`);
   $("storefront-title").textContent = store.store.name_ar || store.store.name_en;
   $("storefront-subtitle").textContent = `${store.store.name_en} - ${store.store.country} - ${store.store.status}`;
   $("storefront-categories").innerHTML =
-    [`<button class="${state.storefrontCategory ? "" : "active"}" data-store-category="">الكل</button>`]
-      .concat(store.categories.map((category) => `<button class="${state.storefrontCategory === category.slug ? "active" : ""}" data-store-category="${category.slug}">${category.name_ar} (${category.products_count})</button>`))
-      .join("");
-  $("storefront-products").innerHTML =
-    data.products
-      .map(
-        (item) => `<article class="store-product-card">
-          <div class="product-image">${item.image_url ? `<img src="${item.image_url}" alt="">` : `<span>${item.title_ar.slice(0, 1)}</span>`}</div>
-          <div><strong>${item.title_ar}</strong><p>${item.description || "منتج متاح في المتجر."}</p></div>
-          <div class="product-card-footer"><div class="price-stack">${productPriceHtml(item)}</div><div class="row-actions">
-            <button data-view-product="${item.slug}">تفاصيل</button>
-            <button class="success-button" data-add-cart="${item.id}" data-title="${item.title_ar}" data-price="${item.price_cents}">أضف للسلة</button>
-          </div></div>
-        </article>`,
+    [`<button type="button" class="${state.storefrontCategory ? "" : "active"}" data-store-category="">الكل</button>`]
+      .concat(
+        store.categories.map(
+          (category) =>
+            `<button type="button" class="${state.storefrontCategory === category.slug ? "active" : ""}" data-store-category="${category.slug}">${category.name_ar} (${category.products_count})</button>`,
+        ),
       )
-      .join("") || "<p>لا توجد منتجات منشورة في هذا المتجر.</p>";
-  bindStorefrontActions();
+      .join("");
+  renderStorefrontStories(store.categories, layout);
+  renderStorefrontSpotlight(store.store, data.products, layout);
+  $("storefront-products").innerHTML =
+    data.products.map((item) => storefrontProductHtml(item, layout)).join("") || "<p>لا توجد منتجات منشورة في هذا المتجر.</p>";
 }
 
 async function placeOrder(event) {
@@ -1040,29 +1189,45 @@ async function loadCustomerOrders() {
   }
 }
 
-function bindStorefrontActions() {
-  document.querySelectorAll("[data-store-category]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      state.storefrontCategory = button.dataset.storeCategory;
+function initStorefrontDelegation() {
+  const shell = $("storefront-shell");
+  if (!shell || shell.dataset.delegationBound === "1") return;
+  shell.dataset.delegationBound = "1";
+  shell.addEventListener("click", async (e) => {
+    const categoryBtn = e.target.closest("#storefront-categories [data-store-category], #storefront-stories [data-store-category]");
+    if (categoryBtn) {
+      e.preventDefault();
+      state.storefrontCategory = categoryBtn.dataset.storeCategory ?? "";
       await loadStorefront();
-    });
-  });
-  document.querySelectorAll("[data-add-cart]").forEach((button) => {
-    button.addEventListener("click", () => addToCart(button.dataset.addCart, button.dataset.title, Number(button.dataset.price)));
-  });
-  document.querySelectorAll("[data-view-product]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const slug = $("tenant-slug").value.trim();
-      const data = await api(`/api/store/${slug}/products/${button.dataset.viewProduct}`);
-      const variants = Array.isArray(data.product.variants) ? data.product.variants : [];
-      $("product-detail").innerHTML = `${productMediaHtml(data.product)}<strong>${data.product.title_ar}</strong><p>${data.product.description || "لا يوجد وصف."}</p><div class="price-stack">${productPriceHtml(data.product)}</div><p>${data.product.stock_quantity} في المخزون</p>${
-        variants.length
-          ? `<div class="variant-pills">${variants
-              .map((variant) => `<span>${variant.type || "نوع"} ${variant.color || ""}${variant.extraPriceCents ? ` + ${money(variant.extraPriceCents)}` : ""}${variant.stockQuantity !== null && variant.stockQuantity !== undefined ? ` - مخزون ${variant.stockQuantity}` : ""}</span>`)
-              .join("")}</div>`
-          : ""
-      }`;
-    });
+      return;
+    }
+    const dot = e.target.closest(".storefront-spotlight-dot[data-slide-to]");
+    if (dot) {
+      e.preventDefault();
+      const idx = Number(dot.dataset.slideTo);
+      const spotlight = $("storefront-spotlight");
+      if (!spotlight || Number.isNaN(idx)) return;
+      spotlight.querySelectorAll(".storefront-spotlight-slide").forEach((el, i) => el.classList.toggle("is-active", i === idx));
+      spotlight.querySelectorAll(".storefront-spotlight-dot").forEach((el, i) => el.classList.toggle("is-active", i === idx));
+      return;
+    }
+    const addBtn = e.target.closest("[data-add-cart]");
+    if (addBtn) {
+      addToCart(addBtn.dataset.addCart, addBtn.dataset.title, Number(addBtn.dataset.price));
+      return;
+    }
+    const viewBtn = e.target.closest("[data-view-product]");
+    if (!viewBtn) return;
+    const slug = $("tenant-slug").value.trim();
+    const data = await api(`/api/store/${slug}/products/${viewBtn.dataset.viewProduct}`);
+    const variants = Array.isArray(data.product.variants) ? data.product.variants : [];
+    $("product-detail").innerHTML = `${productMediaHtml(data.product)}<strong>${data.product.title_ar}</strong><p>${data.product.description || "لا يوجد وصف."}</p><div class="price-stack">${productPriceHtml(data.product)}</div><p>${data.product.stock_quantity} في المخزون</p>${
+      variants.length
+        ? `<div class="variant-pills">${variants
+            .map((variant) => `<span>${variant.type || "نوع"} ${variant.color || ""}${variant.extraPriceCents ? ` + ${money(variant.extraPriceCents)}` : ""}${variant.stockQuantity !== null && variant.stockQuantity !== undefined ? ` - مخزون ${variant.stockQuantity}` : ""}</span>`)
+            .join("")}</div>`
+        : ""
+    }`;
   });
 }
 
@@ -1399,6 +1564,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("test-platform-paymob").addEventListener("click", testPlatformPaymob);
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
+  initStorefrontDelegation();
   $("order-form").addEventListener("submit", placeOrder);
   $("customer-register-form").addEventListener("submit", registerCustomer);
   $("customer-orders-button").addEventListener("click", loadCustomerOrders);
