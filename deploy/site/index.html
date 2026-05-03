@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026050321" />
+  <link rel="stylesheet" href="/styles.css?v=2026050322" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -452,14 +452,28 @@
                 </article>
 
                 <div class="stack">
-                  <article class="panel">
-                    <div class="panel-heading">
-                      <span class="eyebrow">Themes</span>
-                      <h3>اختيار تمبلت واجهة المتجر</h3>
+                  <article class="panel theme-library-panel">
+                    <div class="theme-library-head">
+                      <div class="panel-heading">
+                        <span class="eyebrow">Storefront</span>
+                        <h3>مكتبة تخطيطات الصفحة الرئيسية</h3>
+                      </div>
+                      <p class="muted theme-library-lead">تصفّح نماذج جاهزة لشكل المتجر على الموبايل — كل قالب يغيّر توزيع العناصر والألوان الأساسية. اختر قالبًا ثم احفظ.</p>
+                      <div class="theme-filter-chips" id="theme-filter-chips" role="tablist" aria-label="تصفية القوالب">
+                        <button type="button" class="theme-chip active" data-theme-filter="all">الكل <span class="theme-chip-count">6</span></button>
+                        <button type="button" class="theme-chip theme-chip--accent" data-theme-filter="bestseller">الأكثر استخداماً</button>
+                        <button type="button" class="theme-chip theme-chip--new" data-theme-filter="new">جديد</button>
+                        <button type="button" class="theme-chip" data-theme-filter="grid">شبكة</button>
+                        <button type="button" class="theme-chip" data-theme-filter="feed">فيد وقصص</button>
+                        <button type="button" class="theme-chip" data-theme-filter="list">قائمة وسلة</button>
+                        <button type="button" class="theme-chip" data-theme-filter="promo">عروض</button>
+                        <button type="button" class="theme-chip" data-theme-filter="gallery">معرض</button>
+                        <button type="button" class="theme-chip" data-theme-filter="clean">نظيف</button>
+                      </div>
                     </div>
-                    <p class="muted">اختر شكل واجهة المتجر من ٦ قوالب جاهزة مع معاينة على شكل موبايل.</p>
-                    <div class="theme-grid theme-grid-pro" id="theme-grid">
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="ocean" data-preview-theme="ocean">
+                    <div class="theme-grid theme-grid-pro theme-library-grid" id="theme-grid">
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="ocean" data-preview-theme="ocean" data-theme-tags="all bestseller grid">
+                        <span class="theme-badge theme-badge--bestseller">الأكثر طلباً</span>
                         <div class="phone-preview phone-layout-market">
                           <div class="phone-notch"></div>
                           <div class="phone-status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -474,9 +488,13 @@
                           </div>
                           <div class="phone-bottomnav"><span></span><span class="active"></span><span></span><span></span></div>
                         </div>
-                        <div class="theme-meta"><strong>Ocean</strong><small>متجر شبكي + شريط سفلي</small></div>
+                        <div class="theme-meta">
+                          <span class="theme-caption">الرئيسية — شبكة وتبويبات</span>
+                          <strong>Ocean</strong><small>متجر شبكي + شريط سفلي</small>
+                        </div>
                       </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="violet" data-preview-theme="violet">
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="violet" data-preview-theme="violet" data-theme-tags="all new feed">
+                        <span class="theme-badge theme-badge--new">جديد</span>
                         <div class="phone-preview phone-layout-feed">
                           <div class="phone-notch"></div>
                           <div class="phone-status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -488,9 +506,13 @@
                           </div>
                           <div class="phone-fab"></div>
                         </div>
-                        <div class="theme-meta"><strong>Violet</strong><small>فيد/قصص + بطاقات</small></div>
+                        <div class="theme-meta">
+                          <span class="theme-caption">الرئيسية — قصص وبطاقات</span>
+                          <strong>Violet</strong><small>فيد/قصص + بطاقات</small>
+                        </div>
                       </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="emerald" data-preview-theme="emerald">
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="emerald" data-preview-theme="emerald" data-theme-tags="all bestseller list">
+                        <span class="theme-badge theme-badge--pick">عملي للبيع</span>
                         <div class="phone-preview phone-layout-list">
                           <div class="phone-notch"></div>
                           <div class="phone-status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -502,9 +524,13 @@
                           </div>
                           <div class="phone-cartbar"><span class="carttxt"></span><span class="cartcta"></span></div>
                         </div>
-                        <div class="theme-meta"><strong>Emerald</strong><small>قائمة + شريط سلة</small></div>
+                        <div class="theme-meta">
+                          <span class="theme-caption">الرئيسية — قائمة وشريط سلة</span>
+                          <strong>Emerald</strong><small>قائمة + شريط سلة</small>
+                        </div>
                       </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="amber" data-preview-theme="amber">
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="amber" data-preview-theme="amber" data-theme-tags="all promo">
+                        <span class="theme-badge theme-badge--promo">عروض</span>
                         <div class="phone-preview phone-layout-promo">
                           <div class="phone-notch"></div>
                           <div class="phone-status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -516,9 +542,13 @@
                             <div class="pitem"><span class="pimg tall"></span><span class="pline"></span><span class="pbtn strong"></span></div>
                           </div>
                         </div>
-                        <div class="theme-meta"><strong>Amber</strong><small>بانر عروض + أزرار قوية</small></div>
+                        <div class="theme-meta">
+                          <span class="theme-caption">الرئيسية — بانر وعروض</span>
+                          <strong>Amber</strong><small>بانر عروض + أزرار قوية</small>
+                        </div>
                       </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="rose" data-preview-theme="rose">
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="rose" data-preview-theme="rose" data-theme-tags="all new gallery">
+                        <span class="theme-badge theme-badge--new">جديد</span>
                         <div class="phone-preview phone-layout-gallery">
                           <div class="phone-notch"></div>
                           <div class="phone-status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -530,9 +560,13 @@
                             <span class="g"></span><span class="g"></span><span class="g"></span>
                           </div>
                         </div>
-                        <div class="theme-meta"><strong>Rose</strong><small>معرض صور + شبكة</small></div>
+                        <div class="theme-meta">
+                          <span class="theme-caption">الرئيسية — معرض وشبكة</span>
+                          <strong>Rose</strong><small>معرض صور + شبكة</small>
+                        </div>
                       </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="slate" data-preview-theme="slate">
+                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="slate" data-preview-theme="slate" data-theme-tags="all clean">
+                        <span class="theme-badge theme-badge--clean">نظيف</span>
                         <div class="phone-preview phone-layout-minimal">
                           <div class="phone-notch"></div>
                           <div class="phone-status"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
@@ -545,7 +579,10 @@
                           </div>
                           <div class="phone-cta minimalcta"></div>
                         </div>
-                        <div class="theme-meta"><strong>Slate</strong><small>Minimal نظيف</small></div>
+                        <div class="theme-meta">
+                          <span class="theme-caption">الرئيسية — minimal</span>
+                          <strong>Slate</strong><small>Minimal نظيف</small>
+                        </div>
                       </button>
                     </div>
                     <div class="provider-line">
@@ -718,6 +755,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026050321"></script>
+  <script src="/app.js?v=2026050322"></script>
 </body>
 </html>

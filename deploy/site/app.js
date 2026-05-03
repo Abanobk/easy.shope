@@ -534,6 +534,28 @@ function updateThemePickerUi() {
   if ($("theme-selected")) $("theme-selected").textContent = `القالب الحالي: ${STOREFRONT_THEME_LABELS[state.storefrontThemeDraft] || state.storefrontThemeDraft}`;
 }
 
+function initThemeLibraryFilters() {
+  const chipRoot = document.getElementById("theme-filter-chips");
+  const grid = document.getElementById("theme-grid");
+  if (!chipRoot || !grid) return;
+  const tiles = grid.querySelectorAll("[data-storefront-theme][data-theme-tags]");
+  chipRoot.querySelectorAll("[data-theme-filter]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      chipRoot.querySelectorAll("[data-theme-filter]").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      const filter = chip.dataset.themeFilter || "all";
+      tiles.forEach((tile) => {
+        const tags = (tile.dataset.themeTags || "")
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+        const match = filter === "all" || tags.includes(filter);
+        tile.classList.toggle("theme-tile-filtered-out", !match);
+      });
+    });
+  });
+}
+
 async function saveStorefrontTheme() {
   await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify({ storefrontTheme: state.storefrontThemeDraft }) });
   showMessage("تم حفظ تمبلت واجهة المتجر.");
@@ -1307,6 +1329,7 @@ async function bootstrap() {
 document.addEventListener("DOMContentLoaded", () => {
   setOnboardingMode("register");
   setMerchantTab("overview");
+  initThemeLibraryFilters();
   updateNavigation();
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", async () => {

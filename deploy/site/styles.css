@@ -519,6 +519,81 @@ body[data-auth-mode="login"] .register-panel {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.theme-library-panel .theme-library-head {
+  margin-bottom: 4px;
+}
+
+.theme-library-lead {
+  max-width: 52rem;
+  line-height: 1.75;
+}
+
+.theme-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, .12);
+}
+
+.theme-chip {
+  border: 1px solid rgba(148, 163, 184, .2);
+  background: rgba(15, 23, 42, .55);
+  color: #e2e8f0;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.theme-chip:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, rgba(15, 23, 42, .65));
+}
+
+.theme-chip.active {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background:
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 55%),
+    color-mix(in srgb, var(--accent) 16%, rgba(15, 23, 42, .72));
+  color: #f0f9ff;
+}
+
+.theme-chip--accent {
+  border-color: rgba(251, 191, 36, .35);
+  background: rgba(251, 191, 36, .08);
+}
+
+.theme-chip--accent.active {
+  border-color: rgba(251, 191, 36, .55);
+  background: rgba(251, 191, 36, .16);
+}
+
+.theme-chip--new {
+  border-color: rgba(244, 114, 182, .35);
+  background: rgba(244, 114, 182, .08);
+}
+
+.theme-chip--new.active {
+  border-color: rgba(244, 114, 182, .55);
+  background: rgba(244, 114, 182, .14);
+}
+
+.theme-chip-count {
+  opacity: .75;
+  font-weight: 800;
+  margin-inline-start: 4px;
+}
+
+.theme-library-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
 .theme-tile {
   text-align: right;
   border: 1px solid rgba(148, 163, 184, .14);
@@ -530,8 +605,77 @@ body[data-auth-mode="login"] .register-panel {
 }
 
 .theme-tile-pro {
+  position: relative;
   gap: 10px;
   padding: 12px;
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+.theme-tile-pro:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
+  box-shadow: 0 12px 40px rgba(2, 6, 23, .35);
+}
+
+.theme-tile-pro:active {
+  transform: scale(0.992);
+}
+
+.theme-tile-pro.theme-tile-filtered-out {
+  display: none !important;
+}
+
+.theme-badge {
+  position: absolute;
+  top: 10px;
+  inset-inline-start: 10px;
+  z-index: 4;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 4px 8px;
+  border-radius: 8px;
+  line-height: 1.2;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(2, 6, 23, .35);
+}
+
+.theme-badge--bestseller {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #422006;
+  border: 1px solid rgba(254, 243, 199, .5);
+}
+
+.theme-badge--new {
+  background: linear-gradient(135deg, #f472b6, #e879f9);
+  color: #fdf4ff;
+  border: 1px solid rgba(250, 232, 255, .35);
+}
+
+.theme-badge--pick {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: #022c22;
+  border: 1px solid rgba(167, 243, 208, .4);
+}
+
+.theme-badge--promo {
+  background: linear-gradient(135deg, #fb7185, #f97316);
+  color: #fff7ed;
+  border: 1px solid rgba(255, 237, 213, .35);
+}
+
+.theme-badge--clean {
+  background: rgba(148, 163, 184, .25);
+  color: #f1f5f9;
+  border: 1px solid rgba(226, 232, 240, .2);
+}
+
+.theme-caption {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: color-mix(in srgb, var(--accent) 75%, #bae6fd);
+  margin-bottom: 4px;
+  letter-spacing: 0.02em;
 }
 
 .theme-meta strong {
@@ -1028,11 +1172,13 @@ body[data-auth-mode="login"] .register-panel {
 @media (max-width: 900px) {
   .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .theme-grid-pro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .theme-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {
   .theme-grid { grid-template-columns: 1fr; }
   .theme-grid-pro { grid-template-columns: 1fr; }
+  .theme-library-grid { grid-template-columns: 1fr; }
 }
 
 .order-dialog {
