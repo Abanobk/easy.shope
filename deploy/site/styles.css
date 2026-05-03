@@ -801,11 +801,13 @@ body[data-auth-mode="login"] .register-panel {
 }
 
 /* —— Storefront vitrine previews (16:10 aspect, pixel-aligned) —— */
+/* Portrait phone frame (~9:19.5) — narrow + tall, centered; matches mobile, not landscape tablets */
 .theme-vitrine {
   box-sizing: border-box;
   position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
+  width: min(240px, 90%);
+  margin-inline: auto;
+  aspect-ratio: 9 / 19.5;
   height: auto;
   border-radius: 16px;
   border: 1px solid rgba(148, 163, 184, .18);
@@ -879,7 +881,7 @@ body[data-auth-mode="login"] .register-panel {
   position: relative;
   flex: 1;
   min-height: 0;
-  padding: 14px 16px 16px;
+  padding: 12px 10px 12px;
   display: flex;
   flex-direction: column;
 }
@@ -2625,6 +2627,10 @@ body[data-auth-mode="login"] .register-panel {
   .theme-badge {
     top: 24px;
     inset-inline-start: 24px;
+  }
+
+  .theme-vitrine {
+    width: min(220px, 78vw);
   }
 }
 
