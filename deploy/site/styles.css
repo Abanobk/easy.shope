@@ -3044,6 +3044,14 @@ body[data-auth-mode="login"] .register-panel {
   background: rgba(69, 47, 6, 0.22);
 }
 
+.android-setup-reference p {
+  margin: 0 0 12px;
+}
+
+.android-setup-reference p:last-child {
+  margin-bottom: 0;
+}
+
 .metric strong {
   display: block;
   margin: 8px 0;

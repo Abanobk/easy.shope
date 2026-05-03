@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026050402" />
+  <link rel="stylesheet" href="/styles.css?v=2026050403" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -791,8 +791,20 @@
                 </div>
               </div>
               <div id="android-integration-banner" class="android-integration-banner" hidden aria-live="polite"></div>
-              <div class="hint-box">
-                على <strong>خادم الـ API</strong> (ملف <code>.env</code> بجانب docker-compose): <code>GITHUB_ACTIONS_DISPATCH_TOKEN</code>، <code>GITHUB_REPOSITORY</code>، <code>ANDROID_BUILD_CALLBACK_SECRET</code>. على <strong>مستودع GitHub</strong> (أسرار Actions): <code>EASY_SHOPE_API_URL</code>، <code>ANDROID_BUILD_CALLBACK_SECRET</code> (نفس الخادم)، <code>MOBILE_APP_REPOSITORY</code>، <code>MOBILE_REPO_PAT</code>. التطبيق يُبنى من مستودع Flutter white-label ويستقبل <code>TENANT_SLUG</code> عند البناء.
+              <div class="hint-box android-setup-reference">
+                <p>
+                  <strong>1) خادم النشر</strong> — ملف <code>.env</code> بجانب <code>docker-compose</code> ثم إعادة تشغيل حاوية الـ API:<br />
+                  <code>GITHUB_ACTIONS_DISPATCH_TOKEN</code> (PAT بصلاحية تشغيل workflow على المستودع)،
+                  <code>GITHUB_REPOSITORY</code> (مثل <code>Abanobk/easy.shope</code>)،
+                  <code>ANDROID_BUILD_CALLBACK_SECRET</code> (سلسلة عشوائية طويلة).
+                </p>
+                <p>
+                  <strong>2) مستودع easy.shope على GitHub</strong> — Settings → Secrets and variables → Actions:<br />
+                  <code>EASY_SHOPE_API_URL</code> (رابط الـ API العام)،
+                  <code>ANDROID_BUILD_CALLBACK_SECRET</code> (<strong>نفس القيمة</strong> كما في <code>.env</code> على الخادم)،
+                  <code>MOBILE_APP_REPOSITORY</code>، <code>MOBILE_REPO_PAT</code> (لقراءة مستودع Flutter white-label).
+                </p>
+                <p class="muted">عند البناء يُمرَّر إلى Flutter المعرف <code>TENANT_SLUG</code> لربط التطبيق بمتجرك.</p>
               </div>
               <div class="section-tools" style="margin-top: 1rem">
                 <button type="button" class="secondary" id="merchant-android-build-request" hidden>طلب بناء APK جديد</button>
@@ -965,6 +977,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026050402"></script>
+  <script src="/app.js?v=2026050403"></script>
 </body>
 </html>
