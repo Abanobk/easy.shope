@@ -5,8 +5,7 @@
 #   ANDROID_BUILD_CALLBACK_SECRET — نفس قيمة ANDROID_BUILD_CALLBACK_SECRET في بيئة الـ API
 #   MOBILE_APP_REPOSITORY — مستودع Flutter (أو نفس easy.shope لو التطبيق تحت apps/…)
 #   MOBILE_REPO_PAT — PAT بصلاحية قراءة لمستودع التطبيق
-#   MOBILE_FLUTTER_SUBDIR (اختياري) — إن كان Flutter داخل فرعي بعد الـ clone، مثل apps/easy_shope_mobile
-#     اتركه فارغًا لو pubspec.yaml في جذر المستودع المستنسخ.
+#   MOBILE_FLUTTER_SUBDIR (اختياري) — مسار Flutter بعد الـ clone؛ إن لم تُضفه ووُجد apps/easy_shope_mobile/pubspec.yaml يُستخدم تلقائيًا.
 name: Build tenant APK
 
 on:
@@ -105,15 +104,21 @@ jobs:
           MOBILE_FLUTTER_SUBDIR: ${{ secrets.MOBILE_FLUTTER_SUBDIR }}
         run: |
           set -euo pipefail
-          if [ -n "${MOBILE_FLUTTER_SUBDIR}" ]; then
-            cd "${MOBILE_FLUTTER_SUBDIR}"
+          REL=""
+          if [ -n "${MOBILE_FLUTTER_SUBDIR:-}" ]; then
+            REL="${MOBILE_FLUTTER_SUBDIR}"
+          elif [ -f apps/easy_shope_mobile/pubspec.yaml ]; then
+            REL="apps/easy_shope_mobile"
+          fi
+          if [ -n "$REL" ]; then
+            cd "$REL"
           fi
           flutter pub get
           flutter build apk --release \
             --dart-define=TENANT_SLUG="${TENANT_SLUG}" \
             --dart-define=STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}"
-          if [ -n "${MOBILE_FLUTTER_SUBDIR}" ]; then
-            echo "apk_rel=mobile/${MOBILE_FLUTTER_SUBDIR}/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
+          if [ -n "$REL" ]; then
+            echo "apk_rel=mobile/${REL}/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
           else
             echo "apk_rel=mobile/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
           fi
