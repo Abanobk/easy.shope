@@ -3330,7 +3330,7 @@ body[data-auth-mode="login"] .register-panel {
 }
 
 #merchant-android-build-request.android-build-button--blocked {
-  cursor: help;
+  cursor: pointer;
   box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.45);
   opacity: 0.92;
 }
