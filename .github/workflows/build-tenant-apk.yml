@@ -3,8 +3,10 @@
 # أسرار مطلوبة على مستودع easy-shope:
 #   EASY_SHOPE_API_URL — قاعدة الـ API العامة (بدون شرطة مائلة أخيرة)
 #   ANDROID_BUILD_CALLBACK_SECRET — نفس قيمة ANDROID_BUILD_CALLBACK_SECRET في بيئة الـ API
-#   MOBILE_APP_REPOSITORY — مثل owner/flutter-easy-shope (مستودع تطبيق Flutter)
+#   MOBILE_APP_REPOSITORY — مستودع Flutter (أو نفس easy.shope لو التطبيق تحت apps/…)
 #   MOBILE_REPO_PAT — PAT بصلاحية قراءة لمستودع التطبيق
+#   MOBILE_FLUTTER_SUBDIR (اختياري) — إن كان Flutter داخل فرعي بعد الـ clone، مثل apps/easy_shope_mobile
+#     اتركه فارغًا لو pubspec.yaml في جذر المستودع المستنسخ.
 name: Build tenant APK
 
 on:
@@ -100,12 +102,21 @@ jobs:
         env:
           TENANT_SLUG: ${{ inputs.tenant_slug }}
           STOREFRONT_THEME: ${{ inputs.storefront_theme }}
+          MOBILE_FLUTTER_SUBDIR: ${{ secrets.MOBILE_FLUTTER_SUBDIR }}
         run: |
           set -euo pipefail
+          if [ -n "${MOBILE_FLUTTER_SUBDIR}" ]; then
+            cd "${MOBILE_FLUTTER_SUBDIR}"
+          fi
           flutter pub get
           flutter build apk --release \
             --dart-define=TENANT_SLUG="${TENANT_SLUG}" \
             --dart-define=STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}"
+          if [ -n "${MOBILE_FLUTTER_SUBDIR}" ]; then
+            echo "apk_rel=mobile/${MOBILE_FLUTTER_SUBDIR}/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "apk_rel=mobile/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Publish APK to GitHub Release
         if: success()
@@ -113,7 +124,7 @@ jobs:
         with:
           tag_name: tenant-apk-${{ inputs.build_id }}
           name: Tenant ${{ inputs.tenant_slug }} APK
-          files: mobile/build/app/outputs/flutter-apk/app-release.apk
+          files: ${{ steps.flutterbuild.outputs.apk_rel }}
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
