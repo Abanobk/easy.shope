@@ -2,9 +2,18 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026051006" />
+  <script>
+    (function () {
+      try {
+        if (new URLSearchParams(location.search).get("app") === "1") {
+          document.documentElement.classList.add("pre-mobile-store");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="/styles.css?v=2026051012" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -930,7 +939,7 @@
                 </div>
                 <aside class="cart-panel" id="storefront-cart-panel">
               <div class="panel-heading">
-                <span class="eyebrow">Cart</span>
+                <span class="eyebrow">سلة التسوق</span>
                 <h2>السلة</h2>
               </div>
               <div id="product-detail" class="product-detail">اختر منتجًا لعرض التفاصيل.</div>
@@ -938,6 +947,13 @@
               <div class="status-line"><strong>الإجمالي</strong><span id="cart-total">0.00 EGP</span></div>
               <details class="customer-account">
                 <summary>حساب العميل</summary>
+                <p class="customer-auth-lead">سجّل دخولك أو أنشئ حسابًا لمتابعة الطلبات من هذا المتجر.</p>
+                <form id="customer-login-form" class="form-stack">
+                  <label>البريد<input name="email" type="email" autocomplete="username" required></label>
+                  <label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label>
+                  <button type="submit">دخول</button>
+                </form>
+                <p class="customer-auth-divider">أو إنشاء حساب جديد</p>
                 <form id="customer-register-form" class="form-stack">
                   <label>الاسم<input name="name"></label>
                   <label>البريد<input name="email" type="email"></label>
@@ -951,9 +967,9 @@
               <form id="order-form" class="form-stack">
                 <label>اسم العميل<input name="customerName" required></label>
                 <label>موبايل العميل<input name="customerPhone" required></label>
-                <label>Email<input name="customerEmail" type="email"></label>
+                <label>البريد الإلكتروني<input name="customerEmail" type="email"></label>
                 <label>عنوان الشحن<textarea name="shippingAddress"></textarea></label>
-                <button>Checkout وإنشاء الطلب</button>
+                <button>إتمام الطلب والدفع</button>
               </form>
               <div id="checkout-result" class="hint-box">نتيجة الطلب ستظهر هنا.</div>
                 </aside>

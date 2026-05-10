@@ -3690,6 +3690,20 @@ tr:last-child td {
   color: #bae6fd;
 }
 
+.customer-auth-lead {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.customer-auth-divider {
+  margin: 14px 0 10px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
 .product-picker {
   margin-top: 16px;
   display: grid;
@@ -4636,4 +4650,84 @@ tr:last-child td {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* ——— وضع تطبيق المتجر (WebView / ?app=1) ——— */
+html.pre-mobile-store .app-shell > .sidebar,
+body.mobile-store-client .app-shell > .sidebar {
+  display: none !important;
+}
+
+html.pre-mobile-store .app-shell,
+body.mobile-store-client .app-shell {
+  grid-template-columns: 1fr;
+  min-height: 100dvh;
+}
+
+body.mobile-store-client .main {
+  padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0));
+  max-width: 100%;
+}
+
+body.mobile-store-client .main > .topbar,
+body.mobile-store-client #message {
+  display: none !important;
+}
+
+body.mobile-store-client #view-storefront .storefront-hero-eyebrow {
+  display: none;
+}
+
+body.mobile-store-client #view-storefront #storefront-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+body.mobile-store-client #view-storefront #storefront-form #tenant-slug.mobile-store-slug-hidden,
+body.mobile-store-client #view-storefront #storefront-form input#tenant-slug.mobile-store-slug-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  border: 0 !important;
+}
+
+body.mobile-store-client .storefront-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+body.mobile-store-client .storefront-main-col {
+  order: 1;
+}
+
+body.mobile-store-client .cart-panel {
+  order: 2;
+}
+
+body.mobile-store-client .storefront-layout-split {
+  flex-direction: column;
+}
+
+body.mobile-store-client .storefront-chrome-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.mobile-store-client .category-pills {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
 }

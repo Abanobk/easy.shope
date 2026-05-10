@@ -8,11 +8,12 @@ const String _kStorefrontBase = String.fromEnvironment(
   defaultValue: 'https://shope.easytecheg.net',
 );
 
+/// `app=1` يفعّل وضع «تطبيق المتجر» في الويب: إخفاء لوحة المنصة وتخطيط موبايل.
 String _storefrontLaunchUrl() {
   final trimmed = _kStorefrontBase.trim().replaceAll(RegExp(r'/+$'), '');
   if (_kTenantSlug.trim().isEmpty) return trimmed;
-  final q = Uri.encodeQueryComponent(_kTenantSlug.trim());
-  return '$trimmed/?store=$q';
+  final slug = Uri.encodeQueryComponent(_kTenantSlug.trim());
+  return '$trimmed/?store=$slug&app=1';
 }
 
 void main() {
@@ -78,17 +79,28 @@ class _StoreWebShellState extends State<StoreWebShell> {
       );
     }
 
+    final topInset = MediaQuery.of(context).padding.top;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('المتجر'),
-        bottom: _progress < 100 && _progress > 0
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(3),
-                child: LinearProgressIndicator(value: _progress / 100, minHeight: 3),
-              )
-            : null,
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_progress > 0 && _progress < 100)
+            Positioned(
+              top: topInset,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(
+                value: _progress / 100,
+                minHeight: 2,
+                backgroundColor: Colors.black26,
+                color: Colors.tealAccent,
+              ),
+            ),
+        ],
       ),
-      body: WebViewWidget(controller: _controller),
     );
   }
 }

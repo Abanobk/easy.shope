@@ -3,6 +3,8 @@ const state = {
   tenantSlug: localStorage.getItem("easyShopeTenantSlug") || "",
   role: localStorage.getItem("easyShopeRole") || "",
   customerToken: localStorage.getItem("easyShopeCustomerToken") || "",
+  /** uuid tenant لصفحة المتجر الحالية (للتحقق من دخول العميل) */
+  storeTenantId: "",
   cart: [],
   storefrontCategory: "",
   merchantCategories: [],
@@ -1413,6 +1415,21 @@ function bindMerchantActions(scope = "all") {
   });
 }
 
+function applyMobileStoreClientShell() {
+  try {
+    if (new URLSearchParams(window.location.search).get("app") !== "1") return;
+    if (document.body.classList.contains("mobile-store-client")) return;
+    document.body.classList.add("mobile-store-client");
+    document.documentElement.classList.add("pre-mobile-store");
+    const slugField = $("tenant-slug");
+    if (slugField) slugField.classList.add("mobile-store-slug-hidden");
+    const formBtn = document.querySelector("#storefront-form button[type='submit']");
+    if (formBtn) formBtn.textContent = "بحث";
+  } catch {
+    /* ignore */
+  }
+}
+
 async function applyStoreDeepLink() {
   let slug = "";
   const params = new URLSearchParams(window.location.search);
@@ -1421,6 +1438,7 @@ async function applyStoreDeepLink() {
     slug = window.location.hash.slice("#store/".length).split(/[?&#]/)[0].trim();
   }
   if (!slug) return;
+  applyMobileStoreClientShell();
   const input = $("tenant-slug");
   if (input) input.value = slug;
   state.tenantSlug = slug;
@@ -1462,6 +1480,7 @@ async function loadStorefront(event) {
   state.tenantSlug = slug;
   localStorage.setItem("easyShopeTenantSlug", slug);
   const store = await api(`/api/store/${slug}`);
+  state.storeTenantId = store.store.id || "";
   const theme = store.store.storefront_theme || "ocean";
   const layout = normalizeStorefrontLayout(theme);
   document.body.dataset.theme = theme;
@@ -1470,11 +1489,21 @@ async function loadStorefront(event) {
   renderStorefrontChrome(layout, store.store, store.categories);
   const data = await api(`/api/store/${slug}/products${queryString({ q: $("storefront-query").value.trim(), category: state.storefrontCategory })}`);
   $("storefront-title").textContent = store.store.name_ar || store.store.name_en;
-  $("storefront-subtitle").textContent = `${store.store.name_en} - ${store.store.country} - ${store.store.status}`;
+  const mobileClient = document.body.classList.contains("mobile-store-client");
+  if (mobileClient) {
+    const bits = [store.store.country, store.store.status === "trial" ? "تجريبي" : ""].filter(Boolean);
+    $("storefront-subtitle").textContent = bits.length ? bits.join(" · ") : "واجهة تسوق";
+  } else {
+    $("storefront-subtitle").textContent = `${store.store.name_en} - ${store.store.country} - ${store.store.status}`;
+  }
   renderStorefrontStories(store.categories, layout);
   renderStorefrontSpotlight(store.store, data.products, layout);
   $("storefront-products").innerHTML =
     data.products.map((item) => storefrontProductHtml(item, layout)).join("") || "<p>لا توجد منتجات منشورة في هذا المتجر.</p>";
+  if (mobileClient) {
+    const acc = document.querySelector("#storefront-cart-panel .customer-account");
+    if (acc && !state.customerToken) acc.setAttribute("open", "");
+  }
 }
 
 async function placeOrder(event) {
@@ -1508,6 +1537,47 @@ async function registerCustomer(event) {
     await loadCustomerOrders();
   } catch (error) {
     showMessage(error.message, true);
+  }
+}
+
+async function loginCustomer(event) {
+  event.preventDefault();
+  const slug = $("tenant-slug").value.trim();
+  if (!slug) return showMessage("حمّل المتجر أولًا.", true);
+  if (!state.storeTenantId) return showMessage("انتظر تحميل بيانات المتجر ثم أعد المحاولة.", true);
+  const form = event.currentTarget;
+  const button = form.querySelector("button[type='submit']");
+  const raw = Object.fromEntries(new FormData(form).entries());
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = "جارٍ الدخول...";
+    }
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: String(raw.email || "").trim().toLowerCase(), password: raw.password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || "تعذر تسجيل الدخول");
+    if (data.user.role !== "customer") {
+      throw new Error("هذا الحساب ليس عميلًا. لتسجيل دخول التاجر استخدم الموقع من المتصفح.");
+    }
+    if (String(data.user.tenantId) !== String(state.storeTenantId)) {
+      throw new Error("هذا الحساب مرتبط بمتجر آخر.");
+    }
+    state.customerToken = data.token;
+    localStorage.setItem("easyShopeCustomerToken", state.customerToken);
+    showMessage(`مرحبًا ${data.user.name || ""}`);
+    form.reset();
+    await loadCustomerOrders();
+  } catch (error) {
+    showMessage(error.message || String(error), true);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "دخول";
+    }
   }
 }
 
@@ -1842,6 +1912,7 @@ async function bootstrap() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  applyMobileStoreClientShell();
   setOnboardingMode("register");
   setMerchantTab("overview");
   initThemeLibraryFilters();
@@ -1917,6 +1988,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("storefront-form").addEventListener("submit", loadStorefront);
   initStorefrontDelegation();
   $("order-form").addEventListener("submit", placeOrder);
+  $("customer-login-form")?.addEventListener("submit", loginCustomer);
   $("customer-register-form").addEventListener("submit", registerCustomer);
   $("customer-orders-button").addEventListener("click", loadCustomerOrders);
   $("staff-filter")?.addEventListener("input", loadStaff);
