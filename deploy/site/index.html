@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026051002" />
+  <link rel="stylesheet" href="/styles.css?v=2026051004" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -828,26 +828,32 @@
                 <div>
                   <div class="breadcrumb">لوحة المتجر <span>/</span> تطبيق أندرويد</div>
                   <h2>تطبيق أندرويد للمتجر</h2>
-                  <p class="page-subtitle">يطلب صاحب المتجر بناء APK مخصّص يمر عبر GitHub Actions ويُسجَّل هنا مع رابط التنزيل عند النجاح.</p>
+                  <p class="page-subtitle">مسار البناء يعمل تلقائيًا لكل متجر: يكفي الضغط على «طلب بناء APK جديد» بعد أن يُكمِل <strong>مسؤول المنصة</strong> الإعداد التقني <strong>مرة واحدة</strong> على الخادم وGitHub. لا يحتاج كل تاجر لتوكنات أو حساب GitHub.</p>
                 </div>
               </div>
               <div id="android-integration-banner" class="android-integration-banner" hidden aria-live="polite"></div>
               <div id="android-theme-bridge" class="hint-box theme-apk-bridge" aria-live="polite"></div>
-              <div class="hint-box android-setup-reference">
-                <p>
-                  <strong>1) خادم النشر</strong> — ملف <code>.env</code> بجانب <code>docker-compose</code> ثم إعادة تشغيل حاوية الـ API:<br />
-                  <code>GITHUB_ACTIONS_DISPATCH_TOKEN</code> (PAT بصلاحية تشغيل workflow على المستودع)،
-                  <code>GITHUB_REPOSITORY</code> (مثل <code>Abanobk/easy.shope</code>)،
-                  <code>ANDROID_BUILD_CALLBACK_SECRET</code> (سلسلة عشوائية طويلة).
-                </p>
-                <p>
-                  <strong>2) مستودع easy.shope على GitHub</strong> — Settings → Secrets and variables → Actions:<br />
-                  <code>EASY_SHOPE_API_URL</code> (رابط الـ API العام)،
-                  <code>ANDROID_BUILD_CALLBACK_SECRET</code> (<strong>نفس القيمة</strong> كما في <code>.env</code> على الخادم)،
-                  <code>MOBILE_APP_REPOSITORY</code>، <code>MOBILE_REPO_PAT</code> (لقراءة مستودع Flutter white-label).
-                </p>
-                <p class="muted">عند البناء يُمرَّر إلى تطبيق Flutter: <code>TENANT_SLUG</code> و<code>STOREFRONT_THEME</code> (نفس القالب المحفوظ في «إعدادات المتجر»).</p>
+              <div class="hint-box android-merchant-hint">
+                <p><strong>لصاحب المتجر:</strong> دورك طلب البناء فقط. معرّف متجرك والقالب يُمرَّران تلقائيًا إلى Flutter. إذا ظهر تنبيه بأن الضبط ناقص، أبلغ مسؤول المنصة — هذه ليست خطوة تتكرر لكل متجر.</p>
               </div>
+              <details class="android-admin-setup-details">
+                <summary>إعداد تقني لمرة واحدة — لمسؤول الخادم / GitHub فقط (اضغط للتوسيع)</summary>
+                <div class="hint-box android-setup-reference">
+                  <p>
+                    <strong>1) خادم النشر</strong> — ملف <code>.env</code> بجانب <code>docker-compose</code> ثم إعادة تشغيل حاوية الـ API:<br />
+                    <code>GITHUB_ACTIONS_DISPATCH_TOKEN</code> (PAT بصلاحية تشغيل workflow على المستودع)،
+                    <code>GITHUB_REPOSITORY</code> (مثل <code>Abanobk/easy.shope</code>)،
+                    <code>ANDROID_BUILD_CALLBACK_SECRET</code> (سلسلة عشوائية طويلة).
+                  </p>
+                  <p>
+                    <strong>2) مستودع easy.shope على GitHub</strong> — Settings → Secrets and variables → Actions:<br />
+                    <code>EASY_SHOPE_API_URL</code> (رابط الـ API العام)،
+                    <code>ANDROID_BUILD_CALLBACK_SECRET</code> (<strong>نفس القيمة</strong> كما في <code>.env</code> على الخادم)،
+                    <code>MOBILE_APP_REPOSITORY</code>، <code>MOBILE_REPO_PAT</code> (لقراءة مستودع Flutter white-label).
+                  </p>
+                  <p class="muted">عند البناء يُمرَّر إلى تطبيق Flutter: <code>TENANT_SLUG</code> و<code>STOREFRONT_THEME</code> (نفس القالب المحفوظ في «إعدادات المتجر»).</p>
+                </div>
+              </details>
               <div class="section-tools" style="margin-top: 1rem">
                 <button type="button" class="secondary" id="merchant-android-build-request" hidden>طلب بناء APK جديد</button>
               </div>
@@ -1019,6 +1025,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026051002"></script>
+  <script src="/app.js?v=2026051004"></script>
 </body>
 </html>

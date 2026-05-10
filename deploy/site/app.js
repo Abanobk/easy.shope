@@ -1049,8 +1049,10 @@ function renderAndroidIntegrationBanner() {
     el.innerHTML = `<strong>ضبط خادم الـ API غير مكتمل</strong><p class="muted" style="margin:8px 0 0">ينقص في ملف <code>.env</code> على خادم النشر: ${parts.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API. للقائمة الكاملة (أسرار GitHub ومستودع Flutter) راجع الصندوق التالي.</p>`;
   }
   if (btn && state.role === "merchant_owner") {
-    btn.disabled = !ready;
-    btn.title = ready ? "" : "أكمل ضبط متغيرات الخادم أولًا (انظر الصندوق أعلاه).";
+    btn.classList.toggle("android-build-button--blocked", !ready);
+    btn.title = ready
+      ? "تشغيل مسار بناء APK على GitHub"
+      : "ضبط الخادم ناقص — اضغط لعرض ما المطلوب في ملف .env (لن يُرسل طلبًا حتى يكتمل الضبط).";
   }
 }
 
@@ -1094,6 +1096,21 @@ async function loadAndroidBuildsOnly() {
 
 async function requestMerchantAndroidBuild() {
   const btn = $("merchant-android-build-request");
+  const integ = state.androidIntegration;
+  if (integ && (!integ.dispatchReady || !integ.callbackReady)) {
+    const missing = [];
+    if (!integ.dispatchReady) {
+      missing.push("GITHUB_ACTIONS_DISPATCH_TOKEN و GITHUB_REPOSITORY في .env على خادم النشر");
+    }
+    if (!integ.callbackReady) {
+      missing.push("ANDROID_BUILD_CALLBACK_SECRET في .env على خادم النشر");
+    }
+    showMessage(
+      `لا يُرسل طلب البناء حتى يكتمل ضبط الخادم: ${missing.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API ثم حدّث الصفحة.`,
+      "warn",
+    );
+    return;
+  }
   try {
     if (btn) btn.disabled = true;
     await api("/api/merchant/android-build", { method: "POST", body: JSON.stringify({}) });
@@ -1101,7 +1118,7 @@ async function requestMerchantAndroidBuild() {
     await loadAndroidBuildsOnly();
   } catch (error) {
     if (error.statusCode === 503 && error.code === "android_build_not_configured") {
-      showMessage("ضبط الخادم لا يزال ناقصًا — راجع المربع التحذيري أعلى الصفحة أو تواصل مع مسؤول المنصة.", "warn");
+      showMessage(error.message || "ضبط الخادم ناقص.", "warn");
       await loadAndroidBuildsOnly();
     } else {
       showMessage(error.message, true);

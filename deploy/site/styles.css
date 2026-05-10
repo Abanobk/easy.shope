@@ -3279,6 +3279,42 @@ body[data-auth-mode="login"] .register-panel {
   background: rgba(30, 41, 59, .66);
 }
 
+.android-merchant-hint {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(14, 116, 144, 0.18);
+}
+
+.android-merchant-hint p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.android-admin-setup-details {
+  margin-top: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.35);
+  padding: 0 14px 12px;
+}
+
+.android-admin-setup-details > summary {
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 14px 4px 12px;
+  list-style-position: outside;
+  color: #e2e8f0;
+}
+
+.android-admin-setup-details[open] > summary {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  margin-bottom: 12px;
+}
+
+.android-admin-setup-details .android-setup-reference {
+  margin-top: 0;
+}
+
 .android-integration-banner {
   margin-top: 14px;
 }
@@ -3291,6 +3327,12 @@ body[data-auth-mode="login"] .register-panel {
 .hint-box.android-integration--blocked {
   border-color: rgba(251, 191, 36, 0.4);
   background: rgba(69, 47, 6, 0.22);
+}
+
+#merchant-android-build-request.android-build-button--blocked {
+  cursor: help;
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.45);
+  opacity: 0.92;
 }
 
 .android-setup-reference p {
