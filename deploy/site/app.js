@@ -1413,6 +1413,25 @@ function bindMerchantActions(scope = "all") {
   });
 }
 
+async function applyStoreDeepLink() {
+  let slug = "";
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("store")) slug = (params.get("store") || "").trim();
+  if (!slug && window.location.hash.startsWith("#store/")) {
+    slug = window.location.hash.slice("#store/".length).split(/[?&#]/)[0].trim();
+  }
+  if (!slug) return;
+  const input = $("tenant-slug");
+  if (input) input.value = slug;
+  state.tenantSlug = slug;
+  try {
+    setView("storefront");
+    await loadStorefront();
+  } catch (error) {
+    showMessage(error.message || String(error), true);
+  }
+}
+
 async function loadStorefront(event) {
   event?.preventDefault();
   const slug = $("tenant-slug").value.trim();
@@ -1939,5 +1958,8 @@ document.addEventListener("DOMContentLoaded", () => {
     clearAuthState();
     location.reload();
   });
-  bootstrap().then(handlePaymentReturn);
+  bootstrap()
+    .then(handlePaymentReturn)
+    .then(() => applyStoreDeepLink())
+    .catch(() => {});
 });

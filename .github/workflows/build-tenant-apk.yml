@@ -102,6 +102,7 @@ jobs:
           TENANT_SLUG: ${{ inputs.tenant_slug }}
           STOREFRONT_THEME: ${{ inputs.storefront_theme }}
           MOBILE_FLUTTER_SUBDIR: ${{ secrets.MOBILE_FLUTTER_SUBDIR }}
+          STORE_BASE: ${{ secrets.EASY_SHOPE_API_URL }}
         run: |
           set -euo pipefail
           REL=""
@@ -113,10 +114,13 @@ jobs:
           if [ -n "$REL" ]; then
             cd "$REL"
           fi
+          API_BASE="${STORE_BASE%/}"
+          test -n "${API_BASE:-}" || { echo "Missing EASY_SHOPE_API_URL for STOREFRONT_BASE_URL"; exit 1; }
           flutter pub get
           flutter build apk --release \
             --dart-define=TENANT_SLUG="${TENANT_SLUG}" \
-            --dart-define=STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}"
+            --dart-define=STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}" \
+            --dart-define=STOREFRONT_BASE_URL="${API_BASE}"
           if [ -n "$REL" ]; then
             echo "apk_rel=mobile/${REL}/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
           else
