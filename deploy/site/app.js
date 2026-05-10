@@ -453,6 +453,39 @@ function showMessage(message, kind = "ok") {
   const isError = kind === true || kind === "error";
   const isWarn = kind === "warn";
   el.className = isError ? "message error" : isWarn ? "message warn" : "message ok";
+  requestAnimationFrame(() => {
+    try {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch {
+      el.scrollIntoView();
+    }
+  });
+}
+
+function setAndroidBuildInlineFeedback(text, kind = "ok") {
+  const el = $("android-build-inline-feedback");
+  if (!el) return;
+  if (!text) {
+    el.hidden = true;
+    el.textContent = "";
+    el.className = "android-build-inline-feedback";
+    return;
+  }
+  el.hidden = false;
+  el.textContent = text;
+  el.className =
+    kind === "warn"
+      ? "android-build-inline-feedback android-build-inline-feedback--warn"
+      : kind === "error"
+        ? "android-build-inline-feedback android-build-inline-feedback--error"
+        : "android-build-inline-feedback android-build-inline-feedback--ok";
+  requestAnimationFrame(() => {
+    try {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch {
+      el.scrollIntoView();
+    }
+  });
 }
 
 function currentScope() {
@@ -1049,6 +1082,7 @@ function renderAndroidIntegrationBanner() {
     el.innerHTML = `<strong>ضبط خادم الـ API غير مكتمل</strong><p class="muted" style="margin:8px 0 0">ينقص في ملف <code>.env</code> على خادم النشر: ${parts.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API. للقائمة الكاملة (أسرار GitHub ومستودع Flutter) راجع الصندوق التالي.</p>`;
   }
   if (btn && state.role === "merchant_owner") {
+    btn.disabled = false;
     btn.classList.toggle("android-build-button--blocked", !ready);
     btn.title = ready
       ? "تشغيل مسار بناء APK على GitHub"
@@ -1097,7 +1131,14 @@ async function loadAndroidBuildsOnly() {
 async function requestMerchantAndroidBuild() {
   const btn = $("merchant-android-build-request");
   const integ = state.androidIntegration;
-  if (integ && (!integ.dispatchReady || !integ.callbackReady)) {
+  if (!integ) {
+    const msg =
+      "تعذّر التحقق من ضبط الخادم (لا بيانات ربط). حدّث الصفحة. إذا استمرّ الأمر، مسؤول المنصة يضبط .env على السيرفر ثم يعيد تشغيل الـ API.";
+    showMessage(msg, "warn");
+    setAndroidBuildInlineFeedback(msg, "warn");
+    return;
+  }
+  if (!integ.dispatchReady || !integ.callbackReady) {
     const missing = [];
     if (!integ.dispatchReady) {
       missing.push("GITHUB_ACTIONS_DISPATCH_TOKEN و GITHUB_REPOSITORY في .env على خادم النشر");
@@ -1105,23 +1146,28 @@ async function requestMerchantAndroidBuild() {
     if (!integ.callbackReady) {
       missing.push("ANDROID_BUILD_CALLBACK_SECRET في .env على خادم النشر");
     }
-    showMessage(
-      `لا يُرسل طلب البناء حتى يكتمل ضبط الخادم: ${missing.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API ثم حدّث الصفحة.`,
-      "warn",
-    );
+    const msg = `لا يُرسل طلب البناء حتى يكتمل ضبط الخادم: ${missing.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API ثم حدّث الصفحة.`;
+    showMessage(msg, "warn");
+    setAndroidBuildInlineFeedback(msg, "warn");
     return;
   }
+  setAndroidBuildInlineFeedback("");
   try {
     if (btn) btn.disabled = true;
     await api("/api/merchant/android-build", { method: "POST", body: JSON.stringify({}) });
     showMessage("تم طلب بناء التطبيق. راقب القائمة أدناه حتى يكتمل المسار.");
+    setAndroidBuildInlineFeedback("تم إرسال الطلب — راقب القائمة أدناه.", "ok");
     await loadAndroidBuildsOnly();
   } catch (error) {
     if (error.statusCode === 503 && error.code === "android_build_not_configured") {
-      showMessage(error.message || "ضبط الخادم ناقص.", "warn");
+      const msg = error.message || "ضبط الخادم ناقص.";
+      showMessage(msg, "warn");
+      setAndroidBuildInlineFeedback(msg, "warn");
       await loadAndroidBuildsOnly();
     } else {
-      showMessage(error.message, true);
+      const msg = error.message || "فشل الطلب";
+      showMessage(msg, true);
+      setAndroidBuildInlineFeedback(msg, "error");
     }
   } finally {
     if (btn) btn.disabled = false;
