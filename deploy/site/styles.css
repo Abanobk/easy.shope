@@ -536,7 +536,10 @@ body[data-auth-mode="login"] .register-panel {
 .theme-filter-chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
   gap: 8px;
+  row-gap: 10px;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid rgba(148, 163, 184, .12);
@@ -554,7 +557,17 @@ body[data-auth-mode="login"] .register-panel {
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
+  text-align: start;
+  white-space: nowrap;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.theme-chip-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  line-height: 1.25;
+  min-width: 0;
 }
 
 .theme-chip-icon {
@@ -575,6 +588,12 @@ body[data-auth-mode="login"] .register-panel {
     radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 55%),
     color-mix(in srgb, var(--accent) 16%, rgba(15, 23, 42, .72));
   color: #f0f9ff;
+}
+
+[dir="rtl"] .theme-chip.active {
+  background:
+    radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 55%),
+    color-mix(in srgb, var(--accent) 16%, rgba(15, 23, 42, .72));
 }
 
 .theme-chip--accent {
@@ -600,14 +619,30 @@ body[data-auth-mode="login"] .register-panel {
 .theme-chip-count {
   opacity: .75;
   font-weight: 800;
-  margin-inline-start: 4px;
+}
+
+.theme-chip-text .theme-chip-count {
+  margin-inline-start: 0;
 }
 
 .theme-library-grid {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 28px;
+  margin-top: 20px;
   overflow: visible;
+}
+
+.theme-library-panel.theme-library-span-full {
+  background:
+    radial-gradient(ellipse 120% 80% at 100% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+    rgba(15, 23, 42, .42);
+  border-color: rgba(148, 163, 184, .18);
+}
+
+[dir="rtl"] .theme-library-panel.theme-library-span-full {
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%),
+    rgba(15, 23, 42, .42);
 }
 
 .theme-tile {
@@ -633,6 +668,10 @@ body[data-auth-mode="login"] .register-panel {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.theme-card.theme-tile-pro {
+  padding: 0;
+}
+
 .theme-tile-pro:hover {
   transform: translateY(-6px) scale(1.02);
   border-color: color-mix(in srgb, var(--accent) 40%, rgba(148, 163, 184, .25));
@@ -647,22 +686,207 @@ body[data-auth-mode="login"] .register-panel {
   transform: translateY(-2px) scale(1.01);
 }
 
-.theme-tile-pro.theme-tile-filtered-out {
+.theme-tile-pro.theme-tile-filtered-out,
+.theme-card.theme-tile-filtered-out {
   display: none !important;
+}
+
+.merchant-settings-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .merchant-settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.theme-library-span-full {
+  grid-column: 1 / -1;
+}
+
+.theme-apk-bridge {
+  margin-bottom: 14px;
+}
+
+.theme-apk-bridge .theme-bridge-warn {
+  color: #fbbf24;
+}
+
+.theme-card {
+  position: relative;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, .14);
+  background: rgba(15, 23, 42, .48);
+  border-radius: 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: visible;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.theme-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, rgba(148, 163, 184, .25));
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+}
+
+.theme-card.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 20px 50px rgba(0, 0, 0, 0.22);
+}
+
+.theme-card.is-selected::after {
+  content: "✓ القالب المختار";
+  position: absolute;
+  top: 12px;
+  inset-inline-start: 12px;
+  z-index: 5;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 88%, #0f172a);
+  color: #f8fafc;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.theme-tile-select {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 18px 18px 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  border-radius: 20px 20px 0 0;
+}
+
+.theme-tile-select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.theme-card-footer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0 14px 14px;
+  gap: 8px;
+  border-top: 1px solid rgba(148, 163, 184, .1);
+}
+
+.theme-card-preview {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.theme-studio-actions {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-studio-actions .theme-selected-wrap {
+  order: 1;
+}
+
+.theme-studio-actions > .primary {
+  order: 2;
+  flex-shrink: 0;
+}
+
+[dir="rtl"] .theme-studio-actions .theme-selected-wrap {
+  order: 2;
+}
+
+[dir="rtl"] .theme-studio-actions > .primary {
+  order: 1;
+}
+
+.theme-selected-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.theme-unsaved-hint {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.theme-preview-dialog {
+  border: none;
+  border-radius: 22px;
+  padding: 0;
+  max-width: min(94vw, 440px);
+  width: 100%;
+  background: rgba(15, 23, 42, 0.97);
+  color: #e2e8f0;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
+}
+
+.theme-preview-dialog::backdrop {
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.theme-preview-dialog-inner {
+  padding: 0;
+}
+
+.theme-preview-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, .15);
+  text-align: start;
+}
+
+.theme-preview-mount {
+  padding: 20px 18px 22px;
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.theme-vitrine--dialog-clone {
+  --vitrine-frame-h: 420px;
+  transform: scale(1.05);
+  transform-origin: top center;
 }
 
 .theme-badge {
   position: absolute;
-  top: 28px;
-  inset-inline-start: 28px;
+  top: 22px;
+  inset-inline-end: 22px;
+  inset-inline-start: auto;
   z-index: 4;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 2px;
   padding: 5px 10px;
   border-radius: 12px;
   line-height: 1.15;
+  text-align: center;
   pointer-events: none;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
@@ -673,6 +897,8 @@ body[data-auth-mode="login"] .register-panel {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: .95;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .theme-badge-ar {
@@ -724,6 +950,10 @@ body[data-auth-mode="login"] .register-panel {
   line-height: 1.3;
 }
 
+[dir="rtl"] .theme-palette-tag {
+  letter-spacing: 0.02em;
+}
+
 .theme-palette-tag--bold {
   border-color: rgba(249, 115, 22, .4);
   background: linear-gradient(135deg, rgba(249, 115, 22, .18), rgba(236, 72, 153, .12));
@@ -764,12 +994,20 @@ body[data-auth-mode="login"] .register-panel {
   line-height: 1.45;
 }
 
+.theme-caption[lang="en"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: start;
+}
+
 .theme-code {
   display: inline-block;
   margin-inline-start: 6px;
   font-size: 0.7rem;
   font-weight: 600;
   opacity: .55;
+  direction: ltr;
+  unicode-bidi: isolate;
   letter-spacing: 0.04em;
 }
 
@@ -2676,13 +2914,24 @@ body[data-auth-mode="login"] .register-panel {
     gap: 24px;
   }
 
-  .theme-tile-pro {
+  .theme-tile-pro:not(.theme-card) {
     padding: 16px;
   }
 
   .theme-badge {
-    top: 24px;
-    inset-inline-start: 24px;
+    top: 18px;
+    inset-inline-end: 18px;
+    inset-inline-start: auto;
+  }
+
+  .theme-chip {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .theme-chip-text {
+    justify-content: center;
+    text-align: center;
   }
 
   .theme-vitrine {
@@ -3050,6 +3299,12 @@ body[data-auth-mode="login"] .register-panel {
 
 .android-setup-reference p:last-child {
   margin-bottom: 0;
+}
+
+.hint-box code,
+.android-setup-reference code {
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .metric strong {

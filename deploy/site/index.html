@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Easy Shope Platform</title>
-  <link rel="stylesheet" href="/styles.css?v=2026050403" />
+  <link rel="stylesheet" href="/styles.css?v=2026051002" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -433,74 +433,59 @@
                 <div>
                   <div class="breadcrumb">لوحة المتجر <span>/</span> الإعدادات</div>
                   <h2>إعدادات المتجر</h2>
-                  <p class="page-subtitle">هوية المتجر، بيانات التواصل، وإعدادات الواجهة.</p>
+                  <p class="page-subtitle">هوية المتجر، بيانات التواصل، وقالب واجهة المتجر — نفس القالب يُستخدم للويب وتطبيق الأندرويد بعد حفظه وطلب بناء الـ APK.</p>
                 </div>
               </div>
-              <div class="grid two">
-                <article class="panel">
-                  <div class="panel-heading">
-                    <span class="eyebrow">Brand</span>
-                    <h3>بيانات وهوية المتجر</h3>
-                  </div>
-                  <form id="store-settings-form" class="form-grid">
-                    <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
-                    <label>Store name English<input id="store-name-en" name="nameEn"></label>
-                    <label class="span-2">البلد<input id="store-country" name="country"></label>
-                    <label class="span-2">شعار المتجر (اختياري)<input id="store-logo-file" type="file" accept="image/*"></label>
-                    <label class="span-2">لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
-                    <button class="span-2">حفظ بيانات المتجر</button>
-                  </form>
-                </article>
-
-                <div class="stack">
-                  <article class="panel theme-library-panel">
+              <div class="merchant-settings-layout">
+                  <article class="panel theme-library-panel theme-library-span-full">
                     <div class="theme-library-head">
                       <div class="panel-heading">
-                        <span class="eyebrow">Storefront</span>
-                        <h3>مكتبة تخطيطات الصفحة الرئيسية</h3>
+                        <span class="eyebrow">Theme studio</span>
+                        <h3>استوديو اختيار القالب</h3>
                       </div>
-                      <p class="muted theme-library-lead">معاينة حية لكل قالب: صور وعناوين وأسعار تجريبية من الإنترنت لمساعدة عميلك على تخيّل متجره — ثم تُستبدل بمنتجاتك الحقيقية بعد النشر. ألوانك من إعدادات المتجر تُكمّل الهوية على الواجهة العامة.</p>
+                      <p class="muted theme-library-lead">اختر تخطيطًا واحدًا يطابق طبيعة متجرك: المعاينة التفاعلية تمثّل شكل التطبيق والواجهة العامة. اضغط البطاقة للاختيار، ثم «حفظ القالب». استخدم «معاينة» لعرض أكبر دون تغيير الاختيار. القالب المحفوظ يُمرَّر تلقائيًا إلى بناء APK مع معرف متجرك.</p>
                       <div class="theme-filter-chips" id="theme-filter-chips" role="tablist" aria-label="تصفية القوالب">
                         <button type="button" class="theme-chip active" data-theme-filter="all">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 8h4V4H4v4zm6-4h4v4h-4V4zm6 0h4v4h-4V4zM4 14h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/></svg>
-                          الكل <span class="theme-chip-count">6</span>
+                          <span class="theme-chip-text">الكل<span class="theme-chip-count">6</span></span>
                         </button>
                         <button type="button" class="theme-chip theme-chip--accent" data-theme-filter="bestseller">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.1l1-5.8L3.5 9.2l5.9-.9L12 3z"/></svg>
-                          الأكثر طلباً
+                          <span class="theme-chip-text">الأكثر طلباً</span>
                         </button>
                         <button type="button" class="theme-chip theme-chip--new" data-theme-filter="new">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2l1.8 5.5h5.8l-4.7 3.4 1.8 5.5-4.7-3.4-4.7 3.4 1.8-5.5L4.4 7.5h5.8L12 2z"/></svg>
-                          جديد
+                          <span class="theme-chip-text">جديد</span>
                         </button>
                         <button type="button" class="theme-chip" data-theme-filter="fashion">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16 3l4 4-1.5 1.5L16 6 13.5 8.5 12 7l4-4zm-3 6l2 2-7 7H6v-4l7-7zm-8 9v4h4l10.5-10.5-2-2L5 18z"/></svg>
-                          موضة
+                          <span class="theme-chip-text">موضة</span>
                         </button>
                         <button type="button" class="theme-chip" data-theme-filter="beauty">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21c-4.4 0-8-3.6-8-8 0-3.7 2.5-6.8 6-7.7V3h4v2.3c3.5.9 6 4 6 7.7 0 4.4-3.6 8-8 8zm0-2c3.3 0 6-2.7 6-6 0-2.5-1.5-4.7-3.8-5.6L14 9h-4l-.2-1.6C7.5 8.3 6 10.5 6 13c0 3.3 2.7 6 6 6z"/></svg>
-                          تجميل
+                          <span class="theme-chip-text">تجميل</span>
                         </button>
                         <button type="button" class="theme-chip" data-theme-filter="food">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
-                          مطاعم
+                          <span class="theme-chip-text">مطاعم</span>
                         </button>
                         <button type="button" class="theme-chip" data-theme-filter="tech">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3H5v4h4V3zm6 0h-4v4h4V3zm4 0h-4v4h4V3zM9 9H5v4h4V9zm6 0h-4v4h4V9zm4 0h-4v4h4V9zM9 15H5v4h4v-4zm6 0h-4v4h4v-4zm4 0h-4v4h4v-4z"/></svg>
-                          تقني
+                          <span class="theme-chip-text">تقني</span>
                         </button>
                         <button type="button" class="theme-chip" data-theme-filter="home">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8h5z"/></svg>
-                          منزل
+                          <span class="theme-chip-text">منزل</span>
                         </button>
                         <button type="button" class="theme-chip" data-theme-filter="creative">
                           <svg class="theme-chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.6 2.3c-.9-.4-2 0-2.5 1l-7.1 12.4-2.9-.9-.9 2.9 4.2 1.3L19.7 6.8c.5-.9.1-2.1-.9-2.6l-.2-.1zM3 20h10v2H3v-2z"/></svg>
-                          إبداعي
+                          <span class="theme-chip-text">إبداعي</span>
                         </button>
                       </div>
                     </div>
                     <div class="theme-grid theme-grid-pro theme-library-grid" id="theme-grid">
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="ocean" data-preview-theme="ocean" data-theme-tags="all bestseller fashion grid">
+                      <div class="theme-card theme-tile-pro" data-theme-tags="all bestseller fashion grid" data-preview-theme="ocean">
+                        <button type="button" class="theme-tile-select" data-storefront-theme="ocean" data-preview-theme="ocean">
                         <span class="theme-badge theme-badge--bestseller"><span class="theme-badge-en">MOST REQUESTED</span><span class="theme-badge-ar">الأكثر طلباً</span></span>
                         <div class="theme-vitrine theme-vitrine--ocean theme-vitrine--live" data-palette="bold" aria-hidden="true">
                           <div class="vitrine-device">
@@ -549,8 +534,13 @@
                           <strong>أزياء كلاسيكية <span class="theme-code">Ocean</span></strong>
                           <small>تصميم شبكي أنيق مع تبويبات — مثالي لعرض مجموعات ملابس وإكسسوارات كبيرة لجمهور يبحث عن مظهر عصري وواضح.</small>
                         </div>
-                      </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="violet" data-preview-theme="violet" data-theme-tags="all new feed beauty">
+                        </button>
+                        <div class="theme-card-footer">
+                          <button type="button" class="theme-card-preview ghost" data-preview-for="ocean">معاينة أكبر</button>
+                        </div>
+                      </div>
+                      <div class="theme-card theme-tile-pro" data-theme-tags="all new feed beauty" data-preview-theme="violet">
+                        <button type="button" class="theme-tile-select" data-storefront-theme="violet" data-preview-theme="violet">
                         <span class="theme-badge theme-badge--new"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">جديد</span></span>
                         <div class="theme-vitrine theme-vitrine--violet theme-vitrine--live" data-palette="pastel" aria-hidden="true">
                           <div class="vitrine-device">
@@ -598,8 +588,13 @@
                           <strong>تجميل وفخامة <span class="theme-code">Violet</span></strong>
                           <small>قصص دائرية بصور حقيقية وخليط فيد يشبه إنستغرام — مثالي لعطور ومستحضرات العناية والعلامات الراقية التي تعتمد على الصورة.</small>
                         </div>
-                      </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="emerald" data-preview-theme="emerald" data-theme-tags="all bestseller list tech">
+                        </button>
+                        <div class="theme-card-footer">
+                          <button type="button" class="theme-card-preview ghost" data-preview-for="violet">معاينة أكبر</button>
+                        </div>
+                      </div>
+                      <div class="theme-card theme-tile-pro" data-theme-tags="all bestseller list tech" data-preview-theme="emerald">
+                        <button type="button" class="theme-tile-select" data-storefront-theme="emerald" data-preview-theme="emerald">
                         <span class="theme-badge theme-badge--gold"><span class="theme-badge-en">BEST SELLER</span><span class="theme-badge-ar">الأكثر مبيعاً</span></span>
                         <div class="theme-vitrine theme-vitrine--emerald theme-vitrine--live" data-palette="bold" aria-hidden="true">
                           <div class="vitrine-device">
@@ -638,8 +633,13 @@
                           <strong>إلكترونيات وتقنية <span class="theme-code">Emerald</span></strong>
                           <small>قائمة حية بمواصفات وأسعار — مثالي لمتاجر الأجهزة والملحقات حيث يهمّ العميل المقارنة السريعة والثقة في التفاصيل.</small>
                         </div>
-                      </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="amber" data-preview-theme="amber" data-theme-tags="all promo food">
+                        </button>
+                        <div class="theme-card-footer">
+                          <button type="button" class="theme-card-preview ghost" data-preview-for="emerald">معاينة أكبر</button>
+                        </div>
+                      </div>
+                      <div class="theme-card theme-tile-pro" data-theme-tags="all promo food" data-preview-theme="amber">
+                        <button type="button" class="theme-tile-select" data-storefront-theme="amber" data-preview-theme="amber">
                         <span class="theme-badge theme-badge--info"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">مطعم · قائمة</span></span>
                         <div class="theme-vitrine theme-vitrine--amber theme-vitrine--live" data-palette="warm" aria-hidden="true">
                           <div class="vitrine-device">
@@ -688,8 +688,13 @@
                           <strong>مطعم ومأكولات <span class="theme-code">Amber</span></strong>
                           <small>قائمة جانبية وصور أطباق حقيقية وأسعار واضحة — مثالي لمطاعم الوجبات السريعة والعروض اليومية وطلبات التوصيل.</small>
                         </div>
-                      </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="rose" data-preview-theme="rose" data-theme-tags="all new gallery home">
+                        </button>
+                        <div class="theme-card-footer">
+                          <button type="button" class="theme-card-preview ghost" data-preview-for="amber">معاينة أكبر</button>
+                        </div>
+                      </div>
+                      <div class="theme-card theme-tile-pro" data-theme-tags="all new gallery home" data-preview-theme="rose">
+                        <button type="button" class="theme-tile-select" data-storefront-theme="rose" data-preview-theme="rose">
                         <span class="theme-badge theme-badge--new"><span class="theme-badge-en">NEW</span><span class="theme-badge-ar">جديد</span></span>
                         <div class="theme-vitrine theme-vitrine--rose theme-vitrine--live" data-palette="minimal" aria-hidden="true">
                           <div class="vitrine-device">
@@ -726,8 +731,13 @@
                           <strong>منزل وديكور <span class="theme-code">Rose</span></strong>
                           <small>معرض صور هادئ وبطاقات منتجات واضحة — مثالي لأثاث منزلي وديكور وعلامات تفضّل الفراغ الأنيق والصور الكبيرة.</small>
                         </div>
-                      </button>
-                      <button type="button" class="theme-tile theme-tile-pro" data-storefront-theme="slate" data-preview-theme="slate" data-theme-tags="all clean creative">
+                        </button>
+                        <div class="theme-card-footer">
+                          <button type="button" class="theme-card-preview ghost" data-preview-for="rose">معاينة أكبر</button>
+                        </div>
+                      </div>
+                      <div class="theme-card theme-tile-pro" data-theme-tags="all clean creative" data-preview-theme="slate">
+                        <button type="button" class="theme-tile-select" data-storefront-theme="slate" data-preview-theme="slate">
                         <span class="theme-badge theme-badge--clean"><span class="theme-badge-en">ARTISTIC</span><span class="theme-badge-ar">فني</span></span>
                         <div class="theme-vitrine theme-vitrine--slate theme-vitrine--live" data-palette="pastel" aria-hidden="true">
                           <div class="vitrine-device">
@@ -762,12 +772,34 @@
                           <strong>إبداعي وفني <span class="theme-code">Slate</span></strong>
                           <small>قائمة بصور حقيقية وأسعار — مثالي لفنّانين وورش حِرف ومنتجات يدوية نادرة حيث القصة وراء القطعة مهمة مثل السعر.</small>
                         </div>
-                      </button>
+                        </button>
+                        <div class="theme-card-footer">
+                          <button type="button" class="theme-card-preview ghost" data-preview-for="slate">معاينة أكبر</button>
+                        </div>
+                      </div>
                     </div>
-                    <div class="provider-line">
-                      <small id="theme-selected">القالب الحالي: Ocean</small>
-                      <button type="button" class="secondary" id="save-storefront-theme">حفظ التمبلت</button>
+                    <div class="provider-line theme-studio-actions">
+                      <div class="theme-selected-wrap">
+                        <small id="theme-selected">القالب المختار للمعاينة: Ocean</small>
+                        <span id="theme-unsaved-hint" class="theme-unsaved-hint muted" hidden>لم يُحفظ بعد — اضغط «حفظ القالب»</span>
+                      </div>
+                      <button type="button" class="primary" id="save-storefront-theme">حفظ القالب</button>
                     </div>
+                  </article>
+
+                  <article class="panel">
+                    <div class="panel-heading">
+                      <span class="eyebrow">Brand</span>
+                      <h3>بيانات وهوية المتجر</h3>
+                    </div>
+                    <form id="store-settings-form" class="form-grid">
+                      <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
+                      <label>Store name English<input id="store-name-en" name="nameEn"></label>
+                      <label class="span-2">البلد<input id="store-country" name="country"></label>
+                      <label class="span-2">شعار المتجر (اختياري)<input id="store-logo-file" type="file" accept="image/*"></label>
+                      <label class="span-2">لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
+                      <button class="span-2">حفظ بيانات المتجر</button>
+                    </form>
                   </article>
 
                   <article class="panel">
@@ -778,9 +810,18 @@
                     <p id="storefront-url">سيظهر بعد تحميل المتجر.</p>
                     <button type="button" class="secondary" id="copy-storefront-url">نسخ الرابط</button>
                   </article>
-                </div>
               </div>
             </article>
+
+            <dialog id="theme-preview-dialog" class="theme-preview-dialog">
+              <div class="theme-preview-dialog-inner">
+                <div class="theme-preview-dialog-head">
+                  <strong id="theme-preview-title">معاينة القالب</strong>
+                  <button type="button" class="ghost" id="theme-preview-close" autofocus>إغلاق</button>
+                </div>
+                <div id="theme-preview-mount" class="theme-preview-mount"></div>
+              </div>
+            </dialog>
 
             <article class="panel merchant-tab" data-merchant-panel="android">
               <div class="page-head">
@@ -791,6 +832,7 @@
                 </div>
               </div>
               <div id="android-integration-banner" class="android-integration-banner" hidden aria-live="polite"></div>
+              <div id="android-theme-bridge" class="hint-box theme-apk-bridge" aria-live="polite"></div>
               <div class="hint-box android-setup-reference">
                 <p>
                   <strong>1) خادم النشر</strong> — ملف <code>.env</code> بجانب <code>docker-compose</code> ثم إعادة تشغيل حاوية الـ API:<br />
@@ -804,7 +846,7 @@
                   <code>ANDROID_BUILD_CALLBACK_SECRET</code> (<strong>نفس القيمة</strong> كما في <code>.env</code> على الخادم)،
                   <code>MOBILE_APP_REPOSITORY</code>، <code>MOBILE_REPO_PAT</code> (لقراءة مستودع Flutter white-label).
                 </p>
-                <p class="muted">عند البناء يُمرَّر إلى Flutter المعرف <code>TENANT_SLUG</code> لربط التطبيق بمتجرك.</p>
+                <p class="muted">عند البناء يُمرَّر إلى تطبيق Flutter: <code>TENANT_SLUG</code> و<code>STOREFRONT_THEME</code> (نفس القالب المحفوظ في «إعدادات المتجر»).</p>
               </div>
               <div class="section-tools" style="margin-top: 1rem">
                 <button type="button" class="secondary" id="merchant-android-build-request" hidden>طلب بناء APK جديد</button>
@@ -977,6 +1019,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js?v=2026050404"></script>
+  <script src="/app.js?v=2026051002"></script>
 </body>
 </html>

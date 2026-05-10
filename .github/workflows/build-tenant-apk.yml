@@ -1,4 +1,5 @@
 # بناء APK مخصّص لكل متجر (white-label) عبر workflow_dispatch من الـ API.
+# يمرّر: TENANT_SLUG و STOREFRONT_THEME (قالب الواجهة المحفوظ للمتجر) كـ dart-define لـ Flutter.
 # أسرار مطلوبة على مستودع easy-shope:
 #   EASY_SHOPE_API_URL — قاعدة الـ API العامة (بدون شرطة مائلة أخيرة)
 #   ANDROID_BUILD_CALLBACK_SECRET — نفس قيمة ANDROID_BUILD_CALLBACK_SECRET في بيئة الـ API
@@ -18,6 +19,10 @@ on:
       tenant_slug:
         required: true
         type: string
+      storefront_theme:
+        required: false
+        type: string
+        default: ocean
 
 permissions:
   contents: write
@@ -94,10 +99,13 @@ jobs:
         working-directory: mobile
         env:
           TENANT_SLUG: ${{ inputs.tenant_slug }}
+          STOREFRONT_THEME: ${{ inputs.storefront_theme }}
         run: |
           set -euo pipefail
           flutter pub get
-          flutter build apk --release --dart-define=TENANT_SLUG="${TENANT_SLUG}"
+          flutter build apk --release \
+            --dart-define=TENANT_SLUG="${TENANT_SLUG}" \
+            --dart-define=STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}"
 
       - name: Publish APK to GitHub Release
         if: success()

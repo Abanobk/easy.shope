@@ -11,6 +11,8 @@ const state = {
   merchantAndroidBuilds: [],
   androidIntegration: null,
   storefrontThemeDraft: "ocean",
+  /** آخر قالب محفوظ على الخادم (للمقارنة مع المعاينة) */
+  savedStorefrontTheme: "ocean",
 };
 
 const STOREFRONT_THEME_LABELS = {
@@ -502,7 +504,10 @@ function setMerchantTab(tab = "overview") {
     panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
   });
   if (tab === "billing") loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
-  if (tab === "android") void loadAndroidBuildsOnly();
+  if (tab === "android") {
+    void loadAndroidBuildsOnly();
+    updateAndroidThemeBridge();
+  }
   if (tab !== "categories") setCreationForm("category-form", false);
   if (tab !== "products") setCreationForm("product-form", false);
 }
@@ -762,24 +767,66 @@ function fillStoreSettings(store) {
   $("store-country").value = store.country || "";
   if ($("store-brand-color")) $("store-brand-color").value = store.brand_color || "";
   if ($("checkout-provider")) $("checkout-provider").value = store.checkout_provider || "paymob";
-  state.storefrontThemeDraft = store.storefront_theme || "ocean";
+  const th = store.storefront_theme || "ocean";
+  state.savedStorefrontTheme = th;
+  state.storefrontThemeDraft = th;
   updateThemePickerUi();
   const url = `${window.location.origin}/#store/${store.slug || state.tenantSlug || ""}`;
   if ($("storefront-url")) $("storefront-url").textContent = url;
 }
 
 function updateThemePickerUi() {
-  document.querySelectorAll("[data-storefront-theme]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.storefrontTheme === state.storefrontThemeDraft);
+  document.querySelectorAll(".theme-card").forEach((card) => {
+    const id = card.querySelector(".theme-tile-select")?.dataset.storefrontTheme;
+    card.classList.toggle("is-selected", id === state.storefrontThemeDraft);
   });
-  if ($("theme-selected")) $("theme-selected").textContent = `القالب الحالي: ${STOREFRONT_THEME_LABELS[state.storefrontThemeDraft] || state.storefrontThemeDraft}`;
+  document.querySelectorAll(".theme-tile-select[data-storefront-theme]").forEach((button) => {
+    const on = button.dataset.storefrontTheme === state.storefrontThemeDraft;
+    button.classList.toggle("active", on);
+    button.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  if ($("theme-selected")) {
+    $("theme-selected").textContent = `معاينة القالب: ${STOREFRONT_THEME_LABELS[state.storefrontThemeDraft] || state.storefrontThemeDraft}`;
+  }
+  const unsaved = state.storefrontThemeDraft !== state.savedStorefrontTheme;
+  if ($("theme-unsaved-hint")) $("theme-unsaved-hint").hidden = !unsaved;
+  updateAndroidThemeBridge();
+}
+
+function updateAndroidThemeBridge() {
+  const el = $("android-theme-bridge");
+  if (!el) return;
+  const saved = state.savedStorefrontTheme || "ocean";
+  const draft = state.storefrontThemeDraft || saved;
+  const savedLabel = STOREFRONT_THEME_LABELS[saved] || saved;
+  const warn =
+    draft !== saved
+      ? ` <strong class="theme-bridge-warn">تنبيه:</strong> المعاينة الحالية (${STOREFRONT_THEME_LABELS[draft] || draft}) لم تُحفظ — اضغط «حفظ القالب» في الإعدادات قبل بناء الـ APK.`
+      : "";
+  el.innerHTML = `<p><strong>قالب الواجهة المرتبط بالـ APK</strong></p><p class="muted">يُستخدم عند البناء القالب <strong>المحفوظ</strong> حاليًا: ${savedLabel} — يُمرَّر إلى Flutter كـ <code>STOREFRONT_THEME</code> مع <code>TENANT_SLUG</code>.${warn}</p>`;
+}
+
+function openThemePreview(themeId) {
+  const card = document.querySelector(`.theme-card .theme-tile-select[data-storefront-theme="${themeId}"]`)?.closest(".theme-card");
+  const vit = card?.querySelector(".theme-vitrine");
+  const dlg = $("theme-preview-dialog");
+  const mount = $("theme-preview-mount");
+  const title = $("theme-preview-title");
+  if (!vit || !dlg || !mount) return;
+  mount.innerHTML = "";
+  const clone = vit.cloneNode(true);
+  clone.classList.add("theme-vitrine--dialog-clone");
+  clone.removeAttribute("aria-hidden");
+  mount.appendChild(clone);
+  if (title) title.textContent = `معاينة — ${STOREFRONT_THEME_LABELS[themeId] || themeId}`;
+  if (typeof dlg.showModal === "function") dlg.showModal();
 }
 
 function initThemeLibraryFilters() {
   const chipRoot = document.getElementById("theme-filter-chips");
   const grid = document.getElementById("theme-grid");
   if (!chipRoot || !grid) return;
-  const tiles = grid.querySelectorAll("[data-storefront-theme][data-theme-tags]");
+  const tiles = grid.querySelectorAll(".theme-card[data-theme-tags]");
   chipRoot.querySelectorAll("[data-theme-filter]").forEach((chip) => {
     chip.addEventListener("click", () => {
       chipRoot.querySelectorAll("[data-theme-filter]").forEach((c) => c.classList.remove("active"));
@@ -799,7 +846,9 @@ function initThemeLibraryFilters() {
 
 async function saveStorefrontTheme() {
   await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify({ storefrontTheme: state.storefrontThemeDraft }) });
-  showMessage("تم حفظ تمبلت واجهة المتجر.");
+  state.savedStorefrontTheme = state.storefrontThemeDraft;
+  showMessage("تم حفظ قالب واجهة المتجر. سيُستخدم في الويب وتطبيق الأندرويد عند البناء.");
+  updateThemePickerUi();
   await loadMerchantData();
   if (state.tenantSlug) await loadStorefront();
 }
@@ -1714,6 +1763,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setOnboardingMode("register");
   setMerchantTab("overview");
   initThemeLibraryFilters();
+  updateThemePickerUi();
   updateNavigation();
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -1789,11 +1839,23 @@ document.addEventListener("DOMContentLoaded", () => {
   $("customer-orders-button").addEventListener("click", loadCustomerOrders);
   $("staff-filter")?.addEventListener("input", loadStaff);
   $("save-checkout-provider")?.addEventListener("click", saveCheckoutProvider);
-  document.querySelectorAll("[data-storefront-theme]").forEach((button) => {
+  document.querySelectorAll(".theme-tile-select[data-storefront-theme]").forEach((button) => {
     button.addEventListener("click", () => {
       state.storefrontThemeDraft = button.dataset.storefrontTheme;
       updateThemePickerUi();
     });
+  });
+  document.querySelectorAll(".theme-card-preview").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const id = btn.dataset.previewFor;
+      if (id) openThemePreview(id);
+    });
+  });
+  $("theme-preview-close")?.addEventListener("click", () => $("theme-preview-dialog")?.close());
+  $("theme-preview-dialog")?.addEventListener("click", (event) => {
+    if (event.target === $("theme-preview-dialog")) $("theme-preview-dialog").close();
   });
   $("save-storefront-theme")?.addEventListener("click", saveStorefrontTheme);
   $("merchant-android-build-request")?.addEventListener("click", () => requestMerchantAndroidBuild());

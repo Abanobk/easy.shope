@@ -538,7 +538,19 @@ const androidBuildCallbackBody = z.object({
   errorMessage: z.string().max(4000).optional().nullable(),
 });
 
-async function dispatchTenantApkWorkflow(opts: { buildId: string; tenantId: string; tenantSlug: string }) {
+const STOREFRONT_THEME_CODES = ["ocean", "violet", "emerald", "amber", "rose", "slate"] as const;
+
+function normalizeStorefrontThemeForBuild(raw: string | null | undefined): string {
+  const t = String(raw || "ocean").toLowerCase();
+  return (STOREFRONT_THEME_CODES as readonly string[]).includes(t) ? t : "ocean";
+}
+
+async function dispatchTenantApkWorkflow(opts: {
+  buildId: string;
+  tenantId: string;
+  tenantSlug: string;
+  storefrontTheme: string;
+}) {
   const token = env.githubActionsDispatchToken.trim();
   const repo = env.githubRepository.trim();
   if (!token || !repo) {
@@ -565,6 +577,7 @@ async function dispatchTenantApkWorkflow(opts: { buildId: string; tenantId: stri
         build_id: opts.buildId,
         tenant_id: opts.tenantId,
         tenant_slug: opts.tenantSlug,
+        storefront_theme: opts.storefrontTheme,
       },
     }),
   });
@@ -1134,11 +1147,12 @@ app.post("/api/merchant/android-build", async (request, reply) => {
   if (running.rows[0]) {
     return reply.code(409).send({ message: "يوجد بناء جارٍ أو في قائمة الانتظار. انتظر اكتماله قبل طلب بناء جديد." });
   }
-  const tenant = await pool.query(`SELECT slug FROM tenants WHERE id = $1`, [user.tenantId]);
+  const tenant = await pool.query(`SELECT slug, storefront_theme FROM tenants WHERE id = $1`, [user.tenantId]);
   const slugRow = tenant.rows[0];
   if (!slugRow) return reply.code(404).send({ message: "المتجر غير موجود" });
   const tenantId = user.tenantId;
   const tenantSlug = slugRow.slug;
+  const storefrontTheme = normalizeStorefrontThemeForBuild(slugRow.storefront_theme);
   if (!tenantId) return reply.code(403).send({ message: "Tenant required" });
   if (!tenantSlug) return reply.code(500).send({ message: "المتجر بدون slug" });
 
@@ -1150,7 +1164,7 @@ app.post("/api/merchant/android-build", async (request, reply) => {
   );
   const buildId = insert.rows[0].id as string;
   try {
-    await dispatchTenantApkWorkflow({ buildId, tenantId, tenantSlug });
+    await dispatchTenantApkWorkflow({ buildId, tenantId, tenantSlug, storefrontTheme });
   } catch (error) {
     const message = (error as Error).message.slice(0, 2000);
     await pool.query(
