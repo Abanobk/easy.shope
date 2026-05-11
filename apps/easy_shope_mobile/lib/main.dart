@@ -12,8 +12,8 @@ const String _kStorefrontBase = String.fromEnvironment(
 String _storefrontLaunchUrl() {
   final trimmed = _kStorefrontBase.trim().replaceAll(RegExp(r'/+$'), '');
   if (_kTenantSlug.trim().isEmpty) return trimmed;
-  final slug = Uri.encodeQueryComponent(_kTenantSlug.trim());
-  return '$trimmed/?store=$slug&app=1';
+  final slug = Uri.encodeComponent(_kTenantSlug.trim());
+  return '$trimmed/store/$slug?app=1';
 }
 
 void main() {

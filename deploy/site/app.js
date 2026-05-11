@@ -1434,6 +1434,10 @@ async function applyStoreDeepLink() {
   let slug = "";
   const params = new URLSearchParams(window.location.search);
   if (params.has("store")) slug = (params.get("store") || "").trim();
+  if (!slug) {
+    const m = window.location.pathname.match(/^\/store\/([^\/?#]+)/);
+    if (m?.[1]) slug = decodeURIComponent(m[1]).trim();
+  }
   if (!slug && window.location.hash.startsWith("#store/")) {
     slug = window.location.hash.slice("#store/".length).split(/[?&#]/)[0].trim();
   }
