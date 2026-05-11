@@ -4674,6 +4674,21 @@ body.mobile-store-client #message {
   display: none !important;
 }
 
+/* أخفي أي Views غير واجهة المتجر في وضع التطبيق */
+body.mobile-store-client .view {
+  display: none;
+}
+
+body.mobile-store-client #view-storefront.view {
+  display: block;
+}
+
+/* أخفي عناصر سطح المكتب داخل المتجر */
+body.mobile-store-client #storefront-category-rail,
+body.mobile-store-client #storefront-bottom-nav {
+  display: none !important;
+}
+
 body.mobile-store-client #view-storefront .storefront-hero-eyebrow {
   display: none;
 }

@@ -1421,6 +1421,9 @@ function applyMobileStoreClientShell() {
     if (document.body.classList.contains("mobile-store-client")) return;
     document.body.classList.add("mobile-store-client");
     document.documentElement.classList.add("pre-mobile-store");
+    // في وضع تطبيق المتجر: لا نعرض أي أجزاء خاصة بالمنصة (overview/onboarding/admin/merchant).
+    document.body.dataset.scope = "customer";
+    document.body.dataset.view = "storefront";
     const slugField = $("tenant-slug");
     if (slugField) slugField.classList.add("mobile-store-slug-hidden");
     const formBtn = document.querySelector("#storefront-form button[type='submit']");
