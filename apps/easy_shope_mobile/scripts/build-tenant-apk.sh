@@ -33,6 +33,9 @@ flutter pub get
 flutter build apk --release \
   --dart-define=TENANT_SLUG="$TENANT_SLUG" \
   --dart-define=STOREFRONT_THEME="$STOREFRONT_THEME" \
-  --dart-define=STOREFRONT_BASE_URL="${STORE_BASE%/}"
+  --dart-define=STOREFRONT_BASE_URL="${STORE_BASE%/}" \
+  -- \
+  -PTENANT_SLUG="$TENANT_SLUG" \
+  -PTENANT_APP_LABEL="${TENANT_APP_LABEL:-$TENANT_SLUG}"
 
 echo "==> APK ready: build/app/outputs/flutter-apk/app-release.apk"

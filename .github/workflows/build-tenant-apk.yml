@@ -7,6 +7,7 @@
 #   MOBILE_APP_REPOSITORY — مستودع Flutter (أو نفس easy.shope لو التطبيق تحت apps/…)
 #   MOBILE_REPO_PAT — PAT بصلاحية قراءة لمستودع التطبيق
 #   MOBILE_FLUTTER_SUBDIR (اختياري) — مسار Flutter بعد الـ clone؛ إن لم تُضفه ووُجد apps/easy_shope_mobile/pubspec.yaml يُستخدم تلقائيًا.
+#   ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD + ANDROID_KEY_ALIAS + ANDROID_KEY_PASSWORD (اختياري) — توقيع release لتقليل تحذير Play Protect.
 name: Build tenant APK
 
 on:
@@ -95,6 +96,41 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Configure Android release signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          MOBILE_FLUTTER_SUBDIR: ${{ secrets.MOBILE_FLUTTER_SUBDIR }}
+        run: |
+          set -euo pipefail
+          REL=""
+          if [ -n "${MOBILE_FLUTTER_SUBDIR:-}" ]; then
+            REL="${MOBILE_FLUTTER_SUBDIR}"
+          elif [ -f mobile/apps/easy_shope_mobile/pubspec.yaml ]; then
+            REL="apps/easy_shope_mobile"
+          fi
+          ANDROID_DIR="mobile/android"
+          if [ -n "$REL" ]; then
+            ANDROID_DIR="mobile/${REL}/android"
+          fi
+          if [ -z "${KEYSTORE_B64:-}" ]; then
+            echo "No ANDROID_KEYSTORE_BASE64 secret — release APK will use debug signing (Play Protect may warn)."
+            exit 0
+          fi
+          test -n "${KEYSTORE_PASSWORD:-}" && test -n "${KEY_ALIAS:-}" && test -n "${KEY_PASSWORD:-}" || {
+            echo "Missing ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD"
+            exit 1
+          }
+          echo "$KEYSTORE_B64" | base64 -d > "${ANDROID_DIR}/upload-keystore.jks"
+          cat > "${ANDROID_DIR}/key.properties" <<EOF
+          storePassword=${KEYSTORE_PASSWORD}
+          keyPassword=${KEY_PASSWORD}
+          keyAlias=${KEY_ALIAS}
+          storeFile=upload-keystore.jks
+          EOF
 
       - name: Build release APK
         id: flutterbuild
