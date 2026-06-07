@@ -23,7 +23,20 @@ class StoreSession extends ChangeNotifier {
 
   final List<CartLine> cart = [];
 
-  TemplatePalette get palette => TemplatePalette.forTheme(AppConfig.normalizedTheme);
+  bool _guestBrowsing = false;
+
+  /// Theme from live store settings (API), then compile-time fallback from APK build.
+  String get activeTheme {
+    final fromStore = store?.storefrontTheme.trim().toLowerCase();
+    if (fromStore != null && fromStore.isNotEmpty && AppConfig.supportedThemes.contains(fromStore)) {
+      return fromStore;
+    }
+    return AppConfig.normalizedTheme;
+  }
+
+  bool get showEntryGate => customerToken == null && !_guestBrowsing;
+
+  TemplatePalette get palette => TemplatePalette.forTheme(activeTheme);
 
   int get cartCount => cart.fold(0, (sum, line) => sum + line.quantity);
   int get cartTotalCents => cart.fold(0, (sum, line) => sum + line.lineTotalCents);
@@ -148,7 +161,13 @@ class StoreSession extends ChangeNotifier {
   void logoutCustomer() {
     customerToken = null;
     customerName = null;
+    _guestBrowsing = false;
     api.setCustomerToken(null);
+    notifyListeners();
+  }
+
+  void continueAsGuest() {
+    _guestBrowsing = true;
     notifyListeners();
   }
 }

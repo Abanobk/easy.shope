@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'config/app_config.dart';
+import 'screens/store_entry_screen.dart';
 import 'state/store_session.dart';
 import 'templates/template_registry.dart';
 import 'theme/template_palette.dart';
@@ -55,22 +56,55 @@ class _EasyShopeMobileAppState extends State<EasyShopeMobileApp> {
       );
     }
 
-    final palette = TemplatePalette.forTheme(AppConfig.normalizedTheme);
-    return StoreScope(
-      notifier: _session,
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: _session.store?.displayName ?? 'Easy Shope',
-        theme: palette.toThemeData(),
-        builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
-        home: Stack(
-          fit: StackFit.expand,
-          children: [
-            buildTemplateApp(_session),
-            const WhatsAppSupportButton(),
-          ],
-        ),
-      ),
+    return ListenableBuilder(
+      listenable: _session,
+      builder: (context, _) {
+        final palette = TemplatePalette.forTheme(_session.activeTheme);
+
+        if (_session.loading) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: palette.toThemeData(),
+            home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+          );
+        }
+
+        if (_session.error != null) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: palette.toThemeData(),
+            home: Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text('تعذر تحميل المتجر:\n${_session.error}', textAlign: TextAlign.center),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final home = _session.showEntryGate
+            ? const StoreEntryScreen()
+            : buildTemplateApp(_session, theme: _session.activeTheme);
+
+        return StoreScope(
+          notifier: _session,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: _session.store?.displayName ?? 'Easy Shope',
+            theme: palette.toThemeData(),
+            builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
+            home: Stack(
+              fit: StackFit.expand,
+              children: [
+                home,
+                if (!_session.showEntryGate) const WhatsAppSupportButton(),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

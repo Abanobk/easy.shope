@@ -9,9 +9,10 @@ import 'rose/rose_template.dart';
 import 'slate/slate_template.dart';
 import 'violet/violet_template.dart';
 
-/// Selects the native storefront shell compiled for this APK build.
-Widget buildTemplateApp(StoreSession session) {
-  switch (AppConfig.normalizedTheme) {
+/// Selects the native storefront shell for this store.
+Widget buildTemplateApp(StoreSession session, {String? theme}) {
+  final t = normalizeThemeCode(theme ?? session.activeTheme);
+  switch (t) {
     case 'violet':
       return VioletTemplate(session: session);
     case 'emerald':
@@ -28,6 +29,11 @@ Widget buildTemplateApp(StoreSession session) {
   }
 }
 
-String templateBuildLabel() {
-  return AppConfig.normalizedTheme;
+String normalizeThemeCode(String raw) {
+  final t = raw.trim().toLowerCase();
+  return AppConfig.supportedThemes.contains(t) ? t : 'ocean';
+}
+
+String templateBuildLabel(StoreSession session) {
+  return session.activeTheme;
 }
