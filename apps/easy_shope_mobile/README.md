@@ -1,17 +1,32 @@
-# easy_shope_mobile
+# Easy Shope Mobile (Native White-Label)
 
-A new Flutter project.
+تطبيق Flutter **أصلي** — كل قالب storefront له **كود UI منفصل**، وGitHub Actions يبني APK بالقالب المحفوظ للتاجر.
 
-## Getting Started
+## القوالب (compile-time)
 
-This project is a starting point for a Flutter application.
+| `STOREFRONT_THEME` | الملف | التخطيط |
+|---|---|---|
+| `ocean` | `lib/templates/ocean/` | شبكة + شريط سفلي |
+| `violet` | `lib/templates/violet/` | Stories + بطاقات |
+| `emerald` | `lib/templates/emerald/` | قائمة + شريط سفلي |
+| `amber` | `lib/templates/amber/` | Rail أقسام + بانر |
+| `rose` | `lib/templates/rose/` | Carousel + شبكة |
+| `slate` | `lib/templates/slate/` | Minimal list |
 
-A few resources to get you started if this is your first Flutter project:
+## dart-define (من CI)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- `TENANT_SLUG` — slug المتجر (مثلاً `easy`)
+- `STOREFRONT_THEME` — أحد القوالب الستة
+- `STOREFRONT_BASE_URL` — قاعدة الـ API (مثل `https://shope.easytecheg.net`)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## بناء محلي
+
+```bash
+cd apps/easy_shope_mobile
+TENANT_SLUG=easy STOREFRONT_THEME=violet STORE_BASE=https://shope.easytecheg.net bash scripts/build-tenant-apk.sh
+```
+
+## GitHub Actions
+
+Workflow: `.github/workflows/build-tenant-apk.yml`  
+الـ API يمرّر `storefront_theme` من قاعدة البيانات عند طلب البناء من لوحة التاجر.

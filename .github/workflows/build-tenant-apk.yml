@@ -1,5 +1,6 @@
 # بناء APK مخصّص لكل متجر (white-label) عبر workflow_dispatch من الـ API.
-# يمرّر: TENANT_SLUG و STOREFRONT_THEME (قالب الواجهة المحفوظ للمتجر) كـ dart-define لـ Flutter.
+# يمرّر: TENANT_SLUG و STOREFRONT_THEME (قالب native منفصل لكل theme) كـ dart-define.
+# القوالب المدعومة: ocean | violet | emerald | amber | rose | slate
 # أسرار مطلوبة على مستودع easy-shope:
 #   EASY_SHOPE_API_URL — قاعدة الـ API العامة (بدون شرطة مائلة أخيرة)
 #   ANDROID_BUILD_CALLBACK_SECRET — نفس قيمة ANDROID_BUILD_CALLBACK_SECRET في بيئة الـ API
@@ -116,11 +117,16 @@ jobs:
           fi
           API_BASE="${STORE_BASE%/}"
           test -n "${API_BASE:-}" || { echo "Missing EASY_SHOPE_API_URL for STOREFRONT_BASE_URL"; exit 1; }
-          flutter pub get
-          flutter build apk --release \
-            --dart-define=TENANT_SLUG="${TENANT_SLUG}" \
-            --dart-define=STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}" \
-            --dart-define=STOREFRONT_BASE_URL="${API_BASE}"
+          chmod +x scripts/build-tenant-apk.sh 2>/dev/null || true
+          if [[ -f scripts/build-tenant-apk.sh ]]; then
+            TENANT_SLUG="${TENANT_SLUG}" STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}" STORE_BASE="${API_BASE}" bash scripts/build-tenant-apk.sh
+          else
+            flutter pub get
+            flutter build apk --release \
+              --dart-define=TENANT_SLUG="${TENANT_SLUG}" \
+              --dart-define=STOREFRONT_THEME="${STOREFRONT_THEME:-ocean}" \
+              --dart-define=STOREFRONT_BASE_URL="${API_BASE}"
+          fi
           if [ -n "$REL" ]; then
             echo "apk_rel=mobile/${REL}/build/app/outputs/flutter-apk/app-release.apk" >> "$GITHUB_OUTPUT"
           else
