@@ -900,8 +900,11 @@ function fillStoreSettings(store) {
   state.savedStorefrontTheme = th;
   state.storefrontThemeDraft = th;
   updateThemePickerUi();
-  const url = `${window.location.origin}/#store/${store.slug || state.tenantSlug || ""}`;
-  if ($("storefront-url")) $("storefront-url").textContent = url;
+  const slug = store.slug || state.tenantSlug || "";
+  const webUrl = slug ? `${window.location.origin}/store/${slug}` : "";
+  const hashUrl = slug ? `${window.location.origin}/#store/${slug}` : "";
+  if ($("storefront-web-url")) $("storefront-web-url").textContent = webUrl || "سيظهر بعد تحميل المتجر.";
+  if ($("storefront-url")) $("storefront-url").textContent = hashUrl || "—";
   renderStoreLogoPreview(store.logo_url);
   renderMerchantBrand(store);
 }
@@ -2399,6 +2402,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("save-storefront-theme")?.addEventListener("click", saveStorefrontTheme);
   $("merchant-android-build-request")?.addEventListener("click", () => requestMerchantAndroidBuild());
+  $("copy-storefront-web-url")?.addEventListener("click", async () => {
+    const value = $("storefront-web-url")?.textContent || "";
+    if (!value || value.includes("سيظهر")) return;
+    await navigator.clipboard?.writeText(value);
+    showMessage("تم نسخ رابط متجر الويب.");
+  });
   $("copy-storefront-url")?.addEventListener("click", async () => {
     const value = $("storefront-url")?.textContent || "";
     await navigator.clipboard?.writeText(value);

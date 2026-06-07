@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060720" />
+  <link rel="stylesheet" href="/styles.css?v=2026060721" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -816,7 +816,7 @@
                       <label class="span-2">البلد<input id="store-country" name="country"></label>
                       <div class="span-2 store-logo-upload">
                         <span class="field-label">شعار المتجر</span>
-                        <p class="muted store-logo-help">يظهر في لوحة التحكم، واجهة المتجر، وتطبيق الأندرويد (أيقونة التطبيق بعد طلب بناء APK جديد).</p>
+                        <p class="muted store-logo-help"><strong>اختياري</strong> — مش مطلوب عند التسجيل. يُفضّل رفعه قبل طلب بناء APK: يظهر في لوحة التحكم، متجر الويب، داخل التطبيق، وأيقونة APK على الموبايل.</p>
                         <div id="store-logo-preview-wrap" class="store-logo-preview-wrap" hidden>
                           <img id="store-logo-preview" class="store-logo-preview" alt="معاينة الشعار">
                           <small>الشعار المحفوظ حاليًا</small>
@@ -831,10 +831,20 @@
                   <article class="panel">
                     <div class="panel-heading">
                       <span class="eyebrow">Link</span>
-                      <h3>رابط واجهة المتجر</h3>
+                      <h3>روابط متجرك</h3>
                     </div>
-                    <p id="storefront-url">سيظهر بعد تحميل المتجر.</p>
-                    <button type="button" class="secondary" id="copy-storefront-url">نسخ الرابط</button>
+                    <p class="muted store-links-lead">كل متجر له <strong>slug</strong> (من الاسم الإنجليزي). الرابط العام = دومين المنصة + <code>/store/اسم-متجرك</code></p>
+                    <div class="store-link-block">
+                      <span class="field-label">🌐 متجر الويب (متصفح — للعملاء)</span>
+                      <p id="storefront-web-url" class="store-link-url">سيظهر بعد تحميل المتجر.</p>
+                      <button type="button" class="secondary" id="copy-storefront-web-url">نسخ رابط الويب</button>
+                    </div>
+                    <div class="store-link-block">
+                      <span class="field-label">📱 تطبيق أندرويد (APK — منفصل عن الويب)</span>
+                      <p class="muted">ليس رابط موقع — ملف تطبيق يُبنى من تبويب «تطبيق أندرويد». العملاء يحمّلونه ويثبتونه على الموبايل.</p>
+                      <button type="button" class="secondary" data-merchant-jump="android">الذهاب لطلب بناء APK</button>
+                    </div>
+                    <p class="muted"><small>رابط بديل (قديم): <span id="storefront-url">—</span></small></p>
                   </article>
               </div>
             </article>
@@ -1191,6 +1201,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060719"></script>
+  <script src="/app.js?v=2026060721"></script>
 </body>
 </html>
