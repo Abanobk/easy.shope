@@ -83,6 +83,119 @@ body[data-scope="merchant"][data-view="catalog"] .main {
   width: min(1320px, calc(100% - 32px));
 }
 
+body[data-scope="admin"][data-view="admin"] .app-shell {
+  grid-template-columns: 1fr;
+}
+
+body[data-scope="admin"][data-view="admin"] .sidebar {
+  display: none;
+}
+
+body[data-scope="admin"][data-view="admin"] .main {
+  width: min(1320px, calc(100% - 32px));
+}
+
+.admin-dashboard {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-side {
+  position: sticky;
+  top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: 18px;
+  background: rgba(2, 6, 23, .32);
+  box-shadow: var(--shadow);
+}
+
+.admin-side-head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.admin-side-nav {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-side-item {
+  text-align: right;
+  border: 1px solid rgba(148, 163, 184, .14);
+  border-radius: 20px;
+  padding: 14px;
+  background: rgba(15, 23, 42, .45);
+  cursor: pointer;
+  color: inherit;
+}
+
+.admin-side-item:hover,
+.admin-side-item.active {
+  border-color: rgba(56, 189, 248, .35);
+  background: rgba(56, 189, 248, .08);
+}
+
+.admin-side-item small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.admin-tab {
+  display: none;
+}
+
+.admin-tab.active {
+  display: block;
+  animation: merchant-panel-in 0.24s ease-out;
+}
+
+.nested-panel {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 14px;
+  background: rgba(2, 6, 23, .22);
+}
+
+.admin-tenant-tools {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.admin-tenant-tools input,
+.admin-tenant-tools select {
+  min-width: 220px;
+}
+
+.admin-row-actions {
+  flex-wrap: wrap;
+  max-width: 240px;
+}
+
+.admin-tenant-dialog {
+  max-width: min(720px, calc(100vw - 24px));
+}
+
+.dialog-grid .span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 980px) {
+  .admin-dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-side {
+    position: static;
+  }
+}
+
 .sidebar {
   position: sticky;
   top: 0;

@@ -15,6 +15,8 @@ const state = {
   storefrontThemeDraft: "ocean",
   /** آخر قالب محفوظ على الخادم (للمقارنة مع المعاينة) */
   savedStorefrontTheme: "ocean",
+  adminTenants: [],
+  adminPlans: [],
 };
 
 const STOREFRONT_THEME_LABELS = {
@@ -608,6 +610,17 @@ function setMerchantTab(tab = "overview") {
   if (tab !== "categories") setCreationForm("category-form", false);
   if (tab !== "products") setCreationForm("product-form", false);
   updateWhatsAppFab();
+}
+
+function setAdminTab(tab = "overview") {
+  document.querySelectorAll("[data-admin-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.adminTab === tab);
+  });
+  document.querySelectorAll("[data-admin-panel]").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.adminPanel === tab);
+  });
+  if (tab === "orders") void loadAdminOrders();
+  if (tab === "system") void loadAdminAndroidBuilds();
 }
 
 function updateWhatsAppFab() {
@@ -1903,6 +1916,231 @@ async function handlePaymentReturn() {
   }
 }
 
+function formatDateTime(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function adminStatusBadge(status) {
+  const cls = status === "active" || status === "paid" || status === "succeeded" ? "ok" : status === "trial" || status === "pending" || status === "running" ? "warn" : "off";
+  return `<span class="status-badge ${cls}">${status}</span>`;
+}
+
+function renderAdminOverview(overview, tenants) {
+  $("admin-tenants-total").textContent = sumRows(overview.tenants);
+  $("admin-tenants-active").textContent = `${statusCount(overview.tenants, "active")} نشط`;
+  if ($("admin-tenants-trial")) $("admin-tenants-trial").textContent = statusCount(overview.tenants, "trial");
+  if ($("admin-tenants-expired")) $("admin-tenants-expired").textContent = `${statusCount(overview.tenants, "expired")} منتهي`;
+  $("admin-orders-total").textContent = overview.orders.count;
+  if ($("admin-customers-total")) $("admin-customers-total").textContent = `${overview.customers?.count ?? 0} عميل`;
+  $("admin-revenue-total").textContent = money(overview.orders.total_cents);
+  if ($("admin-products-total")) $("admin-products-total").textContent = `${overview.products?.count ?? 0} منتج`;
+  $("admin-invoices-total").textContent = sumRows(overview.subscriptionInvoices);
+  $("admin-invoices-paid").textContent = `${statusCount(overview.subscriptionInvoices, "paid")} مدفوعة`;
+  const paidRow = (overview.subscriptionInvoices || []).find((r) => r.status === "paid");
+  if ($("admin-subscription-revenue")) $("admin-subscription-revenue").textContent = money(paidRow?.total_cents || 0);
+
+  const alerts = [];
+  const suspended = statusCount(overview.tenants, "suspended");
+  const expired = statusCount(overview.tenants, "expired");
+  const pendingInvoices = statusCount(overview.subscriptionInvoices, "pending");
+  if (suspended) alerts.push(`${suspended} متجر موقوف — راجع تبويب التجار.`);
+  if (expired) alerts.push(`${expired} متجر منتهي الاشتراك.`);
+  if (pendingInvoices) alerts.push(`${pendingInvoices} فاتورة اشتراك معلّقة.`);
+  if (!alerts.length) alerts.push("لا توجد تنبيهات حرجة حاليًا.");
+  if ($("admin-overview-alerts")) $("admin-overview-alerts").innerHTML = alerts.map((t) => `<li>${t}</li>`).join("");
+
+  const expiring =
+    (tenants || [])
+      .map((t) => ({ tenant: t, days: trialDaysRemaining(t.subscription_expires_at) }))
+      .filter(({ tenant, days }) => tenant.status === "trial" && days !== null && days > 0 && days <= 7)
+      .sort((a, b) => a.days - b.days) || [];
+  if ($("admin-expiring-trials")) {
+    $("admin-expiring-trials").innerHTML =
+      expiring
+        .map(({ tenant, days }) => `<li><strong>${tenant.name_ar || tenant.name_en}</strong> (${tenant.slug}) — متبقي ${days} يوم</li>`)
+        .join("") || "<li>لا يوجد تجار على وشك الانتهاء خلال 7 أيام.</li>";
+  }
+}
+
+function renderAdminTenantsTable() {
+  const tbody = $("admin-tenants-table");
+  if (!tbody) return;
+  const q = ($("admin-tenant-search")?.value || "").trim().toLowerCase();
+  const statusFilter = $("admin-tenant-status-filter")?.value || "";
+  const rows = state.adminTenants.filter((tenant) => {
+    if (statusFilter && tenant.status !== statusFilter) return false;
+    if (!q) return true;
+    const hay = `${tenant.name_ar} ${tenant.name_en} ${tenant.slug} ${tenant.owner_email || ""} ${tenant.owner_name || ""}`.toLowerCase();
+    return hay.includes(q);
+  });
+  tbody.innerHTML =
+    rows
+      .map((tenant) => {
+        const daysLeft = trialDaysRemaining(tenant.subscription_expires_at);
+        const expiryCell = tenant.subscription_expires_at
+          ? `<small>${formatTrialExpiryDate(tenant.subscription_expires_at)}</small><br><strong>${daysLeft === null ? "—" : daysLeft <= 0 ? "منتهي" : `${daysLeft} يوم`}</strong>`
+          : "—";
+        return `<tr>
+          <td><strong>${tenant.name_ar || tenant.name_en}</strong><br><small>${tenant.slug}</small><br><small class="muted">${tenant.storefront_theme || "ocean"}</small></td>
+          <td>${tenant.owner_name || "—"}<br><small>${tenant.owner_email || ""}</small></td>
+          <td>${adminStatusBadge(tenant.status)}</td>
+          <td>${tenant.plan_code}</td>
+          <td>${expiryCell}</td>
+          <td>${tenant.products_count} منتج / ${tenant.orders_count} طلب<br>${money(tenant.revenue_cents)}</td>
+          <td><div class="row-actions admin-row-actions">
+            <button type="button" data-admin-tenant-detail="${tenant.id}">تفاصيل</button>
+            <button type="button" class="success-button" data-tenant-status="${tenant.id}:active">تفعيل</button>
+            <button type="button" class="danger-button" data-tenant-status="${tenant.id}:suspended">تعليق</button>
+            <button type="button" data-tenant-extend="${tenant.id}">+ شهر</button>
+            <button type="button" data-tenant-extend-trial="${tenant.id}:7">+7 يوم</button>
+            <button type="button" data-tenant-extend-trial="${tenant.id}:30">+30 يوم</button>
+          </div></td>
+        </tr>`;
+      })
+      .join("") || `<tr><td colspan="7">لا توجد متاجر مطابقة.</td></tr>`;
+}
+
+function renderAdminPlans(plans) {
+  $("admin-plans").innerHTML = plans
+    .map(
+      (plan) => `<div class="plan-card">
+        <div><strong>${plan.name}</strong><br><small>${plan.duration_months} شهر — ${plan.is_active ? "مفعّلة" : "معطّلة"}</small></div>
+        <div class="row-actions">
+          <input type="text" value="${plan.name}" data-plan-name="${plan.code}" placeholder="اسم الخطة">
+          <input type="number" value="${(plan.price_cents / 100).toFixed(2)}" data-plan-price="${plan.code}">
+          <label class="check"><input type="checkbox" data-plan-active="${plan.code}" ${plan.is_active ? "checked" : ""}> نشطة</label>
+          <button type="button" data-plan-save="${plan.code}">حفظ</button>
+        </div>
+      </div>`,
+    )
+    .join("");
+}
+
+function renderAdminInvoices(invoices) {
+  $("admin-invoices-table").innerHTML =
+    invoices
+      .map(
+        (invoice) => `<tr>
+          <td><strong>${invoice.tenant_name}</strong><br><small>${invoice.tenant_slug}</small></td>
+          <td>${invoice.plan_code}</td>
+          <td>${money(invoice.amount_cents)}</td>
+          <td>${adminStatusBadge(invoice.status)}<br><small>${invoice.provider || ""}</small></td>
+          <td><small>${formatDateTime(invoice.created_at)}</small></td>
+          <td><div class="row-actions">
+            <button type="button" class="success-button" data-invoice-status="${invoice.id}:paid">مدفوعة</button>
+            <button type="button" data-invoice-status="${invoice.id}:expired">منتهية</button>
+            <button type="button" class="danger-button" data-invoice-status="${invoice.id}:failed">فشل</button>
+          </div></td>
+        </tr>`,
+      )
+      .join("") || `<tr><td colspan="6">لا توجد فواتير بعد.</td></tr>`;
+}
+
+function fillAdminInvoiceForm() {
+  const tenantSelect = $("admin-invoice-tenant");
+  const planSelect = $("admin-invoice-plan");
+  if (tenantSelect) {
+    tenantSelect.innerHTML = state.adminTenants.map((t) => `<option value="${t.id}">${t.name_ar || t.name_en} (${t.slug})</option>`).join("");
+  }
+  if (planSelect) {
+    planSelect.innerHTML = state.adminPlans
+      .filter((p) => p.is_active)
+      .map((p) => `<option value="${p.code}">${p.name} — ${money(p.price_cents)}</option>`)
+      .join("");
+  }
+}
+
+async function loadAdminOrders() {
+  const tbody = $("admin-orders-table");
+  if (!tbody) return;
+  try {
+    const status = $("admin-order-status-filter")?.value || "";
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    const data = await api(`/api/admin/orders${qs}`);
+    tbody.innerHTML =
+      data.orders
+        .map(
+          (order) => `<tr>
+            <td><strong>${order.tenant_name}</strong><br><small>${order.tenant_slug}</small></td>
+            <td>${order.customer_name}<br><small>${order.customer_phone}</small></td>
+            <td>${money(order.total_cents)}</td>
+            <td>${adminStatusBadge(order.status)}</td>
+            <td>${adminStatusBadge(order.payment_status)}</td>
+            <td><small>${formatDateTime(order.created_at)}</small></td>
+          </tr>`,
+        )
+        .join("") || `<tr><td colspan="6">لا توجد طلبات.</td></tr>`;
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
+  }
+}
+
+async function loadAdminAndroidBuilds() {
+  const tbody = $("admin-android-builds-table");
+  if (!tbody) return;
+  try {
+    const data = await api("/api/admin/android-builds");
+    tbody.innerHTML =
+      data.builds
+        .map(
+          (build) => `<tr>
+            <td><strong>${build.tenant_name}</strong><br><small>${build.tenant_slug}</small></td>
+            <td>${adminStatusBadge(build.status)}</td>
+            <td>${build.artifact_url ? `<a href="${build.artifact_url}" target="_blank" rel="noopener">APK</a>` : build.github_run_url ? `<a href="${build.github_run_url}" target="_blank" rel="noopener">Run</a>` : "—"}</td>
+            <td><small>${formatDateTime(build.created_at)}</small></td>
+            <td><small>${build.error_message || "—"}</small></td>
+          </tr>`,
+        )
+        .join("") || `<tr><td colspan="5">لا توجد عمليات بناء.</td></tr>`;
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
+  }
+}
+
+async function openAdminTenantDetail(tenantId) {
+  const dlg = $("admin-tenant-dialog");
+  const body = $("admin-tenant-dialog-body");
+  const title = $("admin-tenant-dialog-title");
+  if (!dlg || !body) return;
+  body.innerHTML = "جاري التحميل...";
+  dlg.showModal();
+  try {
+    const data = await api(`/api/admin/tenants/${tenantId}`);
+    const t = data.tenant;
+    if (title) title.textContent = t.name_ar || t.name_en || t.slug;
+    const storeUrl = `${window.location.origin}/store/${t.slug}`;
+    body.innerHTML = `<div class="dialog-grid">
+      <div><strong>Slug</strong><p>${t.slug}</p></div>
+      <div><strong>الحالة</strong><p>${adminStatusBadge(t.status)} ${t.plan_code}</p></div>
+      <div><strong>المالك</strong><p>${t.owner_name || "—"}<br>${t.owner_email || ""}<br>${t.owner_phone || ""}</p></div>
+      <div><strong>انتهاء الاشتراك</strong><p>${formatTrialExpiryDate(t.subscription_expires_at)}</p></div>
+      <div><strong>القالب</strong><p>${t.storefront_theme || "ocean"}</p></div>
+      <div><strong>الدفع</strong><p>${t.payment_enabled ? "مربوط" : "غير مفعّل"}</p></div>
+      <div><strong>الأداء</strong><p>${t.products_count} منتج — ${t.orders_count} طلب — ${money(t.revenue_cents)}</p></div>
+      <div><strong>APK</strong><p>${t.android_builds_succeeded || 0} ناجح / ${t.android_builds_count || 0} إجمالي</p></div>
+      <div class="span-2"><strong>رابط المتجر</strong><p><a href="${storeUrl}" target="_blank" rel="noopener">${storeUrl}</a></p></div>
+      <div class="span-2"><strong>آخر بناء APK</strong><ul class="list">${(data.androidBuilds || [])
+        .slice(0, 5)
+        .map((b) => `<li>${adminStatusBadge(b.status)} — ${formatDateTime(b.created_at)} ${b.artifact_url ? `<a href="${b.artifact_url}" target="_blank">تحميل</a>` : ""}</li>`)
+        .join("") || "<li>لا يوجد</li>"}</ul></div>
+    </div>`;
+  } catch (error) {
+    body.innerHTML = `<p>${error.message}</p>`;
+  }
+}
+
+async function createAdminInvoice(event) {
+  event.preventDefault();
+  const tenantId = $("admin-invoice-tenant")?.value;
+  const planCode = $("admin-invoice-plan")?.value;
+  if (!tenantId || !planCode) return;
+  await api("/api/admin/subscription-invoices", { method: "POST", body: JSON.stringify({ tenantId, planCode }) });
+  showMessage("تم إنشاء فاتورة للتاجر.");
+  await loadAdmin();
+}
+
 async function loadAdmin() {
   if (!state.token) return;
   try {
@@ -1914,73 +2152,21 @@ async function loadAdmin() {
       api("/api/admin/payment-providers"),
       api("/api/admin/platform-settings"),
     ]);
-    $("admin-tenants-total").textContent = sumRows(overview.tenants);
-    $("admin-tenants-active").textContent = `${statusCount(overview.tenants, "active")} active`;
-    $("admin-orders-total").textContent = overview.orders.count;
-    $("admin-revenue-total").textContent = money(overview.orders.total_cents);
-    $("admin-invoices-total").textContent = sumRows(overview.subscriptionInvoices);
-    $("admin-invoices-paid").textContent = `${statusCount(overview.subscriptionInvoices, "paid")} paid`;
+    state.adminTenants = tenants.tenants || [];
+    state.adminPlans = plans.plans || [];
+    renderAdminOverview(overview, state.adminTenants);
     if ($("platform-trial-days")) $("platform-trial-days").value = platformSettings.trialDaysDefault ?? 30;
     if ($("platform-trial-settings-status")) {
-      $("platform-trial-settings-status").innerHTML = `<strong>الإعداد الحالي</strong><p>كل تاجر جديد يحصل على <strong>${platformSettings.trialDaysDefault ?? 30} يوم</strong> تجربة مجانية.</p>`;
+      $("platform-trial-settings-status").innerHTML = `<strong>الإعداد الحالي</strong><p>كل تاجر جديد: <strong>${platformSettings.trialDaysDefault ?? 30} يوم</strong> تجربة.</p>`;
     }
-    $("admin-tenants-table").innerHTML =
-      tenants.tenants
-        .map(
-          (tenant) => {
-            const daysLeft = trialDaysRemaining(tenant.subscription_expires_at);
-            const expiryCell =
-              tenant.subscription_expires_at
-                ? `<small>${formatTrialExpiryDate(tenant.subscription_expires_at)}</small><br><strong>${daysLeft === null ? "—" : daysLeft <= 0 ? "منتهي" : `${daysLeft} يوم`}</strong>`
-                : "—";
-            return `<tr>
-            <td><strong>${tenant.name_en}</strong><br><small>${tenant.slug}</small></td>
-            <td>${tenant.status}</td>
-            <td>${tenant.plan_code}</td>
-            <td>${expiryCell}</td>
-            <td>${tenant.products_count} منتجات / ${tenant.orders_count} طلب / ${money(tenant.revenue_cents)}</td>
-            <td><div class="row-actions">
-              <button class="success-button" data-tenant-status="${tenant.id}:active">تفعيل</button>
-              <button class="danger-button" data-tenant-status="${tenant.id}:suspended">تعليق</button>
-              <button data-tenant-extend="${tenant.id}">+ شهر</button>
-              <button data-tenant-extend-trial="${tenant.id}:7">+7 أيام تجربة</button>
-              <button data-tenant-extend-trial="${tenant.id}:30">+30 يوم تجربة</button>
-            </div></td>
-          </tr>`;
-          },
-        )
-        .join("") || `<tr><td colspan="6">لا توجد متاجر بعد.</td></tr>`;
-    $("admin-plans").innerHTML = plans.plans
-      .map(
-        (plan) => `<div class="plan-card">
-          <div><strong>${plan.name}</strong><br><small>${plan.duration_months} شهر - ${plan.is_active ? "active" : "inactive"}</small></div>
-          <div class="row-actions">
-            <input type="number" value="${(plan.price_cents / 100).toFixed(2)}" data-plan-price="${plan.code}">
-            <button data-plan-save="${plan.code}">حفظ</button>
-          </div>
-        </div>`,
-      )
-      .join("");
+    renderAdminTenantsTable();
+    renderAdminPlans(state.adminPlans);
+    renderAdminInvoices(invoices.invoices || []);
+    fillAdminInvoiceForm();
     renderPlatformProviders(platformProviders.providers);
-    $("admin-invoices-table").innerHTML =
-      invoices.invoices
-        .map(
-          (invoice) => `<tr>
-            <td><strong>${invoice.tenant_name}</strong><br><small>${invoice.tenant_slug}</small></td>
-            <td>${invoice.plan_code}</td>
-            <td>${money(invoice.amount_cents)}</td>
-            <td>${invoice.status}<br><small>${invoice.provider || ""} ${invoice.provider_reference || ""}</small></td>
-            <td><div class="row-actions">
-              <button class="success-button" data-invoice-status="${invoice.id}:paid">Paid</button>
-              <button data-invoice-status="${invoice.id}:expired">Expired</button>
-              <button class="danger-button" data-invoice-status="${invoice.id}:failed">Failed</button>
-            </div></td>
-          </tr>`,
-        )
-        .join("") || `<tr><td colspan="5">لا توجد فواتير بعد.</td></tr>`;
     bindAdminActions();
   } catch {
-    $("admin-tenants-table").innerHTML = `<tr><td colspan="6">سجل دخول كسوبر أدمن لعرض هذا القسم.</td></tr>`;
+    $("admin-tenants-table").innerHTML = `<tr><td colspan="7">سجل دخول كسوبر أدمن لعرض هذا القسم.</td></tr>`;
   }
 }
 
@@ -2020,11 +2206,23 @@ function bindAdminActions() {
   document.querySelectorAll("[data-plan-save]").forEach((button) => {
     button.addEventListener("click", async () => {
       const code = button.dataset.planSave;
-      const input = document.querySelector(`[data-plan-price="${code}"]`);
-      await api(`/api/admin/plans/${code}`, { method: "PATCH", body: JSON.stringify({ priceCents: Math.round(Number(input.value) * 100) }) });
+      const priceInput = document.querySelector(`[data-plan-price="${code}"]`);
+      const nameInput = document.querySelector(`[data-plan-name="${code}"]`);
+      const activeInput = document.querySelector(`[data-plan-active="${code}"]`);
+      await api(`/api/admin/plans/${code}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          priceCents: Math.round(Number(priceInput.value) * 100),
+          name: nameInput?.value?.trim() || undefined,
+          isActive: activeInput?.checked,
+        }),
+      });
       showMessage("تم تحديث الخطة.");
       await loadAdmin();
     });
+  });
+  document.querySelectorAll("[data-admin-tenant-detail]").forEach((button) => {
+    button.addEventListener("click", () => openAdminTenantDetail(button.dataset.adminTenantDetail));
   });
   document.querySelectorAll("[data-invoice-status]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -2077,6 +2275,7 @@ document.addEventListener("DOMContentLoaded", () => {
   applyMobileStoreClientShell();
   setOnboardingMode("register");
   setMerchantTab("overview");
+  setAdminTab("overview");
   initThemeLibraryFilters();
   updateThemePickerUi();
   updateNavigation();
@@ -2110,6 +2309,18 @@ document.addEventListener("DOMContentLoaded", () => {
       setMerchantTab(button.dataset.merchantTab);
     });
   });
+  document.querySelectorAll("[data-admin-tab]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      setAdminTab(button.dataset.adminTab);
+    });
+  });
+  $("admin-tenant-search")?.addEventListener("input", renderAdminTenantsTable);
+  $("admin-tenant-status-filter")?.addEventListener("change", renderAdminTenantsTable);
+  $("admin-order-status-filter")?.addEventListener("change", () => loadAdminOrders());
+  $("admin-orders-refresh")?.addEventListener("click", () => loadAdminOrders());
+  $("admin-create-invoice-form")?.addEventListener("submit", createAdminInvoice);
+  $("admin-tenant-dialog-close")?.addEventListener("click", () => $("admin-tenant-dialog")?.close());
   // Billing lives inside merchant dashboard; no standalone payments view handlers.
   $("category-filter").addEventListener("input", renderMerchantCategories);
   $("show-category-form").addEventListener("click", () => setCreationForm("category-form", true));

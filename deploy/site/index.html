@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060717" />
+  <link rel="stylesheet" href="/styles.css?v=2026060718" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -1000,76 +1000,158 @@
       </section>
 
       <section class="view" id="view-admin">
-        <div class="grid four" id="admin-kpis">
-          <div class="metric compact"><span>التجار</span><strong id="admin-tenants-total">0</strong><small id="admin-tenants-active">0 active</small></div>
-          <div class="metric compact"><span>الطلبات</span><strong id="admin-orders-total">0</strong><small>كل المتاجر</small></div>
-          <div class="metric compact"><span>المبيعات</span><strong id="admin-revenue-total">0.00 EGP</strong><small>إجمالي الطلبات</small></div>
-          <div class="metric compact"><span>الفواتير</span><strong id="admin-invoices-total">0</strong><small id="admin-invoices-paid">0 paid</small></div>
-        </div>
-        <article class="panel span-2">
-          <div class="panel-heading">
-            <span class="eyebrow">Trial</span>
-            <h2>فترة التجربة المجانية</h2>
+        <div class="admin-dashboard">
+          <aside class="admin-side">
+            <div class="admin-side-head">
+              <span class="eyebrow">Platform control</span>
+              <strong>لوحة السوبر أدمن</strong>
+              <small class="muted">تحكم كامل في المنصة والتجار</small>
+            </div>
+            <nav class="admin-side-nav">
+              <button type="button" class="admin-side-item active" data-admin-tab="overview"><strong>نظرة عامة</strong><small>مؤشرات وتنبيهات</small></button>
+              <button type="button" class="admin-side-item" data-admin-tab="tenants"><strong>التجار</strong><small>بحث وإدارة المتاجر</small></button>
+              <button type="button" class="admin-side-item" data-admin-tab="subscriptions"><strong>الاشتراكات</strong><small>خطط وفواتير وتجربة</small></button>
+              <button type="button" class="admin-side-item" data-admin-tab="orders"><strong>طلبات المنصة</strong><small>كل طلبات المتاجر</small></button>
+              <button type="button" class="admin-side-item" data-admin-tab="system"><strong>النظام</strong><small>Paymob وAPK</small></button>
+            </nav>
+          </aside>
+
+          <div class="admin-main">
+            <article class="panel admin-tab active" data-admin-panel="overview">
+              <div class="page-head"><div><div class="breadcrumb">السوبر أدمن <span>/</span> نظرة عامة</div><h2>ملخص المنصة</h2></div></div>
+              <div class="grid four" id="admin-kpis">
+                <div class="metric compact"><span>التجار</span><strong id="admin-tenants-total">0</strong><small id="admin-tenants-active">0 نشط</small></div>
+                <div class="metric compact"><span>تجربة / منتهي</span><strong id="admin-tenants-trial">0</strong><small id="admin-tenants-expired">0 منتهي</small></div>
+                <div class="metric compact"><span>طلبات المتاجر</span><strong id="admin-orders-total">0</strong><small id="admin-customers-total">0 عميل</small></div>
+                <div class="metric compact"><span>مبيعات المتاجر</span><strong id="admin-revenue-total">0.00 EGP</strong><small id="admin-products-total">0 منتج</small></div>
+              </div>
+              <div class="grid two" style="margin-top: 1rem">
+                <div class="metric compact"><span>فواتير الاشتراك</span><strong id="admin-invoices-total">0</strong><small id="admin-invoices-paid">0 مدفوعة</small></div>
+                <div class="metric compact"><span>إيراد اشتراكات المنصة</span><strong id="admin-subscription-revenue">0.00 EGP</strong><small>فواتير مدفوعة</small></div>
+              </div>
+              <div class="panel-heading" style="margin-top: 1.25rem"><span class="eyebrow">Alerts</span><h3>تنبيهات تحتاج متابعة</h3></div>
+              <ul id="admin-overview-alerts" class="insight-list"><li>جاري التحميل...</li></ul>
+              <div class="panel-heading" style="margin-top: 1rem"><span class="eyebrow">Expiring</span><h3>تجار قرب انتهاء التجربة (7 أيام)</h3></div>
+              <ul id="admin-expiring-trials" class="list"><li>جاري التحميل...</li></ul>
+            </article>
+
+            <article class="panel admin-tab" data-admin-panel="tenants">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">السوبر أدمن <span>/</span> التجار</div>
+                  <h2>إدارة التجار والمتاجر</h2>
+                  <p class="page-subtitle">بحث، تصفية، تفعيل/تعليق، تمديد تجربة أو اشتراك، وعرض تفاصيل كل متجر.</p>
+                </div>
+              </div>
+              <div class="section-tools admin-tenant-tools">
+                <input id="admin-tenant-search" type="search" placeholder="بحث بالاسم أو slug..." aria-label="بحث التجار">
+                <select id="admin-tenant-status-filter" aria-label="تصفية الحالة">
+                  <option value="">كل الحالات</option>
+                  <option value="trial">trial</option>
+                  <option value="active">active</option>
+                  <option value="suspended">suspended</option>
+                  <option value="expired">expired</option>
+                </select>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>المتجر</th><th>المالك</th><th>الحالة</th><th>الخطة</th><th>الانتهاء</th><th>الأداء</th><th>إجراءات</th></tr></thead>
+                  <tbody id="admin-tenants-table"><tr><td colspan="7">سجل دخول كسوبر أدمن.</td></tr></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel admin-tab" data-admin-panel="subscriptions">
+              <div class="page-head"><div><div class="breadcrumb">السوبر أدمن <span>/</span> الاشتراكات</div><h2>خطط وفواتير المنصة</h2></div></div>
+              <div class="grid two">
+                <article class="panel nested-panel">
+                  <div class="panel-heading"><span class="eyebrow">Trial</span><h3>فترة التجربة</h3></div>
+                  <form id="platform-trial-settings-form" class="form-grid">
+                    <label class="span-2">أيام التجربة<input id="platform-trial-days" type="number" min="1" max="365" value="30" required></label>
+                    <button type="submit" class="span-2">حفظ</button>
+                  </form>
+                  <div id="platform-trial-settings-status" class="hint-box">جاري التحميل...</div>
+                </article>
+                <article class="panel nested-panel">
+                  <div class="panel-heading"><span class="eyebrow">Invoice</span><h3>إنشاء فاتورة لتاجر</h3></div>
+                  <form id="admin-create-invoice-form" class="form-grid">
+                    <label class="span-2">المتجر<select id="admin-invoice-tenant" required></select></label>
+                    <label class="span-2">الخطة<select id="admin-invoice-plan" required></select></label>
+                    <button type="submit" class="span-2">إنشاء فاتورة</button>
+                  </form>
+                </article>
+              </div>
+              <div class="panel-heading" style="margin-top: 1rem"><span class="eyebrow">Plans</span><h3>خطط الاشتراك</h3></div>
+              <div id="admin-plans" class="plan-list"></div>
+              <div class="panel-heading" style="margin-top: 1rem"><span class="eyebrow">Invoices</span><h3>فواتير اشتراك المنصة</h3></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>المتجر</th><th>الخطة</th><th>القيمة</th><th>الحالة</th><th>التاريخ</th><th>إجراءات</th></tr></thead>
+                  <tbody id="admin-invoices-table"><tr><td colspan="6">لا توجد فواتير بعد.</td></tr></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel admin-tab" data-admin-panel="orders">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">السوبر أدمن <span>/</span> طلبات المنصة</div>
+                  <h2>كل طلبات المتاجر</h2>
+                </div>
+              </div>
+              <div class="section-tools">
+                <select id="admin-order-status-filter">
+                  <option value="">كل الحالات</option>
+                  <option value="pending">pending</option>
+                  <option value="confirmed">confirmed</option>
+                  <option value="shipped">shipped</option>
+                  <option value="delivered">delivered</option>
+                  <option value="cancelled">cancelled</option>
+                </select>
+                <button type="button" class="secondary" id="admin-orders-refresh">تحديث</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>المتجر</th><th>العميل</th><th>القيمة</th><th>حالة الطلب</th><th>الدفع</th><th>التاريخ</th></tr></thead>
+                  <tbody id="admin-orders-table"><tr><td colspan="6">جاري التحميل...</td></tr></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel admin-tab" data-admin-panel="system">
+              <div class="page-head"><div><div class="breadcrumb">السوبر أدمن <span>/</span> النظام</div><h2>الدفع وبناء APK</h2></div></div>
+              <div class="panel-heading"><span class="eyebrow">Paymob</span><h3>بوابة دفع اشتراكات المنصة</h3></div>
+              <div id="platform-paymob-status" class="hint-box">لم يتم تحميل حالة Paymob.</div>
+              <form id="platform-paymob-form" class="form-grid">
+                <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+                <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
+                <label class="span-2">Public Key<input name="publicKey" placeholder="pk_..."></label>
+                <label class="span-2">Secret Key<input name="secretKey" placeholder="sk_..."></label>
+                <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري"></label>
+                <label>Card Integration ID<input name="cardIntegrationId" type="number"></label>
+                <label>Wallet Integration ID<input name="walletIntegrationId" type="number"></label>
+                <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob</label>
+                <button>حفظ</button>
+                <button type="button" class="secondary" id="test-platform-paymob">اختبار الاتصال</button>
+              </form>
+              <div class="panel-heading" style="margin-top: 1.25rem"><span class="eyebrow">APK</span><h3>سجل بناء تطبيقات الأندرويد</h3></div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>المتجر</th><th>الحالة</th><th>الرابط</th><th>التاريخ</th><th>خطأ</th></tr></thead>
+                  <tbody id="admin-android-builds-table"><tr><td colspan="5">جاري التحميل...</td></tr></tbody>
+                </table>
+              </div>
+            </article>
           </div>
-          <p class="page-subtitle">كل تاجر جديد يحصل تلقائيًا على تجربة مجانية بعدد الأيام التالي. يمكنك تمديد أي متجر من جدول التجار.</p>
-          <form id="platform-trial-settings-form" class="form-grid" style="max-width: 420px;">
-            <label class="span-2">أيام التجربة للتسجيل الجديد<input id="platform-trial-days" type="number" min="1" max="365" value="30" required></label>
-            <button type="submit" class="span-2">حفظ مدة التجربة</button>
-          </form>
-          <div id="platform-trial-settings-status" class="hint-box">جاري التحميل...</div>
-        </article>
-        <div class="grid two">
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Platform owner</span>
-              <h2>التجار والمتاجر</h2>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>المتجر</th><th>الحالة</th><th>الخطة</th><th>انتهاء التجربة</th><th>الأداء</th><th>إجراءات</th></tr></thead>
-                <tbody id="admin-tenants-table"><tr><td colspan="6">سجل دخول كسوبر أدمن.</td></tr></tbody>
-              </table>
-            </div>
-          </article>
-          <article class="panel">
-            <div class="panel-heading">
-              <span class="eyebrow">Plans</span>
-              <h2>خطط الاشتراك</h2>
-            </div>
-            <div id="admin-plans" class="plan-list"></div>
-          </article>
-          <article class="panel span-2">
-            <div class="panel-heading">
-              <span class="eyebrow">Platform Paymob</span>
-              <h2>بوابة دفع اشتراكات المنصة</h2>
-            </div>
-            <div id="platform-paymob-status" class="hint-box">لم يتم تحميل حالة Paymob.</div>
-            <form id="platform-paymob-form" class="form-grid">
-              <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
-              <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
-              <label class="span-2">Public Key<input name="publicKey" placeholder="pk_..."></label>
-              <label class="span-2">Secret Key<input name="secretKey" placeholder="sk_..."></label>
-              <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري الآن"></label>
-              <label>Card Integration ID<input name="cardIntegrationId" type="number"></label>
-              <label>Wallet Integration ID<input name="walletIntegrationId" type="number"></label>
-              <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob لاشتراكات التجار</label>
-              <button>حفظ بوابة المنصة</button>
-              <button type="button" class="secondary" id="test-platform-paymob">اختبار اتصال المنصة</button>
-            </form>
-          </article>
-          <article class="panel span-2">
-            <div class="panel-heading">
-              <span class="eyebrow">Invoices</span>
-              <h2>فواتير اشتراك المنصة</h2>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>المتجر</th><th>الخطة</th><th>القيمة</th><th>الحالة</th><th>إجراءات</th></tr></thead>
-                <tbody id="admin-invoices-table"><tr><td colspan="5">لا توجد فواتير بعد.</td></tr></tbody>
-              </table>
-            </div>
-          </article>
         </div>
+
+        <dialog id="admin-tenant-dialog" class="order-dialog admin-tenant-dialog">
+          <div class="dialog-head">
+            <strong id="admin-tenant-dialog-title">تفاصيل المتجر</strong>
+            <button type="button" class="ghost" id="admin-tenant-dialog-close">إغلاق</button>
+          </div>
+          <div id="admin-tenant-dialog-body" class="dialog-body">جاري التحميل...</div>
+        </dialog>
       </section>
     </main>
   </div>
@@ -1092,6 +1174,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060717"></script>
+  <script src="/app.js?v=2026060718"></script>
 </body>
 </html>

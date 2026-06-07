@@ -1744,10 +1744,15 @@ app.get("/api/admin/tenants", async (request) => {
   requirePlatformOwner(request);
   const result = await pool.query(
     `SELECT tenants.*,
+            owner.name AS owner_name,
+            owner.email AS owner_email,
             coalesce(product_counts.total, 0)::int AS products_count,
             coalesce(order_counts.total, 0)::int AS orders_count,
             coalesce(order_counts.revenue_cents, 0)::int AS revenue_cents
      FROM tenants
+     LEFT JOIN LATERAL (
+       SELECT name, email FROM users WHERE tenant_id = tenants.id AND role = 'merchant_owner' LIMIT 1
+     ) owner ON true
      LEFT JOIN (
        SELECT tenant_id, count(*) AS total FROM products GROUP BY tenant_id
      ) product_counts ON product_counts.tenant_id = tenants.id
@@ -1919,6 +1924,103 @@ app.post("/api/admin/payment-providers/paymob/test", async (request, reply) => {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) return reply.code(400).send({ ok: false, message: data.message || "Paymob connection failed", details: data });
   return { ok: true, provider: "paymob", intentionId: data.id, hasClientSecret: Boolean(data.client_secret) };
+});
+
+app.get("/api/admin/tenants/:tenantId", async (request, reply) => {
+  requirePlatformOwner(request);
+  const params = z.object({ tenantId: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(
+    `SELECT tenants.*,
+            coalesce(product_counts.total, 0)::int AS products_count,
+            coalesce(order_counts.total, 0)::int AS orders_count,
+            coalesce(order_counts.revenue_cents, 0)::int AS revenue_cents,
+            owner.id AS owner_id,
+            owner.name AS owner_name,
+            owner.email AS owner_email,
+            owner.phone AS owner_phone,
+            owner.created_at AS owner_created_at,
+            (SELECT count(*)::int FROM tenant_android_builds WHERE tenant_id = tenants.id) AS android_builds_count,
+            (SELECT count(*)::int FROM tenant_android_builds WHERE tenant_id = tenants.id AND status = 'succeeded') AS android_builds_succeeded,
+            EXISTS(SELECT 1 FROM tenant_payment_credentials WHERE tenant_id = tenants.id AND is_enabled = true) AS payment_enabled
+     FROM tenants
+     LEFT JOIN users owner ON owner.tenant_id = tenants.id AND owner.role = 'merchant_owner'
+     LEFT JOIN (
+       SELECT tenant_id, count(*) AS total FROM products GROUP BY tenant_id
+     ) product_counts ON product_counts.tenant_id = tenants.id
+     LEFT JOIN (
+       SELECT tenant_id, count(*) AS total, sum(total_cents) AS revenue_cents FROM orders GROUP BY tenant_id
+     ) order_counts ON order_counts.tenant_id = tenants.id
+     WHERE tenants.id = $1`,
+    [params.tenantId],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Tenant not found" });
+  const builds = await pool.query(
+    `SELECT id, status, artifact_url, github_run_url, error_message, created_at, updated_at
+     FROM tenant_android_builds WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 12`,
+    [params.tenantId],
+  );
+  return { tenant: result.rows[0], androidBuilds: builds.rows };
+});
+
+app.get("/api/admin/orders", async (request) => {
+  requirePlatformOwner(request);
+  const query = z
+    .object({
+      status: z.string().optional(),
+      tenantId: z.string().uuid().optional(),
+      limit: z.coerce.number().int().min(1).max(200).optional(),
+    })
+    .parse(request.query);
+  const limit = query.limit ?? 80;
+  const conditions = ["1=1"];
+  const params: unknown[] = [];
+  if (query.status) {
+    params.push(query.status);
+    conditions.push(`orders.status = $${params.length}`);
+  }
+  if (query.tenantId) {
+    params.push(query.tenantId);
+    conditions.push(`orders.tenant_id = $${params.length}`);
+  }
+  params.push(limit);
+  const result = await pool.query(
+    `SELECT orders.*, tenants.name_en AS tenant_name, tenants.slug AS tenant_slug
+     FROM orders
+     JOIN tenants ON tenants.id = orders.tenant_id
+     WHERE ${conditions.join(" AND ")}
+     ORDER BY orders.created_at DESC
+     LIMIT $${params.length}`,
+    params,
+  );
+  return { orders: result.rows };
+});
+
+app.get("/api/admin/android-builds", async (request) => {
+  requirePlatformOwner(request);
+  const result = await pool.query(
+    `SELECT b.*, t.name_en AS tenant_name, t.slug AS tenant_slug
+     FROM tenant_android_builds b
+     JOIN tenants t ON t.id = b.tenant_id
+     ORDER BY b.created_at DESC
+     LIMIT 80`,
+  );
+  return { builds: result.rows };
+});
+
+app.post("/api/admin/subscription-invoices", async (request, reply) => {
+  requirePlatformOwner(request);
+  const body = z.object({ tenantId: z.string().uuid(), planCode: z.string().min(1) }).parse(request.body);
+  const plan = await pool.query(`SELECT * FROM plans WHERE code = $1`, [body.planCode]);
+  if (!plan.rows[0]) return reply.code(404).send({ message: "Plan not found" });
+  const tenant = await pool.query(`SELECT id FROM tenants WHERE id = $1`, [body.tenantId]);
+  if (!tenant.rows[0]) return reply.code(404).send({ message: "Tenant not found" });
+  const result = await pool.query(
+    `INSERT INTO platform_subscription_invoices (tenant_id, plan_code, amount_cents)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+    [body.tenantId, plan.rows[0].code, plan.rows[0].price_cents],
+  );
+  return reply.code(201).send({ invoice: result.rows[0] });
 });
 
 app.get("/api/admin/subscription-invoices", async (request) => {
