@@ -3520,6 +3520,31 @@ body[data-auth-mode="login"] .register-panel {
   background: rgba(14, 116, 144, 0.18);
 }
 
+.android-install-guide {
+  margin-top: 1rem;
+  border-color: rgba(251, 191, 36, 0.45);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(15, 23, 42, 0.4));
+}
+
+.android-install-steps {
+  margin: 12px 0;
+  padding-right: 1.25rem;
+  line-height: 1.65;
+}
+
+.android-install-steps li + li {
+  margin-top: 8px;
+}
+
+.android-install-note {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(252, 165, 165, 0.35);
+  background: rgba(127, 29, 29, 0.15);
+  color: #fecaca;
+}
+
 .android-merchant-hint p {
   margin: 0;
   line-height: 1.55;
