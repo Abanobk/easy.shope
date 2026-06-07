@@ -287,6 +287,27 @@ async function expireOverdueSubscriptions() {
   );
 }
 
+async function getPlatformSetting(key: string, fallback: string): Promise<string> {
+  const result = await pool.query(`SELECT value FROM platform_settings WHERE key = $1`, [key]);
+  return result.rows[0]?.value ?? fallback;
+}
+
+async function setPlatformSetting(key: string, value: string) {
+  await pool.query(
+    `INSERT INTO platform_settings (key, value, updated_at)
+     VALUES ($1, $2, now())
+     ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = now()`,
+    [key, value],
+  );
+}
+
+async function getTrialDaysDefault(): Promise<number> {
+  const raw = await getPlatformSetting("trial_days_default", "30");
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 1) return 30;
+  return Math.min(n, 365);
+}
+
 async function markSubscriptionInvoicePaid(invoiceId: string, providerReference?: string | null) {
   const client = await pool.connect();
   try {
@@ -499,6 +520,24 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_tenant_android_builds_tenant_created
     ON tenant_android_builds (tenant_id, created_at DESC);
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS platform_settings (
+      key text PRIMARY KEY,
+      value text NOT NULL,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(
+    `INSERT INTO platform_settings (key, value) VALUES ('trial_days_default', '30')
+     ON CONFLICT (key) DO NOTHING`,
+  );
+  await pool.query(`
+    UPDATE tenants
+    SET subscription_expires_at = created_at + (
+      SELECT (coalesce(value, '30') || ' days')::interval FROM platform_settings WHERE key = 'trial_days_default'
+    )
+    WHERE subscription_expires_at IS NULL AND status = 'trial'
+  `);
 
   const plans = [
     ["monthly", "Monthly", 1, 150000],
@@ -619,14 +658,15 @@ app.post("/api/auth/register-merchant", async (request, reply) => {
   if (existing.rows.some((row) => row.field === "email")) return reply.code(409).send({ message: "هذا البريد مستخدم بالفعل. جرّب تسجيل الدخول أو استخدم بريدًا آخر." });
   if (existing.rows.some((row) => row.field === "store")) return reply.code(409).send({ message: "اسم المتجر الإنجليزي مستخدم بالفعل. غيّر الاسم الإنجليزي قليلًا." });
   const passwordHash = await bcrypt.hash(body.password, 12);
+  const trialDays = await getTrialDaysDefault();
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const tenant = await client.query(
-      `INSERT INTO tenants (name_ar, name_en, slug, country)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO tenants (name_ar, name_en, slug, country, status, plan_code, subscription_expires_at)
+       VALUES ($1, $2, $3, $4, 'trial', 'trial', now() + ($5::text || ' days')::interval)
        RETURNING *`,
-      [body.storeNameAr, body.storeNameEn, slug, body.country],
+      [body.storeNameAr, body.storeNameEn, slug, body.country, String(trialDays)],
     );
     const user = await client.query(
       `INSERT INTO users (tenant_id, name, email, phone, password_hash, role)
@@ -1741,6 +1781,35 @@ app.post("/api/admin/tenants/:tenantId/extend", async (request) => {
     [body.months, params.tenantId, body.planCode ?? null],
   );
   return { tenant: result.rows[0] };
+});
+
+app.post("/api/admin/tenants/:tenantId/extend-trial", async (request) => {
+  requirePlatformOwner(request);
+  const params = z.object({ tenantId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ days: z.number().int().positive().max(365) }).parse(request.body);
+  const result = await pool.query(
+    `UPDATE tenants
+     SET status = CASE WHEN status IN ('expired', 'trial') THEN 'trial' ELSE status END,
+         subscription_expires_at = greatest(coalesce(subscription_expires_at, now()), now()) + ($1::text || ' days')::interval
+     WHERE id = $2
+     RETURNING *`,
+    [body.days, params.tenantId],
+  );
+  if (!result.rows[0]) throw httpError("Tenant not found", 404);
+  return { tenant: result.rows[0] };
+});
+
+app.get("/api/admin/platform-settings", async (request) => {
+  requirePlatformOwner(request);
+  const trialDaysDefault = await getTrialDaysDefault();
+  return { trialDaysDefault };
+});
+
+app.patch("/api/admin/platform-settings", async (request) => {
+  requirePlatformOwner(request);
+  const body = z.object({ trialDaysDefault: z.number().int().min(1).max(365) }).parse(request.body);
+  await setPlatformSetting("trial_days_default", String(body.trialDaysDefault));
+  return { trialDaysDefault: body.trialDaysDefault };
 });
 
 app.get("/api/admin/plans", async (request) => {

@@ -513,6 +513,68 @@ function updateNavigation() {
   });
   $("logout").hidden = scope === "public";
   if ($("merchant-summary")) $("merchant-summary").hidden = scope !== "merchant";
+  if (scope !== "merchant") hideTrialBanner();
+  updateWhatsAppFab();
+}
+
+function trialDaysRemaining(expiresAt) {
+  if (!expiresAt) return null;
+  const end = new Date(expiresAt);
+  if (Number.isNaN(end.getTime())) return null;
+  const diffMs = end.getTime() - Date.now();
+  if (diffMs <= 0) return 0;
+  return Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+}
+
+function formatTrialExpiryDate(expiresAt) {
+  if (!expiresAt) return "—";
+  const d = new Date(expiresAt);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("ar-EG", { dateStyle: "medium" });
+}
+
+function hideTrialBanner() {
+  const el = $("trial-subscription-banner");
+  if (el) el.hidden = true;
+}
+
+function renderTrialBanner(tenant) {
+  const el = $("trial-subscription-banner");
+  if (!el || currentScope() !== "merchant" || !tenant) {
+    hideTrialBanner();
+    return;
+  }
+  const days = trialDaysRemaining(tenant.subscription_expires_at);
+  const expiryLabel = formatTrialExpiryDate(tenant.subscription_expires_at);
+
+  if (tenant.status === "expired" || days === 0) {
+    el.hidden = false;
+    el.className = "trial-subscription-banner trial-subscription-banner--danger";
+    el.innerHTML = `<strong>انتهت فترة التجربة / الاشتراك</strong><span>تاريخ الانتهاء: ${expiryLabel}. ادفع اشتراك المنصة من «اشتراك المنصة» أو تواصل مع الدعم.</span><button type="button" class="mini-cta" data-merchant-jump="billing">اشتراك المنصة</button>`;
+    el.querySelector("[data-merchant-jump]")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      setMerchantTab("billing");
+    });
+    return;
+  }
+
+  if (tenant.status !== "trial" && tenant.status !== "active") {
+    hideTrialBanner();
+    return;
+  }
+
+  if (days === null) {
+    hideTrialBanner();
+    return;
+  }
+
+  const urgent = days <= 7;
+  el.hidden = false;
+  el.className = `trial-subscription-banner${urgent ? " trial-subscription-banner--warn" : ""}`;
+  el.innerHTML = `<strong>تجربة مجانية — متبقي ${days} ${days === 1 ? "يوم" : "يوم"}</strong><span>ينتهي في ${expiryLabel}. ${urgent ? "باقي وقت قليل — جدّد الاشتراك لتفادي إيقاف المتجر." : "استمتع بكل المزايا خلال فترة التجربة."}</span><button type="button" class="mini-cta" data-merchant-jump="billing">اشتراك المنصة</button>`;
+  el.querySelector("[data-merchant-jump]")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    setMerchantTab("billing");
+  });
 }
 
 function setOnboardingMode(mode = "register") {
@@ -545,13 +607,24 @@ function setMerchantTab(tab = "overview") {
   }
   if (tab !== "categories") setCreationForm("category-form", false);
   if (tab !== "products") setCreationForm("product-form", false);
+  updateWhatsAppFab();
 }
 
 function updateWhatsAppFab() {
   const fab = $("whatsapp-support-fab");
   if (!fab) return;
-  const onStorefront = document.body.dataset.view === "storefront" || document.body.classList.contains("mobile-store-client");
-  fab.hidden = !onStorefront;
+  const scope = currentScope();
+  const view = document.body.dataset.view;
+  const merchantDashboard = scope === "merchant" && view === "catalog";
+  const customerStorefront = view === "storefront" || document.body.classList.contains("mobile-store-client");
+  const show = merchantDashboard || customerStorefront;
+  fab.hidden = !show;
+  fab.classList.toggle("whatsapp-support-fab--merchant", merchantDashboard);
+  const merchantText = encodeURIComponent("مرحبًا، أود الاستفسار عن لوحة التاجر والمنصة");
+  const customerText = encodeURIComponent("مرحبًا، أود الاستفسار عن المتجر");
+  fab.href = `https://wa.me/201557827829?text=${merchantDashboard ? merchantText : customerText}`;
+  const label = fab.querySelector(".whatsapp-support-fab__text strong");
+  if (label) label.textContent = merchantDashboard ? "دعم التجار" : "واتساب";
 }
 
 function setView(view, options = {}) {
@@ -944,6 +1017,18 @@ async function savePlatformPaymob(event) {
   await loadAdmin();
 }
 
+async function savePlatformTrialSettings(event) {
+  event.preventDefault();
+  const days = Number($("platform-trial-days")?.value || 30);
+  if (!Number.isFinite(days) || days < 1 || days > 365) {
+    showMessage("أدخل عدد أيام بين 1 و 365.", true);
+    return;
+  }
+  await api("/api/admin/platform-settings", { method: "PATCH", body: JSON.stringify({ trialDaysDefault: days }) });
+  showMessage(`تم حفظ مدة التجربة: ${days} يومًا لكل تسجيل جديد.`);
+  await loadAdmin();
+}
+
 async function testPlatformPaymob() {
   const data = await api("/api/admin/payment-providers/paymob/test", { method: "POST", body: JSON.stringify({}) });
   showMessage(data.ok ? "Platform Paymob connection ok." : "Platform Paymob connection failed.", !data.ok);
@@ -1045,6 +1130,7 @@ async function loadMerchantData() {
   if ($("merchant-latest-orders")) $("merchant-latest-orders").innerHTML = latestMarkup;
 
   renderOverviewAlerts(dashboard, billingInvoices);
+  renderTrialBanner(dashboard.tenant);
   $("product-category").innerHTML =
     `<option value="">بدون تصنيف</option>` + state.merchantCategories.map((item) => `<option value="${item.id}">${item.name_ar}</option>`).join("");
   $("product-filter-category").innerHTML =
@@ -1196,9 +1282,13 @@ function renderOverviewAlerts(dashboard, invoices) {
   if (tStatus === "suspended" || tStatus === "expired") {
     alerts.push("المتجر موقوف أو انتهى الاشتراك. راجع السوبر أدمن أو سدّد فاتورة المنصة.");
   } else if (tStatus === "trial") {
-    alerts.push(
-      "أنت في وضع التجربة — الواجهة تعمل بشكل طبيعي. ابدأ بإضافة أصناف ومنتجات، ثم ادفع اشتراك المنصة من «اشتراك المنصة» عند الجاهزية.",
-    );
+    const days = trialDaysRemaining(tenant.subscription_expires_at);
+    if (days !== null && days > 0) {
+      alerts.push(`أنت في التجربة المجانية — متبقي ${days} ${days === 1 ? "يوم" : "يوم"} (ينتهي ${formatTrialExpiryDate(tenant.subscription_expires_at)}).`);
+    } else {
+      alerts.push("فترة التجربة على وشك الانتهاء. ادفع اشتراك المنصة من «اشتراك المنصة».");
+    }
+    alerts.push("ابدأ بإضافة أصناف ومنتجات، ثم ادفع اشتراك المنصة عند الجاهزية.");
   } else if (tStatus && tStatus !== "active") {
     alerts.push("حالة المتجر تحتاج مراجعة من السوبر أدمن أو إكمال الاشتراك.");
   }
@@ -1783,12 +1873,13 @@ async function handlePaymentReturn() {
 async function loadAdmin() {
   if (!state.token) return;
   try {
-    const [overview, tenants, plans, invoices, platformProviders] = await Promise.all([
+    const [overview, tenants, plans, invoices, platformProviders, platformSettings] = await Promise.all([
       api("/api/admin/overview"),
       api("/api/admin/tenants"),
       api("/api/admin/plans"),
       api("/api/admin/subscription-invoices"),
       api("/api/admin/payment-providers"),
+      api("/api/admin/platform-settings"),
     ]);
     $("admin-tenants-total").textContent = sumRows(overview.tenants);
     $("admin-tenants-active").textContent = `${statusCount(overview.tenants, "active")} active`;
@@ -1796,22 +1887,36 @@ async function loadAdmin() {
     $("admin-revenue-total").textContent = money(overview.orders.total_cents);
     $("admin-invoices-total").textContent = sumRows(overview.subscriptionInvoices);
     $("admin-invoices-paid").textContent = `${statusCount(overview.subscriptionInvoices, "paid")} paid`;
+    if ($("platform-trial-days")) $("platform-trial-days").value = platformSettings.trialDaysDefault ?? 30;
+    if ($("platform-trial-settings-status")) {
+      $("platform-trial-settings-status").innerHTML = `<strong>الإعداد الحالي</strong><p>كل تاجر جديد يحصل على <strong>${platformSettings.trialDaysDefault ?? 30} يوم</strong> تجربة مجانية.</p>`;
+    }
     $("admin-tenants-table").innerHTML =
       tenants.tenants
         .map(
-          (tenant) => `<tr>
+          (tenant) => {
+            const daysLeft = trialDaysRemaining(tenant.subscription_expires_at);
+            const expiryCell =
+              tenant.subscription_expires_at
+                ? `<small>${formatTrialExpiryDate(tenant.subscription_expires_at)}</small><br><strong>${daysLeft === null ? "—" : daysLeft <= 0 ? "منتهي" : `${daysLeft} يوم`}</strong>`
+                : "—";
+            return `<tr>
             <td><strong>${tenant.name_en}</strong><br><small>${tenant.slug}</small></td>
             <td>${tenant.status}</td>
             <td>${tenant.plan_code}</td>
+            <td>${expiryCell}</td>
             <td>${tenant.products_count} منتجات / ${tenant.orders_count} طلب / ${money(tenant.revenue_cents)}</td>
             <td><div class="row-actions">
               <button class="success-button" data-tenant-status="${tenant.id}:active">تفعيل</button>
               <button class="danger-button" data-tenant-status="${tenant.id}:suspended">تعليق</button>
               <button data-tenant-extend="${tenant.id}">+ شهر</button>
+              <button data-tenant-extend-trial="${tenant.id}:7">+7 أيام تجربة</button>
+              <button data-tenant-extend-trial="${tenant.id}:30">+30 يوم تجربة</button>
             </div></td>
-          </tr>`,
+          </tr>`;
+          },
         )
-        .join("") || `<tr><td colspan="5">لا توجد متاجر بعد.</td></tr>`;
+        .join("") || `<tr><td colspan="6">لا توجد متاجر بعد.</td></tr>`;
     $("admin-plans").innerHTML = plans.plans
       .map(
         (plan) => `<div class="plan-card">
@@ -1842,7 +1947,7 @@ async function loadAdmin() {
         .join("") || `<tr><td colspan="5">لا توجد فواتير بعد.</td></tr>`;
     bindAdminActions();
   } catch {
-    $("admin-tenants-table").innerHTML = `<tr><td colspan="5">سجل دخول كسوبر أدمن لعرض هذا القسم.</td></tr>`;
+    $("admin-tenants-table").innerHTML = `<tr><td colspan="6">سجل دخول كسوبر أدمن لعرض هذا القسم.</td></tr>`;
   }
 }
 
@@ -1868,6 +1973,14 @@ function bindAdminActions() {
     button.addEventListener("click", async () => {
       await api(`/api/admin/tenants/${button.dataset.tenantExtend}/extend`, { method: "POST", body: JSON.stringify({ months: 1 }) });
       showMessage("تم تمديد الاشتراك شهرًا.");
+      await loadAdmin();
+    });
+  });
+  document.querySelectorAll("[data-tenant-extend-trial]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const [tenantId, days] = button.dataset.tenantExtendTrial.split(":");
+      await api(`/api/admin/tenants/${tenantId}/extend-trial`, { method: "POST", body: JSON.stringify({ days: Number(days) }) });
+      showMessage(`تم تمديد التجربة ${days} يومًا.`);
       await loadAdmin();
     });
   });
@@ -2000,6 +2113,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("test-paymob").addEventListener("click", testPaymob);
   $("platform-paymob-form").addEventListener("submit", savePlatformPaymob);
   $("test-platform-paymob").addEventListener("click", testPlatformPaymob);
+  $("platform-trial-settings-form")?.addEventListener("submit", savePlatformTrialSettings);
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
   initStorefrontDelegation();

@@ -257,6 +257,55 @@ button,
   border-color: rgba(251, 191, 36, 0.35);
 }
 
+.trial-subscription-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(167, 139, 250, 0.08));
+  color: #e2e8f0;
+}
+
+.trial-subscription-banner strong {
+  display: block;
+  font-size: 1.02rem;
+  margin-bottom: 4px;
+}
+
+.trial-subscription-banner span {
+  color: #cbd5e1;
+  font-size: 0.92rem;
+}
+
+.trial-subscription-banner--warn {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(251, 113, 133, 0.08));
+}
+
+.trial-subscription-banner--danger {
+  border-color: rgba(252, 165, 165, 0.45);
+  background: linear-gradient(135deg, rgba(252, 165, 165, 0.14), rgba(239, 68, 68, 0.08));
+}
+
+.trial-subscription-banner .mini-cta {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.72);
+  color: #f8fafc;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.trial-subscription-banner .mini-cta:hover {
+  border-color: var(--accent);
+}
+
 .dot {
   width: 10px;
   height: 10px;
@@ -4762,6 +4811,17 @@ body.mobile-store-client .category-pills {
   text-decoration: none;
   box-shadow: 0 10px 28px rgba(37, 211, 102, 0.45);
   font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.whatsapp-support-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(37, 211, 102, 0.55);
+}
+
+.whatsapp-support-fab--merchant {
+  left: auto;
+  right: 16px;
 }
 
 .whatsapp-support-fab[hidden] {
@@ -4769,8 +4829,18 @@ body.mobile-store-client .category-pills {
 }
 
 .whatsapp-support-fab__icon {
-  font-size: 1.35rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.whatsapp-support-fab__icon svg {
+  display: block;
 }
 
 .whatsapp-support-fab__text {
