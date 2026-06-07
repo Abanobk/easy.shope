@@ -4,6 +4,7 @@ import 'config/app_config.dart';
 import 'state/store_session.dart';
 import 'templates/template_registry.dart';
 import 'theme/template_palette.dart';
+import 'widgets/whatsapp_support_button.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,7 +63,13 @@ class _EasyShopeMobileAppState extends State<EasyShopeMobileApp> {
         title: _session.store?.displayName ?? 'Easy Shope',
         theme: palette.toThemeData(),
         builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
-        home: buildTemplateApp(_session),
+        home: Stack(
+          fit: StackFit.expand,
+          children: [
+            buildTemplateApp(_session),
+            const WhatsAppSupportButton(),
+          ],
+        ),
       ),
     );
   }

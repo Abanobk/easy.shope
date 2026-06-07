@@ -547,6 +547,13 @@ function setMerchantTab(tab = "overview") {
   if (tab !== "products") setCreationForm("product-form", false);
 }
 
+function updateWhatsAppFab() {
+  const fab = $("whatsapp-support-fab");
+  if (!fab) return;
+  const onStorefront = document.body.dataset.view === "storefront" || document.body.classList.contains("mobile-store-client");
+  fab.hidden = !onStorefront;
+}
+
 function setView(view, options = {}) {
   updateNavigation();
   if (!$(`view-${view}`)) view = defaultViewForScope();
@@ -555,6 +562,7 @@ function setView(view, options = {}) {
   document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
   $(`view-${view}`)?.classList.add("active");
   document.querySelector(`.nav-item[data-view="${view}"]:not([hidden])`)?.classList.add("active");
+  updateWhatsAppFab();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1428,6 +1436,7 @@ function applyMobileStoreClientShell() {
     if (slugField) slugField.classList.add("mobile-store-slug-hidden");
     const formBtn = document.querySelector("#storefront-form button[type='submit']");
     if (formBtn) formBtn.textContent = "بحث";
+    updateWhatsAppFab();
   } catch {
     /* ignore */
   }
