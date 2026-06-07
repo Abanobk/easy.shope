@@ -103,8 +103,6 @@ body[data-scope="admin"][data-view="admin"] .main {
 }
 
 .admin-side {
-  position: sticky;
-  top: 18px;
   border: 1px solid var(--line);
   border-radius: 28px;
   padding: 18px;
@@ -116,6 +114,26 @@ body[data-scope="admin"][data-view="admin"] .main {
   display: grid;
   gap: 6px;
   margin-bottom: 14px;
+}
+
+@media (max-width: 980px) {
+  .admin-side-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .admin-side-head > div,
+  .merchant-brand {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .drawer-close {
+    display: grid;
+    place-items: center;
+  }
 }
 
 .admin-side-nav {
@@ -145,6 +163,14 @@ body[data-scope="admin"][data-view="admin"] .main {
   margin-top: 4px;
 }
 
+@media (min-width: 981px) {
+  .merchant-side,
+  .admin-side {
+    position: sticky;
+    top: 18px;
+  }
+}
+
 .admin-tab {
   display: none;
 }
@@ -152,6 +178,12 @@ body[data-scope="admin"][data-view="admin"] .main {
 .admin-tab.active {
   display: block;
   animation: merchant-panel-in 0.24s ease-out;
+}
+
+.admin-main {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
 }
 
 .nested-panel {
@@ -188,11 +220,7 @@ body[data-scope="admin"][data-view="admin"] .main {
 
 @media (max-width: 980px) {
   .admin-dashboard {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-side {
-    position: static;
+    display: block;
   }
 }
 
@@ -533,8 +561,6 @@ body[data-auth-mode="login"] .register-panel {
 }
 
 .merchant-side {
-  position: sticky;
-  top: 18px;
   border: 1px solid var(--line);
   border-radius: 28px;
   padding: 18px;
@@ -544,6 +570,24 @@ body[data-auth-mode="login"] .register-panel {
 
 .merchant-side-head {
   margin-bottom: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.drawer-close {
+  display: none;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .merchant-brand {
@@ -689,6 +733,203 @@ body[data-auth-mode="login"] .register-panel {
   min-height: 520px;
   display: grid;
   gap: 16px;
+}
+
+.merchant-workspace,
+.admin-workspace {
+  min-width: 0;
+}
+
+.merchant-mobile-toolbar,
+.admin-mobile-toolbar {
+  display: none;
+}
+
+.merchant-nav-backdrop,
+.admin-nav-backdrop {
+  display: none;
+}
+
+.merchant-menu-toggle,
+.admin-menu-toggle {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.merchant-menu-icon,
+.admin-menu-icon {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 999px;
+  box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor;
+}
+
+.merchant-mobile-toolbar-text,
+.admin-mobile-toolbar-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.merchant-mobile-toolbar-text strong,
+.admin-mobile-toolbar-text strong {
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.merchant-mobile-toolbar-text small,
+.admin-mobile-toolbar-text small {
+  color: var(--muted);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  body[data-scope="merchant"][data-view="catalog"] .main,
+  body[data-scope="admin"][data-view="admin"] .main {
+    width: 100%;
+    padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0));
+  }
+
+  body[data-scope="merchant"][data-view="catalog"] .main > .topbar,
+  body[data-scope="admin"][data-view="admin"] .main > .topbar {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    margin: 0 0 8px;
+    border: none;
+    background: transparent;
+  }
+
+  body[data-scope="merchant"][data-view="catalog"] .main > .topbar > div:first-child,
+  body[data-scope="admin"][data-view="admin"] .main > .topbar > div:first-child {
+    display: none;
+  }
+
+  body[data-scope="merchant"][data-view="catalog"] .main > .topbar h1,
+  body[data-scope="admin"][data-view="admin"] .main > .topbar h1 {
+    display: none;
+  }
+
+  .merchant-dashboard,
+  .admin-dashboard {
+    display: block;
+    position: relative;
+  }
+
+  .merchant-nav-backdrop,
+  .admin-nav-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background: rgba(2, 6, 23, 0.74);
+    backdrop-filter: blur(4px);
+  }
+
+  body.merchant-nav-open .merchant-nav-backdrop,
+  body.admin-nav-open .admin-nav-backdrop {
+    display: block;
+  }
+
+  body.merchant-nav-open,
+  body.admin-nav-open {
+    overflow: hidden;
+  }
+
+  .merchant-side,
+  .admin-side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    inset-inline-end: 0;
+    inset-inline-start: auto;
+    width: min(300px, 86vw);
+    z-index: 130;
+    margin: 0;
+    border-radius: 0;
+    border-inline-start: 1px solid var(--line);
+    border-inline-end: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0.28s,
+      opacity 0.28s;
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    background: rgb(11, 18, 32);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.45);
+  }
+
+  body.merchant-nav-open .merchant-side,
+  body.admin-nav-open .admin-side {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .merchant-mobile-toolbar,
+  .admin-mobile-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(2, 6, 23, 0.88);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
+  }
+
+  .merchant-main,
+  .admin-main {
+    min-height: auto;
+  }
+
+  .merchant-main .page-head,
+  .admin-main .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .merchant-main .page-head .primary,
+  .admin-main .page-head .primary,
+  .merchant-main .page-head button,
+  .admin-main .page-head button {
+    width: 100%;
+  }
+
+  .merchant-side-item,
+  .admin-side-item {
+    padding: 12px 14px;
+  }
 }
 
 .page-head {
@@ -4923,7 +5164,6 @@ tr:last-child td {
   .store-product-grid,
   .billing-layout,
   .billing-form,
-  .merchant-dashboard,
   .performance-grid,
   .variant-row,
   .grid.two,
@@ -5096,4 +5336,53 @@ body.mobile-store-client .category-pills {
 
 body.mobile-store-client .whatsapp-support-fab {
   bottom: calc(20px + env(safe-area-inset-bottom, 0));
+}
+
+/* ——— لوحة التاجر/الأدمن: drawer موبايل (أولوية نهائية) ——— */
+@media (max-width: 980px) {
+  body.dashboard-mobile .merchant-dashboard,
+  body.dashboard-mobile .admin-dashboard {
+    display: block;
+  }
+
+  body.dashboard-mobile .merchant-workspace,
+  body.dashboard-mobile .admin-workspace {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  body.dashboard-mobile .merchant-side,
+  body.dashboard-mobile .admin-side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    inset-inline-end: 0;
+    inset-inline-start: auto;
+    width: min(300px, 86vw);
+    max-height: 100dvh;
+    z-index: 140;
+    transform: translate3d(100%, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    background: rgb(11, 18, 32);
+  }
+
+  body.dashboard-mobile.merchant-nav-open .merchant-side,
+  body.dashboard-mobile.admin-nav-open .admin-side {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  body.dashboard-mobile.merchant-nav-open,
+  body.dashboard-mobile.admin-nav-open {
+    overflow: hidden;
+  }
+
+  body.dashboard-mobile .merchant-mobile-toolbar,
+  body.dashboard-mobile .admin-mobile-toolbar {
+    display: flex;
+  }
 }

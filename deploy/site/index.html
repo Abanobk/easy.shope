@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060721" />
+  <link rel="stylesheet" href="/styles.css?v=2026060723" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -134,7 +134,8 @@
 
       <section class="view" id="view-catalog">
         <div class="merchant-dashboard">
-          <aside class="merchant-side">
+          <div class="merchant-nav-backdrop" id="merchant-nav-backdrop" aria-hidden="true"></div>
+          <aside class="merchant-side" id="merchant-side-drawer" aria-label="قائمة لوحة المتجر">
             <div class="merchant-side-head">
               <div class="merchant-brand" id="merchant-brand">
                 <div class="merchant-brand-logo-wrap" id="merchant-brand-logo-wrap" hidden>
@@ -146,6 +147,7 @@
                   <small id="merchant-brand-slug" class="muted"></small>
                 </div>
               </div>
+              <button type="button" class="drawer-close" id="merchant-drawer-close" aria-label="إغلاق القائمة">×</button>
             </div>
             <nav class="merchant-side-nav">
               <button type="button" class="merchant-side-item active" data-merchant-tab="overview"><strong>نظرة عامة</strong><small>الأداء والتنبيهات</small></button>
@@ -159,6 +161,17 @@
               <button type="button" class="merchant-side-item" data-merchant-tab="settings"><strong>إعدادات المتجر</strong><small>البيانات والهوية</small></button>
             </nav>
           </aside>
+
+          <div class="merchant-workspace">
+            <header class="merchant-mobile-toolbar">
+              <button type="button" class="merchant-menu-toggle" id="merchant-menu-toggle" aria-expanded="false" aria-controls="merchant-side-drawer" aria-label="فتح القائمة">
+                <span class="merchant-menu-icon" aria-hidden="true"></span>
+              </button>
+              <div class="merchant-mobile-toolbar-text">
+                <strong id="merchant-mobile-tab-title">نظرة عامة</strong>
+                <small id="merchant-mobile-store-name">لوحة المتجر</small>
+              </div>
+            </header>
 
           <div class="merchant-main">
             <article class="panel merchant-tab active" data-merchant-panel="overview">
@@ -955,6 +968,7 @@
               </div>
             </article>
           </div>
+          </div>
         </div>
       </section>
 
@@ -1028,11 +1042,15 @@
 
       <section class="view" id="view-admin">
         <div class="admin-dashboard">
-          <aside class="admin-side">
+          <div class="admin-nav-backdrop" id="admin-nav-backdrop" aria-hidden="true"></div>
+          <aside class="admin-side" id="admin-side-drawer" aria-label="قائمة السوبر أدمن">
             <div class="admin-side-head">
-              <span class="eyebrow">Platform control</span>
-              <strong>لوحة السوبر أدمن</strong>
-              <small class="muted">تحكم كامل في المنصة والتجار</small>
+              <div>
+                <span class="eyebrow">Platform control</span>
+                <strong>لوحة السوبر أدمن</strong>
+                <small class="muted">تحكم كامل في المنصة والتجار</small>
+              </div>
+              <button type="button" class="drawer-close" id="admin-drawer-close" aria-label="إغلاق القائمة">×</button>
             </div>
             <nav class="admin-side-nav">
               <button type="button" class="admin-side-item active" data-admin-tab="overview"><strong>نظرة عامة</strong><small>مؤشرات وتنبيهات</small></button>
@@ -1042,6 +1060,17 @@
               <button type="button" class="admin-side-item" data-admin-tab="system"><strong>النظام</strong><small>Paymob وAPK</small></button>
             </nav>
           </aside>
+
+          <div class="admin-workspace">
+            <header class="admin-mobile-toolbar">
+              <button type="button" class="admin-menu-toggle" id="admin-menu-toggle" aria-expanded="false" aria-controls="admin-side-drawer" aria-label="فتح القائمة">
+                <span class="admin-menu-icon" aria-hidden="true"></span>
+              </button>
+              <div class="admin-mobile-toolbar-text">
+                <strong id="admin-mobile-tab-title">نظرة عامة</strong>
+                <small>لوحة السوبر أدمن</small>
+              </div>
+            </header>
 
           <div class="admin-main">
             <article class="panel admin-tab active" data-admin-panel="overview">
@@ -1170,6 +1199,7 @@
               </div>
             </article>
           </div>
+          </div>
         </div>
 
         <dialog id="admin-tenant-dialog" class="order-dialog admin-tenant-dialog">
@@ -1201,6 +1231,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060721"></script>
+  <script src="/app.js?v=2026060723"></script>
 </body>
 </html>

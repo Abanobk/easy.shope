@@ -28,6 +28,95 @@ const STOREFRONT_THEME_LABELS = {
   slate: "Slate — إبداعي (minimal)",
 };
 
+const MERCHANT_TAB_LABELS = {
+  overview: "نظرة عامة",
+  orders: "الطلبات",
+  products: "المنتجات",
+  categories: "الأصناف",
+  billing: "اشتراك المنصة",
+  providers: "إعدادات الدفع",
+  team: "الفريق والصلاحيات",
+  android: "تطبيق أندرويد",
+  settings: "إعدادات المتجر",
+};
+
+const ADMIN_TAB_LABELS = {
+  overview: "نظرة عامة",
+  tenants: "التجار",
+  subscriptions: "الاشتراكات",
+  orders: "طلبات المنصة",
+  system: "النظام",
+};
+
+function isMobileDashboard() {
+  return window.matchMedia("(max-width: 980px)").matches;
+}
+
+function syncDashboardLayoutMode() {
+  document.body.classList.toggle("dashboard-mobile", isMobileDashboard());
+  if (!isMobileDashboard()) {
+    closeMerchantNav();
+    closeAdminNav();
+  }
+}
+
+function setMerchantNavOpen(open) {
+  document.body.classList.toggle("merchant-nav-open", open);
+  const toggle = $("merchant-menu-toggle");
+  if (toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  const backdrop = $("merchant-nav-backdrop");
+  if (backdrop) backdrop.setAttribute("aria-hidden", open ? "false" : "true");
+}
+
+function closeMerchantNav() {
+  setMerchantNavOpen(false);
+}
+
+function setAdminNavOpen(open) {
+  document.body.classList.toggle("admin-nav-open", open);
+  const toggle = $("admin-menu-toggle");
+  if (toggle) toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  const backdrop = $("admin-nav-backdrop");
+  if (backdrop) backdrop.setAttribute("aria-hidden", open ? "false" : "true");
+}
+
+function closeAdminNav() {
+  setAdminNavOpen(false);
+}
+
+function updateMerchantMobileChrome(tab = "overview") {
+  const title = $("merchant-mobile-tab-title");
+  if (title) title.textContent = MERCHANT_TAB_LABELS[tab] || tab;
+  const storeName = $("merchant-mobile-store-name");
+  const brandName = $("merchant-brand-name");
+  if (storeName) storeName.textContent = brandName?.textContent?.trim() || "لوحة المتجر";
+}
+
+function updateAdminMobileChrome(tab = "overview") {
+  const title = $("admin-mobile-tab-title");
+  if (title) title.textContent = ADMIN_TAB_LABELS[tab] || tab;
+}
+
+function initDashboardMobileNav() {
+  syncDashboardLayoutMode();
+  $("merchant-menu-toggle")?.addEventListener("click", () => {
+    setMerchantNavOpen(!document.body.classList.contains("merchant-nav-open"));
+  });
+  $("merchant-nav-backdrop")?.addEventListener("click", closeMerchantNav);
+  $("merchant-drawer-close")?.addEventListener("click", closeMerchantNav);
+  $("admin-menu-toggle")?.addEventListener("click", () => {
+    setAdminNavOpen(!document.body.classList.contains("admin-nav-open"));
+  });
+  $("admin-nav-backdrop")?.addEventListener("click", closeAdminNav);
+  $("admin-drawer-close")?.addEventListener("click", closeAdminNav);
+  window.addEventListener("resize", syncDashboardLayoutMode);
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    closeMerchantNav();
+    closeAdminNav();
+  });
+}
+
 const $ = (id) => document.getElementById(id);
 
 function money(cents) {
@@ -609,6 +698,8 @@ function setMerchantTab(tab = "overview") {
   }
   if (tab !== "categories") setCreationForm("category-form", false);
   if (tab !== "products") setCreationForm("product-form", false);
+  updateMerchantMobileChrome(tab);
+  if (isMobileDashboard()) closeMerchantNav();
   updateWhatsAppFab();
 }
 
@@ -621,6 +712,8 @@ function setAdminTab(tab = "overview") {
   });
   if (tab === "orders") void loadAdminOrders();
   if (tab === "system") void loadAdminAndroidBuilds();
+  updateAdminMobileChrome(tab);
+  if (isMobileDashboard()) closeAdminNav();
 }
 
 function updateWhatsAppFab() {
@@ -644,6 +737,8 @@ function setView(view, options = {}) {
   updateNavigation();
   if (!$(`view-${view}`)) view = defaultViewForScope();
   document.body.dataset.view = view;
+  closeMerchantNav();
+  closeAdminNav();
   document.querySelectorAll(".view").forEach((element) => element.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach((element) => element.classList.remove("active"));
   $(`view-${view}`)?.classList.add("active");
@@ -938,6 +1033,9 @@ function renderMerchantBrand(store) {
       logoWrap.hidden = true;
     }
   }
+  updateMerchantMobileChrome(
+    document.querySelector(".merchant-side-item.active")?.dataset.merchantTab || "overview",
+  );
 }
 
 function updateThemePickerUi() {
@@ -2279,6 +2377,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setOnboardingMode("register");
   setMerchantTab("overview");
   setAdminTab("overview");
+  initDashboardMobileNav();
   initThemeLibraryFilters();
   updateThemePickerUi();
   updateNavigation();
