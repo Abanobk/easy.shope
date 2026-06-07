@@ -800,7 +800,10 @@ body[data-auth-mode="login"] .register-panel {
   body[data-scope="merchant"][data-view="catalog"] .main,
   body[data-scope="admin"][data-view="admin"] .main {
     width: 100%;
-    padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0));
+    max-width: 100%;
+    margin: 0;
+    padding: 10px 12px calc(14px + env(safe-area-inset-bottom, 0));
+    overflow-x: hidden;
   }
 
   body[data-scope="merchant"][data-view="catalog"] .main > .topbar,
@@ -856,14 +859,14 @@ body[data-auth-mode="login"] .register-panel {
     position: fixed;
     top: 0;
     bottom: 0;
-    inset-inline-end: 0;
-    inset-inline-start: auto;
-    width: min(300px, 86vw);
+    right: 0;
+    left: auto;
+    width: min(300px, 88vw);
     z-index: 130;
     margin: 0;
     border-radius: 0;
-    border-inline-start: 1px solid var(--line);
-    border-inline-end: none;
+    border-right: none;
+    border-left: 1px solid var(--line);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -879,7 +882,7 @@ body[data-auth-mode="login"] .register-panel {
     padding-top: max(18px, env(safe-area-inset-top));
     padding-bottom: max(18px, env(safe-area-inset-bottom));
     background: rgb(11, 18, 32);
-    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.45);
+    box-shadow: -16px 0 40px rgba(0, 0, 0, 0.45);
   }
 
   body.merchant-nav-open .merchant-side,
@@ -929,6 +932,39 @@ body[data-auth-mode="login"] .register-panel {
   .merchant-side-item,
   .admin-side-item {
     padding: 12px 14px;
+  }
+
+  .section-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .section-tools .check {
+    width: 100%;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  table {
+    min-width: 540px;
+  }
+
+  .trial-subscription-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel,
+  .merchant-main,
+  .admin-main,
+  .merchant-workspace,
+  .admin-workspace,
+  .merchant-dashboard,
+  .admin-dashboard {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
 
@@ -5340,15 +5376,29 @@ body.mobile-store-client .whatsapp-support-fab {
 
 /* ——— لوحة التاجر/الأدمن: drawer موبايل (أولوية نهائية) ——— */
 @media (max-width: 980px) {
+  html.dashboard-mobile,
+  body.dashboard-mobile {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  body.dashboard-mobile .app-shell {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
   body.dashboard-mobile .merchant-dashboard,
   body.dashboard-mobile .admin-dashboard {
     display: block;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   body.dashboard-mobile .merchant-workspace,
   body.dashboard-mobile .admin-workspace {
     width: 100%;
     max-width: 100%;
+    overflow-x: hidden;
   }
 
   body.dashboard-mobile .merchant-side,
@@ -5356,9 +5406,9 @@ body.mobile-store-client .whatsapp-support-fab {
     position: fixed;
     top: 0;
     bottom: 0;
-    inset-inline-end: 0;
-    inset-inline-start: auto;
-    width: min(300px, 86vw);
+    right: 0;
+    left: auto;
+    width: min(300px, 88vw);
     max-height: 100dvh;
     z-index: 140;
     transform: translate3d(100%, 0, 0);
@@ -5366,6 +5416,9 @@ body.mobile-store-client .whatsapp-support-fab {
     pointer-events: none;
     opacity: 0;
     background: rgb(11, 18, 32);
+    border-right: none;
+    border-left: 1px solid var(--line);
+    box-shadow: -16px 0 40px rgba(0, 0, 0, 0.45);
   }
 
   body.dashboard-mobile.merchant-nav-open .merchant-side,

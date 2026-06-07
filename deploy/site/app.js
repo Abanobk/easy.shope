@@ -53,8 +53,10 @@ function isMobileDashboard() {
 }
 
 function syncDashboardLayoutMode() {
-  document.body.classList.toggle("dashboard-mobile", isMobileDashboard());
-  if (!isMobileDashboard()) {
+  const mobile = isMobileDashboard();
+  document.documentElement.classList.toggle("dashboard-mobile", mobile);
+  document.body.classList.toggle("dashboard-mobile", mobile);
+  if (!mobile) {
     closeMerchantNav();
     closeAdminNav();
   }
