@@ -20,7 +20,7 @@ class SlateTemplate extends StatelessWidget {
         if (s.error != null) return Scaffold(body: Center(child: Text(s.error!)));
         return Scaffold(
           appBar: AppBar(
-            title: Text(s.store!.displayName),
+            title: StoreBrandTitle(store: s.store!),
             actions: [
               TextButton(onPressed: () => openCart(context), child: Text('السلة (${s.cartCount})')),
               IconButton(onPressed: () => openAccount(context), icon: const Icon(Icons.person_outline)),

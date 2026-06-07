@@ -889,6 +889,39 @@ function fillStoreSettings(store) {
   updateThemePickerUi();
   const url = `${window.location.origin}/#store/${store.slug || state.tenantSlug || ""}`;
   if ($("storefront-url")) $("storefront-url").textContent = url;
+  renderStoreLogoPreview(store.logo_url);
+  renderMerchantBrand(store);
+}
+
+function renderStoreLogoPreview(logoUrl) {
+  const wrap = $("store-logo-preview-wrap");
+  const img = $("store-logo-preview");
+  if (!wrap || !img) return;
+  if (logoUrl) {
+    img.src = logoUrl;
+    wrap.hidden = false;
+  } else {
+    img.removeAttribute("src");
+    wrap.hidden = true;
+  }
+}
+
+function renderMerchantBrand(store) {
+  if (!store) return;
+  const name = store.name_ar || store.name_en || "إدارة المتجر";
+  if ($("merchant-brand-name")) $("merchant-brand-name").textContent = name;
+  if ($("merchant-brand-slug")) $("merchant-brand-slug").textContent = store.slug ? `@${store.slug}` : "";
+  const logoWrap = $("merchant-brand-logo-wrap");
+  const logoImg = $("merchant-brand-logo");
+  if (logoWrap && logoImg) {
+    if (store.logo_url) {
+      logoImg.src = store.logo_url;
+      logoWrap.hidden = false;
+    } else {
+      logoImg.removeAttribute("src");
+      logoWrap.hidden = true;
+    }
+  }
 }
 
 function updateThemePickerUi() {
@@ -2106,6 +2139,18 @@ document.addEventListener("DOMContentLoaded", () => {
   $("category-form").addEventListener("submit", createCategory);
   $("product-form").addEventListener("submit", createProduct);
   $("store-settings-form").addEventListener("submit", saveStoreSettings);
+  $("store-logo-file")?.addEventListener("change", async (event) => {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+    const preview = await fileToDataUrl(file);
+    renderStoreLogoPreview(preview);
+    const sideImg = $("merchant-brand-logo");
+    const sideWrap = $("merchant-brand-logo-wrap");
+    if (sideImg && sideWrap) {
+      sideImg.src = preview;
+      sideWrap.hidden = false;
+    }
+  });
   $("staff-form").addEventListener("submit", createStaff);
   $("password-form").addEventListener("submit", changePassword);
   $("easycash-form").addEventListener("submit", saveEasyCash);

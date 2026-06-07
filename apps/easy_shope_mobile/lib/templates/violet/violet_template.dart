@@ -20,13 +20,7 @@ class VioletTemplate extends StatelessWidget {
         if (s.error != null) return Scaffold(body: Center(child: Text(s.error!)));
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(s.store!.displayName),
-                const Text('تجميل وعناية', style: TextStyle(fontSize: 12)),
-              ],
-            ),
+            title: StoreBrandTitle(store: s.store!, subtitle: 'تجميل وعناية'),
             actions: [
               IconButton(onPressed: () => openAccount(context), icon: const Icon(Icons.person_outline)),
               IconButton(onPressed: () => openCart(context), icon: Badge(label: Text('${s.cartCount}'), child: const Icon(Icons.shopping_bag))),

@@ -25,9 +25,21 @@ case "$STOREFRONT_THEME" in
     ;;
 esac
 
+ENV_FILE="${ENV_FILE:-/tmp/tenant-brand.env}"
+rm -f "$ENV_FILE"
+
 echo "==> Building native Flutter template: $STOREFRONT_THEME"
 echo "==> Tenant slug: $TENANT_SLUG"
 echo "==> API base: $STORE_BASE"
+
+if [[ -f scripts/apply-tenant-android-branding.sh ]]; then
+  chmod +x scripts/apply-tenant-android-branding.sh
+  ENV_FILE="$ENV_FILE" STORE_BASE="$STORE_BASE" TENANT_SLUG="$TENANT_SLUG" bash scripts/apply-tenant-android-branding.sh || true
+fi
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+fi
 
 flutter pub get
 flutter build apk --release \

@@ -29,7 +29,7 @@ class _RoseTemplateState extends State<RoseTemplate> {
         final featured = s.products.take(5).toList();
         return Scaffold(
           appBar: AppBar(
-            title: Text(s.store!.displayName),
+            title: StoreBrandTitle(store: s.store!),
             actions: [
               IconButton(onPressed: () => openCart(context), icon: Badge(label: Text('${s.cartCount}'), child: const Icon(Icons.shopping_bag_outlined))),
               IconButton(onPressed: () => openAccount(context), icon: const Icon(Icons.person_outline)),

@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060716" />
+  <link rel="stylesheet" href="/styles.css?v=2026060717" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -136,8 +136,16 @@
         <div class="merchant-dashboard">
           <aside class="merchant-side">
             <div class="merchant-side-head">
-              <span class="eyebrow">Merchant workspace</span>
-              <strong>إدارة المتجر</strong>
+              <div class="merchant-brand" id="merchant-brand">
+                <div class="merchant-brand-logo-wrap" id="merchant-brand-logo-wrap" hidden>
+                  <img id="merchant-brand-logo" class="merchant-brand-logo" alt="شعار المتجر">
+                </div>
+                <div class="merchant-brand-text">
+                  <span class="eyebrow">Merchant workspace</span>
+                  <strong id="merchant-brand-name">إدارة المتجر</strong>
+                  <small id="merchant-brand-slug" class="muted"></small>
+                </div>
+              </div>
             </div>
             <nav class="merchant-side-nav">
               <button type="button" class="merchant-side-item active" data-merchant-tab="overview"><strong>نظرة عامة</strong><small>الأداء والتنبيهات</small></button>
@@ -806,7 +814,15 @@
                       <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
                       <label>Store name English<input id="store-name-en" name="nameEn"></label>
                       <label class="span-2">البلد<input id="store-country" name="country"></label>
-                      <label class="span-2">شعار المتجر (اختياري)<input id="store-logo-file" type="file" accept="image/*"></label>
+                      <div class="span-2 store-logo-upload">
+                        <span class="field-label">شعار المتجر</span>
+                        <p class="muted store-logo-help">يظهر في لوحة التحكم، واجهة المتجر، وتطبيق الأندرويد (أيقونة التطبيق بعد طلب بناء APK جديد).</p>
+                        <div id="store-logo-preview-wrap" class="store-logo-preview-wrap" hidden>
+                          <img id="store-logo-preview" class="store-logo-preview" alt="معاينة الشعار">
+                          <small>الشعار المحفوظ حاليًا</small>
+                        </div>
+                        <label class="store-logo-file-label">رفع شعار جديد (PNG أو JPG)<input id="store-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/*"></label>
+                      </div>
                       <label class="span-2">لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
                       <button class="span-2">حفظ بيانات المتجر</button>
                     </form>
@@ -845,7 +861,8 @@
               <div id="android-theme-bridge" class="hint-box theme-apk-bridge" aria-live="polite"></div>
               <div class="hint-box android-merchant-hint">
                 <p><strong>لصاحب المتجر:</strong> دورك طلب البناء فقط. معرّف متجرك والقالب يُمرَّران تلقائيًا إلى Flutter. إذا ظهر تنبيه بأن الضبط ناقص، أبلغ مسؤول المنصة — هذه ليست خطوة تتكرر لكل متجر.</p>
-                <p><strong>عند التثبيت على أندرويد:</strong> قد يظهر تحذير من <em>Google Play Protect</em> لأن التطبيق خارج متجر Play — هذا طبيعي للـ APK المخصّص. اضغط <strong>«مزيد من التفاصيل»</strong> ثم <strong>«تثبيت على أي حال»</strong>. التطبيق آمن لأنه يُبنى من منصتك مباشرة.</p>
+                <p><strong>عند التثبيت على أندرويد:</strong> قد يظهر تحذير من <em>Google Play Protect</em> لأن التطبيق خارج متجر Play — هذا طبيعي للـ APK المخصّص. اضغط <strong>«مزيد من التفاصيل»</strong> ثم <strong>«تثبيت على أي حال»</strong>.</p>
+                <p><strong>أيقونة التطبيق:</strong> ارفع شعار متجرك من «إعدادات المتجر» ثم اطلب <strong>بناء APK جديد</strong> — الشعار يُستخدم كأيقونة التطبيق على الموبايل.</p>
               </div>
               <details class="android-admin-setup-details">
                 <summary>إعداد تقني لمرة واحدة — لمسؤول الخادم / GitHub فقط (اضغط للتوسيع)</summary>
@@ -1075,6 +1092,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060716"></script>
+  <script src="/app.js?v=2026060717"></script>
 </body>
 </html>

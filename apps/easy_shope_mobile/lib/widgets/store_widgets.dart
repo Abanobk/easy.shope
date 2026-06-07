@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
@@ -165,6 +167,73 @@ class StoreSearchBar extends StatelessWidget {
       decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint),
       onSubmitted: onSubmitted,
       textInputAction: TextInputAction.search,
+    );
+  }
+}
+
+class StoreLogoImage extends StatelessWidget {
+  const StoreLogoImage({super.key, required this.logoUrl, this.size = 36, this.radius = 8});
+
+  final String? logoUrl;
+  final double size;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = logoUrl?.trim();
+    if (url == null || url.isEmpty) return const SizedBox.shrink();
+
+    Widget image;
+    if (url.startsWith('data:image')) {
+      try {
+        final bytes = base64Decode(url.split(',').last);
+        image = Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+      } catch (_) {
+        return const SizedBox.shrink();
+      }
+    } else {
+      image = Image.network(
+        url,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: SizedBox(width: size, height: size, child: image),
+    );
+  }
+}
+
+class StoreBrandTitle extends StatelessWidget {
+  const StoreBrandTitle({super.key, required this.store, this.subtitle});
+
+  final StoreInfo store;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasLogo = store.logoUrl != null && store.logoUrl!.trim().isNotEmpty;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasLogo) ...[
+          StoreLogoImage(logoUrl: store.logoUrl),
+          const SizedBox(width: 10),
+        ],
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(store.displayName, overflow: TextOverflow.ellipsis),
+              if (subtitle != null) Text(subtitle!, style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

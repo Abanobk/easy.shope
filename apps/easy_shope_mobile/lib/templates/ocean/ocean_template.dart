@@ -29,13 +29,7 @@ class _OceanTemplateState extends State<OceanTemplate> {
         final store = s.store!;
         return Scaffold(
           appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(store.displayName),
-                Text('أزياء وإكسسوارات', style: Theme.of(context).textTheme.labelSmall),
-              ],
-            ),
+            title: StoreBrandTitle(store: store, subtitle: 'أزياء وإكسسوارات'),
             actions: [
               IconButton(onPressed: () => openCart(context), icon: Badge(label: Text('${s.cartCount}'), child: const Icon(Icons.shopping_bag_outlined))),
             ],

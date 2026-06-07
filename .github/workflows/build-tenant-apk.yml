@@ -97,6 +97,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install build tools for app icon generation
+        run: sudo apt-get update && sudo apt-get install -y imagemagick jq
+
       - name: Configure Android release signing
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

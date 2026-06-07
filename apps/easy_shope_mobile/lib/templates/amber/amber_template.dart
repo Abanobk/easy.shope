@@ -20,7 +20,7 @@ class AmberTemplate extends StatelessWidget {
         if (s.error != null) return Scaffold(body: Center(child: Text(s.error!)));
         return Scaffold(
           appBar: AppBar(
-            title: Text(s.store!.displayName),
+            title: StoreBrandTitle(store: s.store!),
             actions: [
               Chip(label: const Text('توصيل متاح'), backgroundColor: s.palette.primary.withValues(alpha: 0.25)),
               IconButton(onPressed: () => openCart(context), icon: Badge(label: Text('${s.cartCount}'), child: const Icon(Icons.delivery_dining))),

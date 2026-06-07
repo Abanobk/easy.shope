@@ -27,7 +27,7 @@ class _EmeraldTemplateState extends State<EmeraldTemplate> {
         if (s.error != null) return Scaffold(body: Center(child: Text(s.error!)));
         return Scaffold(
           appBar: AppBar(
-            title: Text(s.store!.displayName),
+            title: StoreBrandTitle(store: s.store!),
             actions: [Chip(label: const Text('Tech hub'), backgroundColor: s.palette.chipBackground)],
           ),
           body: _tab == 0
