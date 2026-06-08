@@ -41,13 +41,16 @@ if [[ -f "$ENV_FILE" ]]; then
   source "$ENV_FILE"
 fi
 
+# Pass Gradle project properties (consumed by android/app/build.gradle.kts via
+# project.findProperty) through ORG_GRADLE_PROJECT_* env vars. Flutter does NOT
+# forward `-- -P...` args to Gradle, so this is the reliable mechanism.
+export ORG_GRADLE_PROJECT_TENANT_SLUG="$TENANT_SLUG"
+export ORG_GRADLE_PROJECT_TENANT_APP_LABEL="${TENANT_APP_LABEL:-$TENANT_SLUG}"
+
 flutter pub get
 flutter build apk --release \
   --dart-define=TENANT_SLUG="$TENANT_SLUG" \
   --dart-define=STOREFRONT_THEME="$STOREFRONT_THEME" \
-  --dart-define=STOREFRONT_BASE_URL="${STORE_BASE%/}" \
-  -- \
-  -PTENANT_SLUG="$TENANT_SLUG" \
-  -PTENANT_APP_LABEL="${TENANT_APP_LABEL:-$TENANT_SLUG}"
+  --dart-define=STOREFRONT_BASE_URL="${STORE_BASE%/}"
 
 echo "==> APK ready: build/app/outputs/flutter-apk/app-release.apk"

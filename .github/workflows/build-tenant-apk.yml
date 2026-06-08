@@ -10,7 +10,7 @@
 #   ANDROID_KEYSTORE_BASE64 + ANDROID_KEYSTORE_PASSWORD + ANDROID_KEY_ALIAS + ANDROID_KEY_PASSWORD (اختياري) — توقيع release لتقليل تحذير Play Protect.
 name: Build tenant APK
 
-on:
+"on":
   workflow_dispatch:
     inputs:
       build_id:
@@ -128,12 +128,12 @@ jobs:
             exit 1
           }
           echo "$KEYSTORE_B64" | base64 -d > "${ANDROID_DIR}/upload-keystore.jks"
-          cat > "${ANDROID_DIR}/key.properties" <<EOF
-storePassword=${KEYSTORE_PASSWORD}
-keyPassword=${KEY_PASSWORD}
-keyAlias=${KEY_ALIAS}
-storeFile=upload-keystore.jks
-EOF
+          {
+            echo "storePassword=${KEYSTORE_PASSWORD}"
+            echo "keyPassword=${KEY_PASSWORD}"
+            echo "keyAlias=${KEY_ALIAS}"
+            echo "storeFile=upload-keystore.jks"
+          } > "${ANDROID_DIR}/key.properties"
           echo "Release signing configured for APK build."
 
       - name: Build release APK
