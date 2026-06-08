@@ -84,6 +84,14 @@ class _StoreEntryScreenState extends State<StoreEntryScreen> with SingleTickerPr
                   if (store != null) StoreLogoImage(logoUrl: store.logoUrl, size: 72, radius: 18),
                   const SizedBox(height: 14),
                   Text(store?.displayName ?? 'متجرك', style: Theme.of(context).textTheme.headlineSmall, textAlign: TextAlign.center),
+                  if (store?.serialCode != null && store!.serialCode!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'رقم المتجر: ${store.serialCode}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: palette.accent, fontWeight: FontWeight.w800, letterSpacing: 0.4),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Text(
                     'سجّل دخولك أو أنشئ حسابًا لمتابعة الطلبات، أو تسوق كزائر.',

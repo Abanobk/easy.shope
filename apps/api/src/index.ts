@@ -503,6 +503,22 @@ async function migrate() {
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS storefront_theme text NOT NULL DEFAULT 'ocean';
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS brand_color text;
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS logo_url text;
+    CREATE SEQUENCE IF NOT EXISTS tenant_serial_seq START 1001;
+    ALTER TABLE tenants ADD COLUMN IF NOT EXISTS serial_code text;
+  `);
+  await pool.query(`
+    UPDATE tenants t
+    SET serial_code = 'ES-' || sub.n
+    FROM (
+      SELECT id, (1000 + ROW_NUMBER() OVER (ORDER BY created_at))::text AS n
+      FROM tenants
+      WHERE serial_code IS NULL
+    ) sub
+    WHERE t.id = sub.id
+  `);
+  await pool.query(`
+    ALTER TABLE tenants ALTER COLUMN serial_code SET DEFAULT ('ES-' || nextval('tenant_serial_seq')::text);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_tenants_serial_code ON tenants (serial_code) WHERE serial_code IS NOT NULL;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tenant_android_builds (
@@ -696,13 +712,23 @@ app.post("/api/auth/login", async (request, reply) => {
     return reply.code(403).send({ message: "This account is disabled" });
   }
   const token = signToken({ userId: user.id, tenantId: user.tenant_id, role: user.role });
-  return { token, user: { id: user.id, tenantId: user.tenant_id, name: user.name, email: user.email, role: user.role } };
+  let storeSerial: string | null = null;
+  if (user.tenant_id) {
+    const tenant = await pool.query(`SELECT serial_code FROM tenants WHERE id = $1`, [user.tenant_id]);
+    storeSerial = (tenant.rows[0]?.serial_code as string | undefined) ?? null;
+  }
+  return {
+    token,
+    user: { id: user.id, tenantId: user.tenant_id, name: user.name, email: user.email, role: user.role },
+    storeSerial,
+  };
 });
 
 app.get("/api/me", async (request) => {
   const user = requireAuth(request);
   const result = await pool.query(
-    `SELECT users.id, users.name, users.email, users.role, users.status, users.tenant_id, tenants.name_en AS store_name, tenants.slug
+    `SELECT users.id, users.name, users.email, users.role, users.status, users.tenant_id,
+            tenants.name_en AS store_name, tenants.slug, tenants.serial_code AS store_serial
      FROM users LEFT JOIN tenants ON tenants.id = users.tenant_id
      WHERE users.id = $1`,
     [user.userId],
@@ -1253,7 +1279,7 @@ app.get("/api/store/:tenantSlug", async (request, reply) => {
   await expireOverdueSubscriptions();
   const [tenant, categories, products] = await Promise.all([
     pool.query(
-      `SELECT id, name_ar, name_en, slug, country, status, plan_code, storefront_theme, brand_color, logo_url
+      `SELECT id, name_ar, name_en, slug, country, status, plan_code, storefront_theme, brand_color, logo_url, serial_code
        FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`,
       [
       params.tenantSlug,
