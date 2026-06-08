@@ -2044,15 +2044,25 @@ function renderAdminOverview(overview, tenants) {
   const paidRow = (overview.subscriptionInvoices || []).find((r) => r.status === "paid");
   if ($("admin-subscription-revenue")) $("admin-subscription-revenue").textContent = money(paidRow?.total_cents || 0);
 
-  const alerts = [];
+  const activeCount = statusCount(overview.tenants, "active");
+  const trialCount = statusCount(overview.tenants, "trial");
   const suspended = statusCount(overview.tenants, "suspended");
   const expired = statusCount(overview.tenants, "expired");
   const pendingInvoices = statusCount(overview.subscriptionInvoices, "pending");
-  if (suspended) alerts.push(`${suspended} متجر موقوف — راجع تبويب التجار.`);
-  if (expired) alerts.push(`${expired} متجر منتهي الاشتراك.`);
-  if (pendingInvoices) alerts.push(`${pendingInvoices} فاتورة اشتراك معلّقة.`);
-  if (!alerts.length) alerts.push("لا توجد تنبيهات حرجة حاليًا.");
-  if ($("admin-overview-alerts")) $("admin-overview-alerts").innerHTML = alerts.map((t) => `<li>${t}</li>`).join("");
+
+  renderTenantDistribution({ active: activeCount, trial: trialCount, suspended, expired });
+
+  const alerts = [];
+  if (suspended) alerts.push({ level: "danger", text: `${suspended} متجر موقوف — راجع تبويب التجار.` });
+  if (expired) alerts.push({ level: "danger", text: `${expired} متجر منتهي الاشتراك.` });
+  if (pendingInvoices) alerts.push({ level: "warn", text: `${pendingInvoices} فاتورة اشتراك معلّقة بانتظار الدفع.` });
+  if (trialCount) alerts.push({ level: "warn", text: `${trialCount} متجر في فترة التجربة المجانية.` });
+  if (!alerts.length) alerts.push({ level: "ok", text: "كل شيء على ما يرام — لا توجد تنبيهات حرجة حاليًا." });
+  if ($("admin-overview-alerts")) {
+    $("admin-overview-alerts").innerHTML = alerts
+      .map((a) => `<li class="insight insight--${a.level}"><span class="insight-dot"></span><span>${a.text}</span></li>`)
+      .join("");
+  }
 
   const expiring =
     (tenants || [])
@@ -2062,9 +2072,49 @@ function renderAdminOverview(overview, tenants) {
   if ($("admin-expiring-trials")) {
     $("admin-expiring-trials").innerHTML =
       expiring
-        .map(({ tenant, days }) => `<li><strong>${tenant.name_ar || tenant.name_en}</strong> (${tenant.slug}) — متبقي ${days} يوم</li>`)
-        .join("") || "<li>لا يوجد تجار على وشك الانتهاء خلال 7 أيام.</li>";
+        .map(
+          ({ tenant, days }) => `<li class="expiring-card${days <= 2 ? " is-urgent" : ""}">
+            <strong>${tenant.name_ar || tenant.name_en}</strong>
+            <small class="muted">@${tenant.slug}</small>
+            <span class="days-left">متبقي ${days} يوم</span>
+          </li>`,
+        )
+        .join("") || `<li class="expiring-card" style="border-inline-start-color:#34d399"><strong>لا يوجد تجار على وشك الانتهاء</strong><small class="muted">خلال 7 أيام القادمة</small></li>`;
   }
+}
+
+const TENANT_STATUS_META = {
+  active: { label: "نشط", color: "#34d399" },
+  trial: { label: "تجربة", color: "#fbbf24" },
+  suspended: { label: "موقوف", color: "#fb7185" },
+  expired: { label: "منتهي", color: "#64748b" },
+};
+
+function renderTenantDistribution(counts) {
+  const bar = $("admin-tenant-distribution");
+  const legend = $("admin-tenant-distribution-legend");
+  if (!bar || !legend) return;
+  const total = Object.values(counts).reduce((sum, n) => sum + Number(n || 0), 0);
+  if (!total) {
+    bar.innerHTML = "";
+    legend.innerHTML = `<span class="seg-item">لا يوجد تجار بعد.</span>`;
+    return;
+  }
+  bar.innerHTML = Object.entries(counts)
+    .filter(([, n]) => n > 0)
+    .map(([key, n]) => {
+      const meta = TENANT_STATUS_META[key];
+      const pct = ((n / total) * 100).toFixed(1);
+      return `<span style="width:${pct}%;background:${meta.color}" title="${meta.label}: ${n}"></span>`;
+    })
+    .join("");
+  legend.innerHTML = Object.entries(counts)
+    .map(([key, n]) => {
+      const meta = TENANT_STATUS_META[key];
+      const pct = total ? Math.round((n / total) * 100) : 0;
+      return `<span class="seg-item"><span class="seg-dot" style="background:${meta.color}"></span>${meta.label} <b>${n}</b> <small class="muted">(${pct}%)</small></span>`;
+    })
+    .join("");
 }
 
 function renderAdminTenantsTable() {

@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060724" />
+  <link rel="stylesheet" href="/styles.css?v=2026060725" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -86,10 +86,10 @@
           </article>
         </div>
         <div class="grid four merchant-summary" id="merchant-summary">
-          <div class="metric compact"><span>منتجات</span><strong id="merchant-products-total">0</strong><small id="merchant-products-published">0 منشور</small></div>
-          <div class="metric compact"><span>تصنيفات</span><strong id="merchant-categories-total">0</strong><small>كتالوج المتجر</small></div>
-          <div class="metric compact"><span>طلبات</span><strong id="merchant-orders-total">0</strong><small>إجمالي الطلبات</small></div>
-          <div class="metric compact"><span>مبيعات</span><strong id="merchant-revenue-total">0.00 EGP</strong><small>تجريبي</small></div>
+          <div class="metric compact metric--sky"><span>منتجات</span><strong id="merchant-products-total">0</strong><small id="merchant-products-published">0 منشور</small></div>
+          <div class="metric compact metric--violet"><span>تصنيفات</span><strong id="merchant-categories-total">0</strong><small>كتالوج المتجر</small></div>
+          <div class="metric compact metric--amber"><span>طلبات</span><strong id="merchant-orders-total">0</strong><small>إجمالي الطلبات</small></div>
+          <div class="metric compact metric--emerald"><span>مبيعات</span><strong id="merchant-revenue-total">0.00 EGP</strong><small>تجريبي</small></div>
         </div>
       </section>
 
@@ -183,10 +183,10 @@
                 </div>
               </div>
               <div class="grid four">
-                <div class="metric compact"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
-                <div class="metric compact"><span>طلبات</span><strong id="catalog-orders-total">0</strong><small>إجمالي الطلبات</small></div>
-                <div class="metric compact"><span>مبيعات</span><strong id="catalog-revenue-total">0.00 EGP</strong><small>إجمالي الإيراد</small></div>
-                <div class="metric compact"><span>تصنيفات</span><strong id="catalog-categories-total">0</strong><small>تنظيم الكتالوج</small></div>
+                <div class="metric compact metric--sky"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
+                <div class="metric compact metric--amber"><span>طلبات</span><strong id="catalog-orders-total">0</strong><small>إجمالي الطلبات</small></div>
+                <div class="metric compact metric--emerald"><span>مبيعات</span><strong id="catalog-revenue-total">0.00 EGP</strong><small>إجمالي الإيراد</small></div>
+                <div class="metric compact metric--violet"><span>تصنيفات</span><strong id="catalog-categories-total">0</strong><small>تنظيم الكتالوج</small></div>
               </div>
               <div class="performance-grid">
                 <div class="chart-card">
@@ -1074,21 +1074,67 @@
 
           <div class="admin-main">
             <article class="panel admin-tab active" data-admin-panel="overview">
-              <div class="page-head"><div><div class="breadcrumb">السوبر أدمن <span>/</span> نظرة عامة</div><h2>ملخص المنصة</h2></div></div>
-              <div class="grid four" id="admin-kpis">
-                <div class="metric compact"><span>التجار</span><strong id="admin-tenants-total">0</strong><small id="admin-tenants-active">0 نشط</small></div>
-                <div class="metric compact"><span>تجربة / منتهي</span><strong id="admin-tenants-trial">0</strong><small id="admin-tenants-expired">0 منتهي</small></div>
-                <div class="metric compact"><span>طلبات المتاجر</span><strong id="admin-orders-total">0</strong><small id="admin-customers-total">0 عميل</small></div>
-                <div class="metric compact"><span>مبيعات المتاجر</span><strong id="admin-revenue-total">0.00 EGP</strong><small id="admin-products-total">0 منتج</small></div>
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">السوبر أدمن <span>/</span> نظرة عامة</div>
+                  <h2>ملخص المنصة</h2>
+                  <p class="page-subtitle">مؤشرات حية لأداء المنصة: التجار، الاشتراكات، الطلبات، والإيرادات.</p>
+                </div>
               </div>
-              <div class="grid two" style="margin-top: 1rem">
-                <div class="metric compact"><span>فواتير الاشتراك</span><strong id="admin-invoices-total">0</strong><small id="admin-invoices-paid">0 مدفوعة</small></div>
-                <div class="metric compact"><span>إيراد اشتراكات المنصة</span><strong id="admin-subscription-revenue">0.00 EGP</strong><small>فواتير مدفوعة</small></div>
+              <div class="admin-kpi-grid" id="admin-kpis">
+                <div class="metric compact metric--sky">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9M4 9h16v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9zM4 9a2.5 2.5 0 005 0 2.5 2.5 0 005 0 2.5 2.5 0 005 0"/></svg></span>
+                  <span>التجار</span>
+                  <strong id="admin-tenants-total">0</strong>
+                  <small id="admin-tenants-active">0 نشط</small>
+                </div>
+                <div class="metric compact metric--amber">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                  <span>تجربة / منتهي</span>
+                  <strong id="admin-tenants-trial">0</strong>
+                  <small id="admin-tenants-expired">0 منتهي</small>
+                </div>
+                <div class="metric compact metric--violet">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M6 6L5 3H3"/></svg></span>
+                  <span>طلبات المتاجر</span>
+                  <strong id="admin-orders-total">0</strong>
+                  <small id="admin-customers-total">0 عميل</small>
+                </div>
+                <div class="metric compact metric--emerald">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v10H3z"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></svg></span>
+                  <span>مبيعات المتاجر</span>
+                  <strong id="admin-revenue-total">0.00 EGP</strong>
+                  <small id="admin-products-total">0 منتج</small>
+                </div>
+                <div class="metric compact metric--rose">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5V3z"/><path d="M9 8h6M9 12h6"/></svg></span>
+                  <span>فواتير الاشتراك</span>
+                  <strong id="admin-invoices-total">0</strong>
+                  <small id="admin-invoices-paid">0 مدفوعة</small>
+                </div>
+                <div class="metric compact metric--emerald">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h15a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M3 7V6a2 2 0 012-2h11"/><circle cx="17" cy="13" r="1.4"/></svg></span>
+                  <span>إيراد اشتراكات المنصة</span>
+                  <strong id="admin-subscription-revenue">0.00 EGP</strong>
+                  <small>فواتير مدفوعة</small>
+                </div>
               </div>
-              <div class="panel-heading" style="margin-top: 1.25rem"><span class="eyebrow">Alerts</span><h3>تنبيهات تحتاج متابعة</h3></div>
-              <ul id="admin-overview-alerts" class="insight-list"><li>جاري التحميل...</li></ul>
-              <div class="panel-heading" style="margin-top: 1rem"><span class="eyebrow">Expiring</span><h3>تجار قرب انتهاء التجربة (7 أيام)</h3></div>
-              <ul id="admin-expiring-trials" class="list"><li>جاري التحميل...</li></ul>
+
+              <div class="admin-section-card">
+                <div class="panel-heading"><span class="eyebrow">Tenants</span><h3>توزيع حالة التجار</h3></div>
+                <div class="seg-bar" id="admin-tenant-distribution" role="img" aria-label="توزيع حالة التجار"></div>
+                <div class="seg-legend" id="admin-tenant-distribution-legend"></div>
+              </div>
+
+              <div class="admin-section-card">
+                <div class="panel-heading"><span class="eyebrow">Alerts</span><h3>تنبيهات تحتاج متابعة</h3></div>
+                <ul id="admin-overview-alerts" class="insight-list"><li>جاري التحميل...</li></ul>
+              </div>
+
+              <div class="admin-section-card">
+                <div class="panel-heading"><span class="eyebrow">Expiring</span><h3>تجار قرب انتهاء التجربة (7 أيام)</h3></div>
+                <ul id="admin-expiring-trials" class="expiring-grid"><li>جاري التحميل...</li></ul>
+              </div>
             </article>
 
             <article class="panel admin-tab" data-admin-panel="tenants">
@@ -1231,6 +1277,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060724"></script>
+  <script src="/app.js?v=2026060725"></script>
 </body>
 </html>
