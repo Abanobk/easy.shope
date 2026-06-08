@@ -3834,6 +3834,30 @@ body[data-auth-mode="login"] .register-panel {
   background: rgba(30, 41, 59, .66);
 }
 
+.login-serial-card {
+  margin-top: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.22), rgba(30, 41, 59, 0.72));
+  display: grid;
+  gap: 6px;
+}
+
+.login-serial-card strong {
+  font-size: 22px;
+  letter-spacing: 0.6px;
+  font-weight: 900;
+  color: #7dd3fc;
+}
+
+.merchant-brand-serial {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+}
+
 .android-merchant-hint {
   border-color: rgba(56, 189, 248, 0.35);
   background: rgba(14, 116, 144, 0.18);

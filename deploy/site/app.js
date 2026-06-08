@@ -785,7 +785,12 @@ async function registerMerchant(event) {
     localStorage.setItem("easyShopeToken", state.token);
     localStorage.setItem("easyShopeRole", state.role);
     localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
-    $("register-result").innerHTML = `<strong>تم إنشاء المتجر</strong><p>Store slug: ${data.tenant.slug}</p><p>تم تسجيل الدخول كتاجر.</p>`;
+    if (data.tenant?.serial_code) {
+      localStorage.setItem("easyShopeStoreSerial", data.tenant.serial_code);
+      updateLoginSerialDisplay(data.tenant.serial_code);
+    }
+    const serialLine = data.tenant?.serial_code ? `<p>رقم المتجر التسلسلي: <strong>${data.tenant.serial_code}</strong></p>` : "";
+    $("register-result").innerHTML = `<strong>تم إنشاء المتجر</strong><p>Store slug: ${data.tenant.slug}</p>${serialLine}<p>تم تسجيل الدخول كتاجر.</p>`;
     showMessage("تم تسجيل التاجر وإنشاء المتجر.");
     await bootstrap();
     setView(defaultViewForScope());
@@ -796,6 +801,14 @@ async function registerMerchant(event) {
     button.disabled = false;
     button.textContent = "إنشاء المتجر ولوحة التحكم";
   }
+}
+
+function updateLoginSerialDisplay(serial) {
+  const card = $("login-store-serial");
+  const value = $("login-store-serial-value");
+  const code = String(serial || "").trim();
+  if (value) value.textContent = code || "—";
+  if (card) card.hidden = !code;
 }
 
 async function login(event) {
@@ -810,6 +823,10 @@ async function login(event) {
     state.role = data.user.role;
     localStorage.setItem("easyShopeToken", state.token);
     localStorage.setItem("easyShopeRole", state.role);
+    if (data.storeSerial) {
+      localStorage.setItem("easyShopeStoreSerial", data.storeSerial);
+      updateLoginSerialDisplay(data.storeSerial);
+    }
     showMessage("تم تسجيل الدخول.");
     await bootstrap();
     setView(defaultViewForScope());
@@ -1024,6 +1041,16 @@ function renderMerchantBrand(store) {
   const name = store.name_ar || store.name_en || "إدارة المتجر";
   if ($("merchant-brand-name")) $("merchant-brand-name").textContent = name;
   if ($("merchant-brand-slug")) $("merchant-brand-slug").textContent = store.slug ? `@${store.slug}` : "";
+  const serialEl = $("merchant-brand-serial");
+  if (serialEl) {
+    const serial = store.serial_code || "";
+    serialEl.textContent = serial ? `رقم تسلسلي: ${serial}` : "";
+    serialEl.hidden = !serial;
+    if (serial) {
+      localStorage.setItem("easyShopeStoreSerial", serial);
+      updateLoginSerialDisplay(serial);
+    }
+  }
   const logoWrap = $("merchant-brand-logo-wrap");
   const logoImg = $("merchant-brand-logo");
   if (logoWrap && logoImg) {
@@ -2284,6 +2311,7 @@ async function openAdminTenantDetail(tenantId) {
     const storeUrl = `${window.location.origin}/store/${t.slug}`;
     body.innerHTML = `<div class="dialog-grid">
       <div><strong>Slug</strong><p>${t.slug}</p></div>
+      <div><strong>رقم تسلسلي</strong><p>${t.serial_code || "—"}</p></div>
       <div><strong>الحالة</strong><p>${adminStatusBadge(t.status)} ${t.plan_code}</p></div>
       <div><strong>المالك</strong><p>${t.owner_name || "—"}<br>${t.owner_email || ""}<br>${t.owner_phone || ""}</p></div>
       <div><strong>انتهاء الاشتراك</strong><p>${formatTrialExpiryDate(t.subscription_expires_at)}</p></div>
@@ -2445,6 +2473,7 @@ async function bootstrap() {
 document.addEventListener("DOMContentLoaded", () => {
   applyMobileStoreClientShell();
   setOnboardingMode("register");
+  updateLoginSerialDisplay(localStorage.getItem("easyShopeStoreSerial"));
   setMerchantTab("overview");
   setAdminTab("overview");
   initDashboardMobileNav();

@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060726" />
+  <link rel="stylesheet" href="/styles.css?v=2026060727" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -123,6 +123,11 @@
               <label>كلمة المرور<input name="password" type="password" required></label>
               <button>دخول</button>
             </form>
+            <div id="login-store-serial" class="login-serial-card" hidden>
+              <span class="eyebrow">رقم المتجر التسلسلي</span>
+              <strong id="login-store-serial-value">—</strong>
+              <small class="muted">احفظ هذا الرقم للدعم الفني أو عند التواصل مع المنصة.</small>
+            </div>
             <div class="hint-box">
               <strong>دخول آمن</strong>
               <p>استخدم البريد وكلمة المرور الخاصة بحسابك، وسيتم توجيهك تلقائيًا للوحة المناسبة.</p>
@@ -145,6 +150,7 @@
                   <span class="eyebrow">Merchant workspace</span>
                   <strong id="merchant-brand-name">إدارة المتجر</strong>
                   <small id="merchant-brand-slug" class="muted"></small>
+                  <small id="merchant-brand-serial" class="merchant-brand-serial muted" hidden></small>
                 </div>
               </div>
               <button type="button" class="drawer-close" id="merchant-drawer-close" aria-label="إغلاق القائمة">×</button>
@@ -1277,6 +1283,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060726"></script>
+  <script src="/app.js?v=2026060727"></script>
 </body>
 </html>

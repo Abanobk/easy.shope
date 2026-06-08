@@ -9,6 +9,7 @@ class StoreInfo {
     required this.storefrontTheme,
     this.brandColor,
     this.logoUrl,
+    this.serialCode,
   });
 
   final String id;
@@ -20,6 +21,7 @@ class StoreInfo {
   final String storefrontTheme;
   final String? brandColor;
   final String? logoUrl;
+  final String? serialCode;
 
   factory StoreInfo.fromJson(Map<String, dynamic> json) {
     return StoreInfo(
@@ -32,6 +34,7 @@ class StoreInfo {
       storefrontTheme: json['storefront_theme'] as String? ?? 'ocean',
       brandColor: json['brand_color'] as String?,
       logoUrl: json['logo_url'] as String?,
+      serialCode: json['serial_code'] as String?,
     );
   }
 
