@@ -4,7 +4,7 @@ import '../../screens/store_screens.dart';
 import '../../state/store_session.dart';
 import '../../widgets/store_widgets.dart';
 
-/// Violet — تجميل: قصص (stories) + بطاقات عمودية.
+/// Violet — تجميل: hero + قصص (stories) دائرية + بطاقات عمودية.
 class VioletTemplate extends StatelessWidget {
   const VioletTemplate({super.key, required this.session});
 
@@ -20,10 +20,13 @@ class VioletTemplate extends StatelessWidget {
         if (s.error != null) return Scaffold(body: Center(child: Text(s.error!)));
         return Scaffold(
           appBar: AppBar(
-            title: StoreBrandTitle(store: s.store!, subtitle: 'تجميل وعناية'),
+            title: StoreBrandTitle(store: s.store!, subtitle: s.palette.tagline),
             actions: [
               IconButton(onPressed: () => openAccount(context), icon: const Icon(Icons.person_outline)),
-              IconButton(onPressed: () => openCart(context), icon: Badge(label: Text('${s.cartCount}'), child: const Icon(Icons.shopping_bag))),
+              IconButton(
+                onPressed: () => openCart(context),
+                icon: Badge(label: Text('${s.cartCount}'), isLabelVisible: s.cartCount > 0, child: const Icon(Icons.shopping_bag)),
+              ),
             ],
           ),
           body: RefreshIndicator(
@@ -31,12 +34,39 @@ class VioletTemplate extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _stories(s),
-                const SizedBox(height: 12),
-                StoreSearchBar(onSubmitted: s.setSearch),
-                const SizedBox(height: 12),
-                ...s.products.map((p) => ProductTile(product: p, palette: s.palette, style: ProductLayoutStyle.card, onAdd: () => s.addToCart(p), onTap: () => openProduct(context, p))),
-                if (s.products.isEmpty) const Text('لا توجد منتجات.'),
+                StoreHero(
+                  palette: s.palette,
+                  eyebrow: 'جمالك يبدأ هنا',
+                  title: s.store!.displayName,
+                  subtitle: 'منتجات تجميل وعناية أصلية بأفضل الأسعار.',
+                  logoUrl: s.store!.logoUrl,
+                  height: 150,
+                ),
+                const SizedBox(height: 16),
+                if (s.categories.isNotEmpty) ...[
+                  SectionHeader(title: 'تسوّقي حسب الفئة', palette: s.palette),
+                  _stories(s),
+                  const SizedBox(height: 16),
+                ],
+                StoreSearchBar(onSubmitted: s.setSearch, hint: 'ابحثي عن منتج'),
+                const SizedBox(height: 16),
+                SectionHeader(title: 'وصل حديثًا', palette: s.palette),
+                if (s.products.isEmpty)
+                  const StoreEmptyState()
+                else
+                  ...s.products.map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: ProductTile(
+                        product: p,
+                        palette: s.palette,
+                        style: ProductLayoutStyle.list,
+                        addLabel: 'أضيفي للسلة',
+                        onAdd: () => s.addToCart(p),
+                        onTap: () => openProduct(context, p),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -46,27 +76,37 @@ class VioletTemplate extends StatelessWidget {
   }
 
   Widget _stories(StoreSession s) {
-    if (s.categories.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 96,
+      height: 100,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: s.categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: 14),
         itemBuilder: (_, i) {
           final c = s.categories[i];
           final active = s.selectedCategorySlug == c.slug;
           return GestureDetector(
-            onTap: () => s.selectCategory(c.slug),
+            onTap: () => s.selectCategory(active ? null : c.slug),
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: active ? s.palette.primary : s.palette.chipBackground,
-                  child: Text(c.nameAr.characters.first, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: active ? LinearGradient(colors: s.palette.heroGradient) : null,
+                    border: active ? null : Border.all(color: s.palette.hairline, width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 30,
+                    backgroundColor: s.palette.chipBackground,
+                    child: Text(c.nameAr.characters.first, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  ),
                 ),
                 const SizedBox(height: 6),
-                SizedBox(width: 64, child: Text(c.nameAr, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11))),
+                SizedBox(
+                  width: 70,
+                  child: Text(c.nameAr, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                ),
               ],
             ),
           );

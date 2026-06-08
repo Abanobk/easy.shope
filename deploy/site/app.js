@@ -1396,6 +1396,24 @@ async function requestMerchantAndroidBuild() {
     setAndroidBuildInlineFeedback(msg, "warn");
     return;
   }
+  const unsaved = state.storefrontThemeDraft && state.storefrontThemeDraft !== state.savedStorefrontTheme;
+  if (unsaved) {
+    const draftLabel = STOREFRONT_THEME_LABELS[state.storefrontThemeDraft] || state.storefrontThemeDraft;
+    const savedLabel = STOREFRONT_THEME_LABELS[state.savedStorefrontTheme] || state.savedStorefrontTheme;
+    const wantSave = window.confirm(
+      `لديك قالب مُعايَن غير محفوظ (${draftLabel}).\n` +
+        `سيُبنى التطبيق بالقالب المحفوظ حاليًا (${savedLabel}).\n\n` +
+        `اضغط «موافق» لحفظ القالب المُعايَن أولًا ثم متابعة البناء، أو «إلغاء» للبناء بالقالب المحفوظ.`,
+    );
+    if (wantSave) {
+      try {
+        await saveStorefrontTheme();
+      } catch (error) {
+        showMessage(error.message || "تعذّر حفظ القالب", true);
+        return;
+      }
+    }
+  }
   setAndroidBuildInlineFeedback("");
   try {
     if (btn) btn.disabled = true;

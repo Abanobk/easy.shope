@@ -94,6 +94,17 @@ class StoreSession extends ChangeNotifier {
     notifyListeners();
   }
 
+  void decrementCartLine(String productId) {
+    final existing = cart.where((l) => l.product.id == productId).firstOrNull;
+    if (existing == null) return;
+    if (existing.quantity > 1) {
+      existing.quantity--;
+    } else {
+      cart.removeWhere((l) => l.product.id == productId);
+    }
+    notifyListeners();
+  }
+
   void removeFromCart(String productId) {
     cart.removeWhere((l) => l.product.id == productId);
     notifyListeners();

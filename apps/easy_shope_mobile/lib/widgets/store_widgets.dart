@@ -25,94 +25,316 @@ class ProductTile extends StatelessWidget {
   final ProductLayoutStyle style;
   final String addLabel;
 
+  bool get _outOfStock => product.stockQuantity <= 0;
+  bool get _lowStock => product.stockQuantity > 0 && product.stockQuantity <= 5;
+
   @override
   Widget build(BuildContext context) {
     return switch (style) {
-      ProductLayoutStyle.list => _ListTile(),
-      ProductLayoutStyle.minimal => _MinimalTile(),
-      ProductLayoutStyle.card || ProductLayoutStyle.grid => _GridCard(),
+      ProductLayoutStyle.list => _listTile(),
+      ProductLayoutStyle.minimal => _minimalTile(),
+      ProductLayoutStyle.card || ProductLayoutStyle.grid => _gridCard(),
     };
   }
 
-  Widget _image(double height) {
+  Widget _image(double height, {bool rounded = true}) {
+    Widget child;
     if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(product.imageUrl!, height: height, width: double.infinity, fit: BoxFit.cover),
+      child = Image.network(
+        product.imageUrl!,
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(height),
       );
+    } else {
+      child = _placeholder(height);
     }
+    if (!rounded) return SizedBox(height: height, width: double.infinity, child: child);
+    return ClipRRect(borderRadius: BorderRadius.circular(palette.cornerRadius - 4), child: child);
+  }
+
+  Widget _placeholder(double height) {
     return Container(
       height: height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(colors: [palette.primary.withValues(alpha: 0.35), palette.surface]),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [palette.primary.withValues(alpha: 0.35), palette.surface],
+        ),
       ),
-      child: Text(product.title.characters.first, style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: palette.accent)),
+      child: Text(
+        product.title.characters.isEmpty ? '?' : product.title.characters.first,
+        style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: palette.accent),
+      ),
     );
   }
 
-  Widget _GridCard() {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Card(
+  Widget _stockBadge() {
+    if (_outOfStock) return _badge('غير متوفر', Colors.black.withValues(alpha: 0.72), Colors.white);
+    if (_lowStock) return _badge('متبقي ${product.stockQuantity}', palette.primary, Colors.white);
+    return const SizedBox.shrink();
+  }
+
+  Widget _badge(String text, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      child: Text(text, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w800)),
+    );
+  }
+
+  Widget _addButton() {
+    return Material(
+      color: _outOfStock ? palette.chipBackground : palette.primary,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: _outOfStock ? null : onAdd,
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _image(120),
-              const SizedBox(height: 10),
-              Text(product.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(product.priceLabel, style: TextStyle(color: palette.accent, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              FilledButton(onPressed: onAdd, child: Text(addLabel)),
-            ],
-          ),
+          padding: const EdgeInsets.all(9),
+          child: Icon(Icons.add_rounded, color: _outOfStock ? palette.muted : Colors.white, size: 20),
         ),
       ),
     );
   }
 
-  Widget _ListTile() {
+  Widget _gridCard() {
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              SizedBox(width: 88, child: _image(88)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(product.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    Text(product.priceLabel, style: TextStyle(color: palette.accent)),
-                  ],
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              children: [
+                _image(140, rounded: false),
+                Positioned(top: 10, right: 10, child: _stockBadge()),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700, height: 1.3),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.priceLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: palette.accent, fontWeight: FontWeight.w900, fontSize: 15),
+                        ),
+                      ),
+                      _addButton(),
+                    ],
+                  ),
+                ],
               ),
-              IconButton(onPressed: onAdd, icon: Icon(Icons.add_shopping_cart, color: palette.primary)),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _listTile() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(palette.cornerRadius - 6),
+                  child: SizedBox(width: 92, height: 92, child: _image(92, rounded: false)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(product.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      if (_outOfStock || _lowStock) ...[_stockBadge(), const SizedBox(height: 6)],
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(product.priceLabel, style: TextStyle(color: palette.accent, fontWeight: FontWeight.w900, fontSize: 15)),
+                          ),
+                          _addButton(),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _MinimalTile() {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      title: Text(product.title),
-      subtitle: Text(product.priceLabel),
-      trailing: IconButton(onPressed: onAdd, icon: const Icon(Icons.add)),
+  Widget _minimalTile() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(product.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(product.priceLabel, style: TextStyle(color: palette.muted, fontSize: 13)),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _outOfStock ? null : onAdd,
+            child: Text(_outOfStock ? 'غير متوفر' : addLabel),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Gradient hero banner used across templates with store identity + tagline.
+class StoreHero extends StatelessWidget {
+  const StoreHero({
+    super.key,
+    required this.palette,
+    required this.title,
+    this.subtitle,
+    this.eyebrow,
+    this.height = 158,
+    this.logoUrl,
+  });
+
+  final TemplatePalette palette;
+  final String title;
+  final String? subtitle;
+  final String? eyebrow;
+  final double height;
+  final String? logoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(palette.cornerRadius + 4),
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: palette.heroGradient,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -40,
+            left: -30,
+            child: _circle(140, Colors.white.withValues(alpha: 0.12)),
+          ),
+          Positioned(
+            bottom: -50,
+            right: -20,
+            child: _circle(120, Colors.white.withValues(alpha: 0.08)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (logoUrl != null && logoUrl!.trim().isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: StoreLogoImage(logoUrl: logoUrl, size: 40, radius: 10),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (eyebrow != null)
+                  Text(
+                    eyebrow!,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 0.4),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13.5, height: 1.4),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _circle(double size, Color color) {
+    return Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color));
+  }
+}
+
+class SectionHeader extends StatelessWidget {
+  const SectionHeader({super.key, required this.title, this.palette, this.actionLabel, this.onAction});
+
+  final String title;
+  final TemplatePalette? palette;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = palette?.accent ?? Theme.of(context).colorScheme.tertiary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(width: 4, height: 18, decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(4))),
+          const SizedBox(width: 8),
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))),
+          if (actionLabel != null)
+            TextButton(onPressed: onAction, child: Text(actionLabel!)),
+        ],
+      ),
     );
   }
 }
@@ -129,7 +351,7 @@ class CategoryStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (categories.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 44,
+      height: 42,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -143,13 +365,24 @@ class CategoryStrip extends StatelessWidget {
   Widget _chip(String label, bool active, VoidCallback onTap) {
     return Padding(
       padding: const EdgeInsets.only(left: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: active,
-        onSelected: (_) => onTap(),
-        backgroundColor: palette.chipBackground,
-        selectedColor: palette.primary,
-        labelStyle: TextStyle(color: active ? Colors.white : palette.onSurface),
+      child: Material(
+        color: active ? palette.primary : palette.chipBackground,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(999),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : palette.onSurface,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -164,7 +397,13 @@ class StoreSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: hint),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.search),
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide.none),
+      ),
       onSubmitted: onSubmitted,
       textInputAction: TextInputAction.search,
     );
@@ -234,6 +473,28 @@ class StoreBrandTitle extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Empty state used when a category/search returns no products.
+class StoreEmptyState extends StatelessWidget {
+  const StoreEmptyState({super.key, this.message = 'لا توجد منتجات لعرضها حاليًا.'});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 48, color: color),
+          const SizedBox(height: 12),
+          Text(message, textAlign: TextAlign.center, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }

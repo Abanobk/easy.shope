@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/models.dart';
 import '../state/store_session.dart';
+import '../theme/template_palette.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   const ProductDetailScreen({super.key, required this.product});
@@ -12,39 +13,81 @@ class ProductDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = StoreScope.of(context);
     final palette = session.palette;
+    final outOfStock = product.stockQuantity <= 0;
     return Scaffold(
       appBar: AppBar(title: const Text('تفاصيل المنتج')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (product.imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(product.imageUrl!, height: 220, width: double.infinity, fit: BoxFit.cover),
-            )
-          else
-            Container(
-              height: 180,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), color: palette.surface),
-              child: Text(product.title.characters.first, style: const TextStyle(fontSize: 48)),
-            ),
-          const SizedBox(height: 16),
-          Text(product.title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text(product.priceLabel, style: TextStyle(color: palette.accent, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Text(product.description ?? 'منتج متاح في المتجر.', style: TextStyle(color: palette.onSurface.withValues(alpha: 0.8))),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () {
-              session.addToCart(product);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت الإضافة للسلة')));
-            },
-            icon: const Icon(Icons.add_shopping_cart),
-            label: const Text('أضف للسلة'),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(palette.cornerRadius + 4),
+            child: (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+                ? Image.network(
+                    product.imageUrl!,
+                    height: 280,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _imageFallback(palette),
+                  )
+                : _imageFallback(palette),
           ),
+          const SizedBox(height: 18),
+          Text(product.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(product.priceLabel, style: TextStyle(color: palette.accent, fontSize: 22, fontWeight: FontWeight.w900)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (outOfStock ? Colors.red : palette.primary).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  outOfStock ? 'غير متوفر' : 'متوفر · ${product.stockQuantity} قطعة',
+                  style: TextStyle(color: outOfStock ? Colors.red.shade200 : palette.accent, fontWeight: FontWeight.w800, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text('الوصف', style: TextStyle(color: palette.muted, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(
+            product.description?.trim().isNotEmpty == true ? product.description! : 'منتج متاح في المتجر.',
+            style: TextStyle(color: palette.onSurface.withValues(alpha: 0.85), height: 1.7),
+          ),
+          const SizedBox(height: 28),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: FilledButton.icon(
+            onPressed: outOfStock
+                ? null
+                : () {
+                    session.addToCart(product);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت الإضافة للسلة')));
+                  },
+            icon: const Icon(Icons.add_shopping_cart),
+            label: Text(outOfStock ? 'غير متوفر حاليًا' : 'أضف للسلة — ${product.priceLabel}'),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _imageFallback(TemplatePalette palette) {
+    return Container(
+      height: 280,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(gradient: LinearGradient(colors: palette.heroGradient)),
+      child: Text(
+        product.title.characters.isEmpty ? '?' : product.title.characters.first,
+        style: const TextStyle(fontSize: 64, fontWeight: FontWeight.bold, color: Colors.white),
       ),
     );
   }
@@ -101,6 +144,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     final session = StoreScope.of(context);
+    final palette = session.palette;
     final total = (session.cartTotalCents / 100).toStringAsFixed(2);
     return Scaffold(
       appBar: AppBar(title: const Text('السلة')),
@@ -108,20 +152,84 @@ class _CartScreenState extends State<CartScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           if (session.cart.isEmpty)
-            const Text('السلة فارغة.')
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Column(
+                children: [
+                  Icon(Icons.shopping_cart_outlined, size: 56, color: palette.muted),
+                  const SizedBox(height: 12),
+                  Text('السلة فارغة.', style: TextStyle(color: palette.muted, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            )
           else
             ...session.cart.map(
-              (line) => ListTile(
-                title: Text(line.product.title),
-                subtitle: Text('${line.quantity} × ${line.product.priceLabel}'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => session.removeFromCart(line.product.id),
+              (line) => Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 60,
+                          height: 60,
+                          child: (line.product.imageUrl != null && line.product.imageUrl!.isNotEmpty)
+                              ? Image.network(line.product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: palette.chipBackground))
+                              : Container(
+                                  color: palette.chipBackground,
+                                  alignment: Alignment.center,
+                                  child: Text(line.product.title.characters.first, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(line.product.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 4),
+                            Text(line.product.priceLabel, style: TextStyle(color: palette.accent, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      _QtyStepper(
+                        quantity: line.quantity,
+                        palette: palette,
+                        onMinus: () {
+                          if (line.quantity > 1) {
+                            session.decrementCartLine(line.product.id);
+                          } else {
+                            session.removeFromCart(line.product.id);
+                          }
+                        },
+                        onPlus: () => session.addToCart(line.product),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          const Divider(),
-          ListTile(title: const Text('الإجمالي'), trailing: Text('$total EGP', style: const TextStyle(fontWeight: FontWeight.bold))),
+          if (session.cart.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: palette.softSurface,
+                borderRadius: BorderRadius.circular(palette.cornerRadius),
+                border: Border.all(color: palette.hairline),
+              ),
+              child: Row(
+                children: [
+                  const Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Text('$total EGP', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: palette.accent)),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'اسم العميل')),
           const SizedBox(height: 10),
@@ -283,6 +391,45 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({required this.quantity, required this.palette, required this.onMinus, required this.onPlus});
+
+  final int quantity;
+  final TemplatePalette palette;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.chipBackground,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: palette.hairline),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _btn(Icons.remove, onMinus),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w800)),
+          ),
+          _btn(Icons.add, onPlus),
+        ],
+      ),
+    );
+  }
+
+  Widget _btn(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: Padding(padding: const EdgeInsets.all(6), child: Icon(icon, size: 18, color: palette.onSurface)),
     );
   }
 }
