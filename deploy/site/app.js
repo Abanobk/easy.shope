@@ -2519,10 +2519,29 @@ async function bootstrap() {
   }
 }
 
+function initPasswordToggles(root = document) {
+  root.querySelectorAll(".password-input-wrap").forEach((wrap) => {
+    const input = wrap.querySelector('input[type="password"], input[type="text"]');
+    const btn = wrap.querySelector(".password-toggle");
+    if (!input || !btn || btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    btn.addEventListener("click", () => {
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.classList.toggle("is-visible", show);
+      const label = show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور";
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("title", label);
+      input.focus();
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   applyMobileStoreClientShell();
   setOnboardingMode("register");
   void refreshLoginSerialDisplay();
+  initPasswordToggles();
   setMerchantTab("overview");
   setAdminTab("overview");
   initDashboardMobileNav();

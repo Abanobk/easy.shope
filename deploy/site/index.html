@@ -13,7 +13,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060820" />
+  <link rel="stylesheet" href="/styles.css?v=2026060821" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -104,7 +104,15 @@
               <label>اسم التاجر<input name="name" required></label>
               <label>البريد<input name="email" type="email" required></label>
               <label>رقم الموبايل<input name="phone" required></label>
-              <label>كلمة المرور<input name="password" type="password" minlength="8" required></label>
+              <label>كلمة المرور
+                <span class="password-input-wrap">
+                  <input name="password" type="password" minlength="8" required autocomplete="new-password">
+                  <button type="button" class="password-toggle" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
+                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5C7 5 2.73 8.11 1 12.5 2.73 16.89 7 20 12 20s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5Zm0 11a3.5 3.5 0 110-7 3.5 3.5 0 010 7Z"/></svg>
+                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true" hidden><path fill="currentColor" d="M3.27 3 2 4.27l2.28 2.28A11.8 11.8 0 001 12.5C2.73 16.89 7 20 12 20a11.6 11.6 0 005.09-1.18L20.73 22 22 20.73 3.27 3ZM12 17.5a5 5 0 01-4.87-3.75l1.46 1.46A3 3 0 0012 15.5c.69 0 1.33-.23 1.84-.62l1.43 1.43A4.9 4.9 0 0112 17.5Zm6.59-2.41-1.55-1.55a6.8 6.8 0 00.45-2.04C17.27 8.11 15 6.5 12 6.5c-.69 0-1.36.1-2 .28L8.4 5.18A10.2 10.2 0 0112 5c5 0 9.27 3.11 11 7.5-.55 1.28-1.4 2.42-2.41 3.59Z"/></svg>
+                  </button>
+                </span>
+              </label>
               <label>اسم المتجر عربي<input name="storeNameAr" required></label>
               <label>Store name English<input name="storeNameEn" required></label>
               <label class="span-2">البلد<input name="country" value="Egypt" required></label>
@@ -120,7 +128,15 @@
             </div>
             <form id="login-form" class="form-stack">
               <label>البريد<input name="email" type="email" required></label>
-              <label>كلمة المرور<input name="password" type="password" required></label>
+              <label>كلمة المرور
+                <span class="password-input-wrap">
+                  <input name="password" type="password" required autocomplete="current-password">
+                  <button type="button" class="password-toggle" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
+                    <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5C7 5 2.73 8.11 1 12.5 2.73 16.89 7 20 12 20s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5Zm0 11a3.5 3.5 0 110-7 3.5 3.5 0 010 7Z"/></svg>
+                    <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true" hidden><path fill="currentColor" d="M3.27 3 2 4.27l2.28 2.28A11.8 11.8 0 001 12.5C2.73 16.89 7 20 12 20a11.6 11.6 0 005.09-1.18L20.73 22 22 20.73 3.27 3ZM12 17.5a5 5 0 01-4.87-3.75l1.46 1.46A3 3 0 0012 15.5c.69 0 1.33-.23 1.84-.62l1.43 1.43A4.9 4.9 0 0112 17.5Zm6.59-2.41-1.55-1.55a6.8 6.8 0 00.45-2.04C17.27 8.11 15 6.5 12 6.5c-.69 0-1.36.1-2 .28L8.4 5.18A10.2 10.2 0 0112 5c5 0 9.27 3.11 11 7.5-.55 1.28-1.4 2.42-2.41 3.59Z"/></svg>
+                  </button>
+                </span>
+              </label>
               <button>دخول</button>
             </form>
             <div id="login-store-serial" class="login-serial-card">
@@ -1283,6 +1299,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060820"></script>
+  <script src="/app.js?v=2026060821"></script>
 </body>
 </html>

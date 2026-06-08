@@ -4337,6 +4337,57 @@ textarea:focus {
   box-shadow: 0 0 0 4px rgba(56, 189, 248, .12);
 }
 
+.password-input-wrap {
+  position: relative;
+  display: block;
+}
+
+.password-input-wrap input {
+  padding-inline-end: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  inset-inline-end: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.12);
+  outline: none;
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.password-toggle.is-visible .icon-eye {
+  display: none;
+}
+
+.password-toggle.is-visible .icon-eye-off {
+  display: block !important;
+}
+
+.password-toggle:not(.is-visible) .icon-eye-off {
+  display: none !important;
+}
+
 button,
 .button {
   color: #082f49;
@@ -4349,6 +4400,18 @@ button.secondary,
 .ghost {
   color: #e2e8f0;
   background: rgba(30, 41, 59, .9);
+}
+
+button.password-toggle {
+  color: #94a3b8;
+  background: transparent;
+  box-shadow: none;
+}
+
+button.password-toggle:hover,
+button.password-toggle:focus-visible {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.12);
 }
 
 .secondary-link {
