@@ -600,6 +600,21 @@ function normalizeStorefrontThemeForBuild(raw: string | null | undefined): strin
   return (STOREFRONT_THEME_CODES as readonly string[]).includes(t) ? t : "ocean";
 }
 
+async function ensureTenantSerialCode(tenantId: string | null | undefined): Promise<string | null> {
+  if (!tenantId) return null;
+  const existing = await pool.query(`SELECT serial_code FROM tenants WHERE id = $1`, [tenantId]);
+  const current = existing.rows[0]?.serial_code as string | undefined;
+  if (current) return current;
+  const assigned = await pool.query(
+    `UPDATE tenants
+     SET serial_code = 'ES-' || nextval('tenant_serial_seq')::text
+     WHERE id = $1 AND serial_code IS NULL
+     RETURNING serial_code`,
+    [tenantId],
+  );
+  return (assigned.rows[0]?.serial_code as string | undefined) ?? null;
+}
+
 async function dispatchTenantApkWorkflow(opts: {
   buildId: string;
   tenantId: string;
@@ -712,11 +727,7 @@ app.post("/api/auth/login", async (request, reply) => {
     return reply.code(403).send({ message: "This account is disabled" });
   }
   const token = signToken({ userId: user.id, tenantId: user.tenant_id, role: user.role });
-  let storeSerial: string | null = null;
-  if (user.tenant_id) {
-    const tenant = await pool.query(`SELECT serial_code FROM tenants WHERE id = $1`, [user.tenant_id]);
-    storeSerial = (tenant.rows[0]?.serial_code as string | undefined) ?? null;
-  }
+  const storeSerial = await ensureTenantSerialCode(user.tenant_id);
   return {
     token,
     user: { id: user.id, tenantId: user.tenant_id, name: user.name, email: user.email, role: user.role },

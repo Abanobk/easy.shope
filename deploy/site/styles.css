@@ -3838,16 +3838,26 @@ body[data-auth-mode="login"] .register-panel {
   margin-top: 14px;
   padding: 16px 18px;
   border-radius: 18px;
-  border: 1px solid rgba(56, 189, 248, 0.32);
-  background: linear-gradient(135deg, rgba(14, 116, 144, 0.22), rgba(30, 41, 59, 0.72));
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  background: rgba(30, 41, 59, 0.45);
   display: grid;
   gap: 6px;
+}
+
+.login-serial-card--ready {
+  border-style: solid;
+  border-color: rgba(56, 189, 248, 0.32);
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.22), rgba(30, 41, 59, 0.72));
 }
 
 .login-serial-card strong {
   font-size: 22px;
   letter-spacing: 0.6px;
   font-weight: 900;
+  color: #94a3b8;
+}
+
+.login-serial-card--ready strong {
   color: #7dd3fc;
 }
 

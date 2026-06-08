@@ -803,12 +803,47 @@ async function registerMerchant(event) {
   }
 }
 
+function setOnboardingMode(mode = "register") {
+  document.body.dataset.authMode = mode === "login" ? "login" : "register";
+  if (mode === "login") void refreshLoginSerialDisplay();
+}
+
 function updateLoginSerialDisplay(serial) {
   const card = $("login-store-serial");
   const value = $("login-store-serial-value");
+  const hint = $("login-store-serial-hint");
   const code = String(serial || "").trim();
   if (value) value.textContent = code || "—";
-  if (card) card.hidden = !code;
+  if (card) card.classList.toggle("login-serial-card--ready", Boolean(code));
+  if (hint) {
+    hint.textContent = code
+      ? "احفظ هذا الرقم للدعم الفني أو عند التواصل مع المنصة."
+      : "سيظهر رقم متجرك هنا بعد تسجيل الدخول بنجاح.";
+  }
+}
+
+async function refreshLoginSerialDisplay() {
+  const cached = localStorage.getItem("easyShopeStoreSerial");
+  if (cached) {
+    updateLoginSerialDisplay(cached);
+    return;
+  }
+  if (!state.token || ["platform_owner", "platform_admin"].includes(state.role)) {
+    updateLoginSerialDisplay("");
+    return;
+  }
+  try {
+    const data = await api("/api/merchant/store");
+    const serial = data.store?.serial_code || "";
+    if (serial) {
+      localStorage.setItem("easyShopeStoreSerial", serial);
+      updateLoginSerialDisplay(serial);
+    } else {
+      updateLoginSerialDisplay("");
+    }
+  } catch {
+    updateLoginSerialDisplay("");
+  }
 }
 
 async function login(event) {
@@ -826,6 +861,19 @@ async function login(event) {
     if (data.storeSerial) {
       localStorage.setItem("easyShopeStoreSerial", data.storeSerial);
       updateLoginSerialDisplay(data.storeSerial);
+    } else if (data.user?.tenantId) {
+      try {
+        state.token = data.token;
+        state.role = data.user.role;
+        const storeData = await api("/api/merchant/store");
+        const serial = storeData.store?.serial_code || "";
+        if (serial) {
+          localStorage.setItem("easyShopeStoreSerial", serial);
+          updateLoginSerialDisplay(serial);
+        }
+      } catch {
+        /* serial stays placeholder until store loads in bootstrap */
+      }
     }
     showMessage("تم تسجيل الدخول.");
     await bootstrap();
@@ -2464,6 +2512,7 @@ async function bootstrap() {
     } else {
       setView("overview");
     }
+    void refreshLoginSerialDisplay();
   } catch (error) {
     updateNavigation();
     showMessage(error.message, true);
@@ -2473,7 +2522,7 @@ async function bootstrap() {
 document.addEventListener("DOMContentLoaded", () => {
   applyMobileStoreClientShell();
   setOnboardingMode("register");
-  updateLoginSerialDisplay(localStorage.getItem("easyShopeStoreSerial"));
+  void refreshLoginSerialDisplay();
   setMerchantTab("overview");
   setAdminTab("overview");
   initDashboardMobileNav();
