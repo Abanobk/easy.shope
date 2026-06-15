@@ -7,13 +7,18 @@
   <script>
     (function () {
       try {
-        if (new URLSearchParams(location.search).get("app") === "1") {
+        var params = new URLSearchParams(location.search);
+        var storePath = /^\/store\/[^/]+/.test(location.pathname);
+        if (storePath || params.get("app") === "1") {
+          document.documentElement.classList.add("store-client-shell");
+        }
+        if (params.get("app") === "1") {
           document.documentElement.classList.add("pre-mobile-store");
         }
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060822" />
+  <link rel="stylesheet" href="/styles.css?v=2026060823" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -1007,28 +1012,52 @@
             <aside id="storefront-category-rail" class="storefront-category-rail" hidden aria-label="أقسام القائمة"></aside>
             <div class="storefront-layout-main">
               <div class="storefront-hero">
-                <div class="storefront-hero-text">
+                <div class="store-hero-merchant-block storefront-hero-text">
                   <span class="eyebrow storefront-hero-eyebrow">Public storefront</span>
                   <h2 id="storefront-title">متجر عام جاهز للبيع</h2>
                   <p id="storefront-subtitle">حمّل متجرًا بالـ slug، اعرض المنتجات، أضف للسلة، وأنشئ Checkout كامل.</p>
                 </div>
+                <div class="store-hero-client-block" id="store-hero-client-block" hidden>
+                  <div class="store-hero-client-brand">
+                    <div class="store-hero-client-logo-wrap" id="store-hero-logo-wrap" hidden>
+                      <img id="store-hero-logo" class="store-hero-client-logo" alt="">
+                    </div>
+                    <div class="store-hero-client-logo-fallback" id="store-hero-logo-fallback" aria-hidden="true"></div>
+                    <div class="store-hero-client-copy">
+                      <h2 id="storefront-client-title">متجرك</h2>
+                      <p id="storefront-client-tagline" class="store-hero-client-tagline">تسوّق بسهولة من مجموعة مختارة من المنتجات.</p>
+                    </div>
+                  </div>
+                </div>
                 <form id="storefront-form" class="storefront-search">
-                  <input id="tenant-slug" placeholder="store slug">
-                  <input id="storefront-query" placeholder="ابحث عن منتج">
-                  <button>تحميل / بحث</button>
+                  <input id="tenant-slug" placeholder="store slug" autocomplete="off">
+                  <div class="store-search-field">
+                    <span class="store-search-icon" aria-hidden="true">⌕</span>
+                    <input id="storefront-query" placeholder="ابحث عن منتج أو صنف...">
+                  </div>
+                  <button type="submit" id="storefront-search-btn">تحميل / بحث</button>
                 </form>
               </div>
               <div id="storefront-stories" class="storefront-stories" hidden></div>
               <div id="storefront-spotlight" class="storefront-spotlight" hidden></div>
               <div id="storefront-categories" class="category-pills"></div>
+              <div class="store-products-head" id="store-products-head" hidden>
+                <div>
+                  <h3 id="store-products-title">كل المنتجات</h3>
+                  <p id="store-products-count" class="muted"></p>
+                </div>
+              </div>
               <div class="grid storefront-grid">
                 <div class="storefront-main-col">
                   <div id="storefront-products" class="store-product-grid"></div>
                 </div>
-                <aside class="cart-panel" id="storefront-cart-panel">
-              <div class="panel-heading">
-                <span class="eyebrow">سلة التسوق</span>
-                <h2>السلة</h2>
+                <aside class="cart-panel" id="storefront-cart-panel" aria-label="سلة التسوق">
+              <div class="cart-panel-head">
+                <button type="button" class="cart-panel-close" id="store-cart-close" aria-label="إغلاق السلة">×</button>
+                <div class="panel-heading">
+                  <span class="eyebrow">سلة التسوق</span>
+                  <h2>السلة</h2>
+                </div>
               </div>
               <div id="product-detail" class="product-detail">اختر منتجًا لعرض التفاصيل.</div>
               <ul id="cart-items" class="list"></ul>
@@ -1066,6 +1095,11 @@
           </div>
           <nav id="storefront-bottom-nav" class="storefront-bottom-nav" hidden aria-label="تنقّل المتجر"></nav>
         </article>
+        <div id="store-cart-backdrop" class="store-cart-backdrop" hidden aria-hidden="true"></div>
+        <button type="button" id="store-cart-fab" class="store-cart-fab" hidden aria-label="فتح السلة">
+          <span class="store-cart-fab-icon" aria-hidden="true">🛒</span>
+          <span id="store-cart-fab-count" class="store-cart-fab-count">0</span>
+        </button>
       </section>
 
       <section class="view" id="view-admin">
@@ -1305,6 +1339,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060821"></script>
+  <script src="/app.js?v=2026060823"></script>
 </body>
 </html>

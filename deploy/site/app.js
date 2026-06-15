@@ -48,6 +48,70 @@ const ADMIN_TAB_LABELS = {
   system: "النظام",
 };
 
+const STOREFRONT_CHROME_HINTS = {
+  ocean: "أزياء وإكسسوارات · شبكة منتجات",
+  violet: "تجميل وعناية · قصص وبطاقات",
+  emerald: "إلكترونيات وتقنية",
+  amber: "مطعم ومأكولات · قائمة يومية",
+  rose: "منزل وديكور · معرض صور",
+  slate: "إبداعي · قائمة بسيطة",
+};
+
+let storefrontSearchTimer = null;
+
+function getStoreSlugFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("store")) return (params.get("store") || "").trim();
+  const match = window.location.pathname.match(/^\/store\/([^\/?#]+)/);
+  if (match?.[1]) return decodeURIComponent(match[1]).trim();
+  if (window.location.hash.startsWith("#store/")) {
+    return window.location.hash.slice("#store/".length).split(/[?&#]/)[0].trim();
+  }
+  return "";
+}
+
+function isStoreClientMode() {
+  return Boolean(getStoreSlugFromUrl()) || new URLSearchParams(window.location.search).get("app") === "1";
+}
+
+function storeClientTagline(store, categories) {
+  const names = categories.slice(0, 3).map((c) => c.name_ar).filter(Boolean);
+  if (names.length) return names.join(" · ");
+  if (store?.country) return `تسوق من ${store.country}`;
+  return "تسوّق بسهولة وأمان";
+}
+
+function applyStoreClientShell() {
+  if (!isStoreClientMode()) return;
+  document.body.classList.add("store-client-mode");
+  document.documentElement.classList.add("store-client-shell");
+  document.body.dataset.scope = "customer";
+  document.body.dataset.view = "storefront";
+  const slugField = $("tenant-slug");
+  if (slugField) slugField.classList.add("mobile-store-slug-hidden");
+  const formBtn = $("storefront-search-btn");
+  if (formBtn) formBtn.textContent = "بحث";
+  const merchantHero = document.querySelector(".store-hero-merchant-block");
+  const clientHero = $("store-hero-client-block");
+  if (merchantHero) merchantHero.hidden = true;
+  if (clientHero) clientHero.hidden = false;
+  const cartFab = $("store-cart-fab");
+  if (cartFab) cartFab.hidden = false;
+  const productsHead = $("store-products-head");
+  if (productsHead) productsHead.hidden = false;
+  hideTrialBanner();
+  updateWhatsAppFab();
+}
+
+function setStoreCartOpen(open) {
+  document.body.classList.toggle("store-cart-open", open);
+  const backdrop = $("store-cart-backdrop");
+  if (backdrop) {
+    backdrop.hidden = !open;
+    backdrop.setAttribute("aria-hidden", open ? "false" : "true");
+  }
+}
+
 function isMobileDashboard() {
   return window.matchMedia("(max-width: 980px)").matches;
 }
@@ -208,16 +272,17 @@ function normalizeStorefrontLayout(theme) {
   return STOREFRONT_LAYOUTS.has(theme) ? theme : "ocean";
 }
 
-function storefrontCategoryControlsHtml(categories, mode) {
+function storefrontCategoryControlsHtml(categories, mode, options = {}) {
   const active = state.storefrontCategory ?? "";
   const extra = mode === "tabs" ? "storefront-tab" : mode === "rail" ? "storefront-rail-btn" : "";
   const row = (slug, label, isOn) => {
     const cls = [isOn ? "active" : "", extra].filter(Boolean).join(" ").trim();
     return `<button type="button" class="${cls}" data-store-category="${slug}">${label}</button>`;
   };
+  const labelFor = (c) => (options.hideCounts ? c.name_ar : `${c.name_ar} (${c.products_count})`);
   return [
     row("", "الكل", active === ""),
-    ...categories.map((c) => row(c.slug, `${c.name_ar} (${c.products_count})`, active === c.slug)),
+    ...categories.map((c) => row(c.slug, labelFor(c), active === c.slug)),
   ].join("");
 }
 
@@ -228,29 +293,35 @@ function renderStorefrontChrome(layout, store, categories) {
   const pills = $("storefront-categories");
   if (!bar || !rail || !bottom || !pills) return;
 
+  const clientMode = isStoreClientMode();
+  const catOpts = clientMode ? { hideCounts: true } : {};
   const name = store.name_ar || store.name_en || "المتجر";
-  const catTabs = storefrontCategoryControlsHtml(categories, "tabs");
-  const catRail = storefrontCategoryControlsHtml(categories, "rail");
-  const catPills = storefrontCategoryControlsHtml(categories, "pills");
+  const tagline = clientMode ? storeClientTagline(store, categories) : STOREFRONT_CHROME_HINTS[layout] || "";
+  const logoHtml = store.logo_url
+    ? `<img src="${store.logo_url}" alt="" class="storefront-chrome-logo" loading="lazy">`
+    : `<span class="storefront-chrome-dot" aria-hidden="true"></span>`;
+  const catTabs = storefrontCategoryControlsHtml(categories, "tabs", catOpts);
+  const catRail = storefrontCategoryControlsHtml(categories, "rail", catOpts);
+  const catPills = storefrontCategoryControlsHtml(categories, "pills", catOpts);
 
   bar.hidden = false;
   rail.hidden = layout !== "amber";
   bottom.hidden = layout !== "emerald";
 
   if (layout === "ocean") {
-    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--ocean"><div class="storefront-chrome-brand"><span class="storefront-chrome-dot" aria-hidden="true"></span><div><strong>${name}</strong><small>أزياء وإكسسوارات · شبكة منتجات</small></div></div><div id="storefront-chrome-tabs" class="storefront-chrome-tabs">${catTabs}</div></div>`;
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--ocean"><div class="storefront-chrome-brand">${logoHtml}<div><strong>${name}</strong><small>${tagline}</small></div></div><div id="storefront-chrome-tabs" class="storefront-chrome-tabs">${catTabs}</div></div>`;
     rail.innerHTML = "";
     bottom.innerHTML = "";
     pills.innerHTML = "";
     pills.hidden = true;
   } else if (layout === "violet") {
-    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--violet"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>تجميل وعناية · قصص وبطاقات</small></div></div><span class="storefront-chrome-pill">Beauty</span></div>`;
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--violet"><div class="storefront-chrome-brand">${clientMode ? logoHtml : ""}<div><strong>${name}</strong><small>${tagline}</small></div></div>${clientMode ? "" : '<span class="storefront-chrome-pill">Beauty</span>'}</div>`;
     rail.innerHTML = "";
     bottom.innerHTML = "";
     pills.innerHTML = catPills;
     pills.hidden = false;
   } else if (layout === "emerald") {
-    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--emerald"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>إلكترونيات وتقنية</small></div></div><span class="storefront-chrome-chip">Tech hub</span></div>`;
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--emerald"><div class="storefront-chrome-brand">${logoHtml}<div><strong>${name}</strong><small>${tagline}</small></div></div>${clientMode ? "" : '<span class="storefront-chrome-chip">Tech hub</span>'}</div>`;
     rail.innerHTML = "";
     bottom.innerHTML = `<div class="storefront-bottom-nav-inner">
       <button type="button" class="storefront-nav-item is-active" data-store-nav="home"><span class="storefront-nav-ic" aria-hidden="true">⌂</span><small>الرئيسية</small></button>
@@ -261,19 +332,19 @@ function renderStorefrontChrome(layout, store, categories) {
     pills.innerHTML = catPills;
     pills.hidden = false;
   } else if (layout === "amber") {
-    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--amber"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>مطعم ومأكولات · قائمة يومية</small></div></div><span class="storefront-delivery-badge">توصيل متاح</span></div>`;
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--amber"><div class="storefront-chrome-brand">${logoHtml}<div><strong>${name}</strong><small>${tagline}</small></div></div>${clientMode ? '<span class="storefront-delivery-badge">توصيل متاح</span>' : '<span class="storefront-delivery-badge">توصيل متاح</span>'}</div>`;
     rail.innerHTML = `<div class="storefront-rail-inner"><div class="storefront-rail-title">القائمة</div><div class="storefront-rail-list">${catRail}</div></div>`;
     bottom.innerHTML = "";
     pills.innerHTML = "";
     pills.hidden = true;
   } else if (layout === "rose") {
-    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--rose"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>منزل وديكور · معرض صور</small></div></div></div>`;
+    bar.innerHTML = `<div class="storefront-chrome-inner storefront-chrome--rose"><div class="storefront-chrome-brand">${logoHtml}<div><strong>${name}</strong><small>${tagline}</small></div></div></div>`;
     rail.innerHTML = "";
     bottom.innerHTML = "";
     pills.innerHTML = catPills;
     pills.hidden = false;
   } else if (layout === "slate") {
-    bar.innerHTML = `<div class="storefront-chrome--slate-wrap"><div class="storefront-chrome-art" aria-hidden="true"></div><div class="storefront-chrome-inner storefront-chrome--slate"><div class="storefront-chrome-brand"><div><strong>${name}</strong><small>إبداعي · قائمة بسيطة</small></div></div></div></div>`;
+    bar.innerHTML = `<div class="storefront-chrome--slate-wrap"><div class="storefront-chrome-art" aria-hidden="true"></div><div class="storefront-chrome-inner storefront-chrome--slate"><div class="storefront-chrome-brand">${logoHtml}<div><strong>${name}</strong><small>${tagline}</small></div></div></div></div>`;
     rail.innerHTML = "";
     bottom.innerHTML = "";
     pills.innerHTML = catPills;
@@ -543,7 +614,7 @@ async function customerApi(path, options = {}) {
 
 function showMessage(message, kind = "ok") {
   const el = $("message");
-  if (!el) return;
+  if (!el || isStoreClientMode()) return;
   el.textContent = message;
   const isError = kind === true || kind === "error";
   const isWarn = kind === "warn";
@@ -599,6 +670,16 @@ function defaultViewForScope(scope = currentScope()) {
 
 function updateNavigation() {
   const scope = currentScope();
+  if (isStoreClientMode()) {
+    document.body.dataset.scope = "customer";
+    document.querySelectorAll(".nav-item").forEach((button) => {
+      button.hidden = true;
+    });
+    $("logout").hidden = true;
+    hideTrialBanner();
+    updateWhatsAppFab();
+    return;
+  }
   document.body.dataset.scope = scope;
   document.querySelectorAll(".nav-item").forEach((button) => {
     const scopes = (button.dataset.scope || "public").split(",");
@@ -632,7 +713,7 @@ function hideTrialBanner() {
 
 function renderTrialBanner(tenant) {
   const el = $("trial-subscription-banner");
-  if (!el || currentScope() !== "merchant" || !tenant) {
+  if (!el || isStoreClientMode() || currentScope() !== "merchant" || !tenant) {
     hideTrialBanner();
     return;
   }
@@ -724,7 +805,7 @@ function updateWhatsAppFab() {
   const scope = currentScope();
   const view = document.body.dataset.view;
   const merchantDashboard = scope === "merchant" && view === "catalog";
-  const customerStorefront = view === "storefront" || document.body.classList.contains("mobile-store-client");
+  const customerStorefront = view === "storefront" || document.body.classList.contains("store-client-mode") || document.body.classList.contains("mobile-store-client");
   const show = merchantDashboard || customerStorefront;
   fab.hidden = !show;
   fab.classList.toggle("whatsapp-support-fab--merchant", merchantDashboard);
@@ -1756,37 +1837,40 @@ function bindMerchantActions(scope = "all") {
 }
 
 function applyMobileStoreClientShell() {
-  try {
-    if (new URLSearchParams(window.location.search).get("app") !== "1") return;
-    if (document.body.classList.contains("mobile-store-client")) return;
-    document.body.classList.add("mobile-store-client");
-    document.documentElement.classList.add("pre-mobile-store");
-    // في وضع تطبيق المتجر: لا نعرض أي أجزاء خاصة بالمنصة (overview/onboarding/admin/merchant).
-    document.body.dataset.scope = "customer";
-    document.body.dataset.view = "storefront";
-    const slugField = $("tenant-slug");
-    if (slugField) slugField.classList.add("mobile-store-slug-hidden");
-    const formBtn = document.querySelector("#storefront-form button[type='submit']");
-    if (formBtn) formBtn.textContent = "بحث";
-    updateWhatsAppFab();
-  } catch {
-    /* ignore */
+  applyStoreClientShell();
+}
+
+function updateStoreClientBranding(store, categories = []) {
+  const name = store.name_ar || store.name_en || "المتجر";
+  const tagline = storeClientTagline(store, categories);
+  document.title = `${name} — متجر`;
+  const clientTitle = $("storefront-client-title");
+  const clientTagline = $("storefront-client-tagline");
+  if (clientTitle) clientTitle.textContent = name;
+  if (clientTagline) clientTagline.textContent = tagline;
+  const logoWrap = $("store-hero-logo-wrap");
+  const logoImg = $("store-hero-logo");
+  const logoFallback = $("store-hero-logo-fallback");
+  const initial = name.trim().slice(0, 1) || "م";
+  if (store.logo_url && logoImg && logoWrap) {
+    logoImg.src = store.logo_url;
+    logoImg.alt = name;
+    logoWrap.hidden = false;
+    if (logoFallback) logoFallback.hidden = true;
+  } else if (logoFallback) {
+    logoFallback.textContent = initial;
+    logoFallback.hidden = false;
+    if (logoWrap) logoWrap.hidden = true;
+  }
+  if (store.brand_color) {
+    document.documentElement.style.setProperty("--store-accent", store.brand_color);
   }
 }
 
 async function applyStoreDeepLink() {
-  let slug = "";
-  const params = new URLSearchParams(window.location.search);
-  if (params.has("store")) slug = (params.get("store") || "").trim();
-  if (!slug) {
-    const m = window.location.pathname.match(/^\/store\/([^\/?#]+)/);
-    if (m?.[1]) slug = decodeURIComponent(m[1]).trim();
-  }
-  if (!slug && window.location.hash.startsWith("#store/")) {
-    slug = window.location.hash.slice("#store/".length).split(/[?&#]/)[0].trim();
-  }
+  const slug = getStoreSlugFromUrl();
   if (!slug) return;
-  applyMobileStoreClientShell();
+  applyStoreClientShell();
   const input = $("tenant-slug");
   if (input) input.value = slug;
   state.tenantSlug = slug;
@@ -1829,26 +1913,39 @@ async function loadStorefront(event) {
   localStorage.setItem("easyShopeTenantSlug", slug);
   const store = await api(`/api/store/${slug}`);
   state.storeTenantId = store.store.id || "";
+  state.merchantCategories = store.categories || [];
   const theme = store.store.storefront_theme || "ocean";
   const layout = normalizeStorefrontLayout(theme);
   document.body.dataset.theme = theme;
   const shell = $("storefront-shell");
   if (shell) shell.dataset.storefrontLayout = layout;
+  if (isStoreClientMode()) updateStoreClientBranding(store.store, store.categories);
   renderStorefrontChrome(layout, store.store, store.categories);
   const data = await api(`/api/store/${slug}/products${queryString({ q: $("storefront-query").value.trim(), category: state.storefrontCategory })}`);
-  $("storefront-title").textContent = store.store.name_ar || store.store.name_en;
-  const mobileClient = document.body.classList.contains("mobile-store-client");
-  if (mobileClient) {
-    const bits = [store.store.country, store.store.status === "trial" ? "تجريبي" : ""].filter(Boolean);
-    $("storefront-subtitle").textContent = bits.length ? bits.join(" · ") : "واجهة تسوق";
+  const storeName = store.store.name_ar || store.store.name_en;
+  $("storefront-title").textContent = storeName;
+  const clientMode = isStoreClientMode();
+  if (clientMode) {
+    $("storefront-subtitle").textContent = storeClientTagline(store.store, store.categories);
+    const activeCategory = store.categories.find((c) => c.slug === state.storefrontCategory);
+    const productsTitle = $("store-products-title");
+    const productsCount = $("store-products-count");
+    if (productsTitle) productsTitle.textContent = activeCategory ? activeCategory.name_ar : "كل المنتجات";
+    if (productsCount) {
+      const count = data.products.length;
+      productsCount.textContent = count ? `${count} ${count === 1 ? "منتج" : "منتجات"}` : "لا توجد منتجات في هذا القسم حاليًا";
+    }
   } else {
     $("storefront-subtitle").textContent = `${store.store.name_en} - ${store.store.country} - ${store.store.status}`;
   }
   renderStorefrontStories(store.categories, layout);
   renderStorefrontSpotlight(store.store, data.products, layout);
   $("storefront-products").innerHTML =
-    data.products.map((item) => storefrontProductHtml(item, layout)).join("") || "<p>لا توجد منتجات منشورة في هذا المتجر.</p>";
-  if (mobileClient) {
+    data.products.map((item) => storefrontProductHtml(item, layout)).join("") ||
+    (clientMode
+      ? `<div class="store-empty-state"><strong>لا توجد منتجات بعد</strong><p>تابعنا قريبًا — سيُضاف محتوى جديد إلى المتجر.</p></div>`
+      : "<p>لا توجد منتجات منشورة في هذا المتجر.</p>");
+  if (clientMode) {
     const acc = document.querySelector("#storefront-cart-panel .customer-account");
     if (acc && !state.customerToken) acc.setAttribute("open", "");
   }
@@ -1950,9 +2047,12 @@ function initStorefrontDelegation() {
     if (navBtn) {
       e.preventDefault();
       const id = navBtn.dataset.storeNav;
-      if (id === "cart") $("storefront-cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      else if (id === "cats") $("storefront-categories")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (id === "cart") {
+        if (isStoreClientMode()) setStoreCartOpen(true);
+        else $("storefront-cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (id === "cats") $("storefront-categories")?.scrollIntoView({ behavior: "smooth", block: "center" });
       else if (id === "account") {
+        if (isStoreClientMode()) setStoreCartOpen(true);
         const det = document.querySelector("#storefront-cart-panel .customer-account");
         if (det && !det.open) det.open = true;
         document.querySelector("#customer-register-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2004,16 +2104,29 @@ function addToCart(productId, title, priceCents) {
   if (existing) existing.quantity += 1;
   else state.cart.push({ productId, title, priceCents, quantity: 1 });
   renderCart();
+  if (isStoreClientMode()) {
+    setStoreCartOpen(true);
+    showMessage(`تمت إضافة «${title}» إلى السلة.`);
+  }
 }
 
 function renderCart() {
+  const totalQty = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalCents = state.cart.reduce((total, item) => total + item.priceCents * item.quantity, 0);
   $("cart-items").innerHTML =
     state.cart
       .map(
         (item) => `<li><strong>${item.title} x ${item.quantity}</strong><span>${money(item.priceCents * item.quantity)} <button class="mini-button" data-remove-cart="${item.productId}">حذف</button></span></li>`,
       )
       .join("") || "<li>السلة فارغة.</li>";
-  $("cart-total").textContent = money(state.cart.reduce((total, item) => total + item.priceCents * item.quantity, 0));
+  $("cart-total").textContent = money(totalCents);
+  const fabCount = $("store-cart-fab-count");
+  if (fabCount) {
+    fabCount.textContent = String(totalQty);
+    fabCount.classList.toggle("is-visible", totalQty > 0);
+  }
+  const cartFab = $("store-cart-fab");
+  if (cartFab) cartFab.classList.toggle("has-items", totalQty > 0);
   document.querySelectorAll("[data-remove-cart]").forEach((button) => {
     button.addEventListener("click", () => {
       state.cart = state.cart.filter((item) => item.productId !== button.dataset.removeCart);
@@ -2483,6 +2596,7 @@ function bindAdminActions() {
 
 async function bootstrap() {
   try {
+    if (isStoreClientMode()) applyStoreClientShell();
     updateNavigation();
     const health = await api("/api/health");
     $("api-status").textContent = health.ok ? "API online" : "API error";
@@ -2496,6 +2610,17 @@ async function bootstrap() {
     }
     $("api-dot").classList.toggle("ok", Boolean(health.ok));
     await refreshMe();
+    if (isStoreClientMode()) {
+      const slug = getStoreSlugFromUrl() || state.tenantSlug || $("tenant-slug")?.value?.trim();
+      if (slug) {
+        if ($("tenant-slug")) $("tenant-slug").value = slug;
+        state.tenantSlug = slug;
+        await loadStorefront();
+      }
+      setView("storefront");
+      hideTrialBanner();
+      return;
+    }
     if (["merchant_owner", "merchant_staff"].includes(state.role)) {
       await loadMerchantData();
       if (state.tenantSlug) await loadStorefront();
@@ -2538,7 +2663,7 @@ function initPasswordToggles(root = document) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  applyMobileStoreClientShell();
+  applyStoreClientShell();
   setOnboardingMode("register");
   void refreshLoginSerialDisplay();
   initPasswordToggles();
@@ -2641,6 +2766,16 @@ document.addEventListener("DOMContentLoaded", () => {
   $("platform-trial-settings-form")?.addEventListener("submit", savePlatformTrialSettings);
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
   $("storefront-form").addEventListener("submit", loadStorefront);
+  $("storefront-query")?.addEventListener("input", () => {
+    if (!isStoreClientMode()) return;
+    clearTimeout(storefrontSearchTimer);
+    storefrontSearchTimer = setTimeout(() => {
+      void loadStorefront();
+    }, 350);
+  });
+  $("store-cart-fab")?.addEventListener("click", () => setStoreCartOpen(true));
+  $("store-cart-close")?.addEventListener("click", () => setStoreCartOpen(false));
+  $("store-cart-backdrop")?.addEventListener("click", () => setStoreCartOpen(false));
   initStorefrontDelegation();
   $("order-form").addEventListener("submit", placeOrder);
   $("customer-login-form")?.addEventListener("submit", loginCustomer);
