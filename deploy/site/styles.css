@@ -3868,6 +3868,23 @@ body[data-auth-mode="login"] .register-panel {
   letter-spacing: 0.3px;
 }
 
+.auth-legal-links {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 13px;
+  margin: 4px 0 0;
+  line-height: 1.7;
+}
+
+.auth-legal-links a {
+  color: #7dd3fc;
+  text-decoration: none;
+}
+
+.auth-legal-links a:hover {
+  text-decoration: underline;
+}
+
 .android-merchant-hint {
   border-color: rgba(56, 189, 248, 0.35);
   background: rgba(14, 116, 144, 0.18);

@@ -41,6 +41,12 @@ services:
       GITHUB_DISPATCH_REF: ${GITHUB_DISPATCH_REF:-main}
       ANDROID_BUILD_WORKFLOW_FILE: ${ANDROID_BUILD_WORKFLOW_FILE:-build-tenant-apk.yml}
       ANDROID_BUILD_CALLBACK_SECRET: ${ANDROID_BUILD_CALLBACK_SECRET:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-Easy Shope <noreply@easyshope.local>}
+      NOTIFY_EMAIL_ENABLED: ${NOTIFY_EMAIL_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy

@@ -6,6 +6,8 @@ import Fastify from "fastify";
 import jwt from "jsonwebtoken";
 import pg from "pg";
 import { z } from "zod";
+import { restoreOrderStock, reserveOrderStock } from "./inventory.js";
+import { emailNotificationsConfigured, notifyNewStoreOrder } from "./notifications.js";
 
 const { Pool } = pg;
 
@@ -27,7 +29,30 @@ const env = {
   androidBuildCallbackSecret: process.env.ANDROID_BUILD_CALLBACK_SECRET ?? "",
   /** فرع GitHub المستخدم عند workflow_dispatch (مثلاً main) */
   githubDispatchRef: process.env.GITHUB_DISPATCH_REF ?? "main",
+  smtpHost: process.env.SMTP_HOST?.trim() ?? "",
 };
+
+const PLACEHOLDER_SECRET_MARKERS = ["dev-only", "change-this", "changeme", "change_me", "easy_shope_dev"];
+
+function isPlaceholderSecret(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return true;
+  return PLACEHOLDER_SECRET_MARKERS.some((marker) => normalized.includes(marker));
+}
+
+function assertProductionSecrets() {
+  if (env.nodeEnv !== "production") return;
+  const issues: string[] = [];
+  if (isPlaceholderSecret(env.jwtSecret)) issues.push("JWT_SECRET");
+  if (isPlaceholderSecret(env.encryptionKey)) issues.push("ENCRYPTION_KEY");
+  if (isPlaceholderSecret(env.platformOwnerPassword)) issues.push("PLATFORM_OWNER_PASSWORD");
+  if (issues.length) {
+    app.log.error(`Production is using placeholder secrets: ${issues.join(", ")}. Update .env on the server before accepting real payments.`);
+  }
+  if (!emailNotificationsConfigured()) {
+    app.log.warn("SMTP_HOST is not configured — order email notifications are disabled.");
+  }
+}
 
 type AuthUser = {
   userId: string;
@@ -38,9 +63,11 @@ type AuthUser = {
 const pool = new Pool({ connectionString: env.databaseUrl });
 const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
 
-if (env.nodeEnv === "production" && [env.jwtSecret, env.encryptionKey, env.platformOwnerPassword].some((value) => value.includes("change-this") || value.includes("dev-only"))) {
+if (env.nodeEnv === "production" && [env.jwtSecret, env.encryptionKey, env.platformOwnerPassword].some((value) => isPlaceholderSecret(value))) {
   app.log.warn("Production is using placeholder secrets. Update .env before handling real customers or payments.");
 }
+
+assertProductionSecrets();
 
 await app.register(cors, { origin: true });
 await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
@@ -234,7 +261,7 @@ function paymobField(obj: Record<string, unknown>, path: string) {
 }
 
 function paymobHmacMatches(obj: Record<string, unknown>, hmacSecret: string, receivedHmac: string) {
-  if (!hmacSecret) return true;
+  if (!hmacSecret) return env.nodeEnv !== "production";
   if (!receivedHmac) return false;
   const fields = [
     "amount_cents",
@@ -499,6 +526,7 @@ async function migrate() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_provider text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_reference text;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS checkout_url text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_restored boolean NOT NULL DEFAULT false;
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS checkout_provider text NOT NULL DEFAULT 'paymob';
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS storefront_theme text NOT NULL DEFAULT 'ocean';
     ALTER TABLE tenants ADD COLUMN IF NOT EXISTS brand_color text;
@@ -1008,16 +1036,32 @@ app.patch("/api/merchant/orders/:orderId/status", async (request, reply) => {
   const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
   const body = z.object({ status: z.enum(["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]) }).parse(request.body);
   const paymentStatus = body.status === "cancelled" ? "failed" : undefined;
-  const result = await pool.query(
-    `UPDATE orders
-     SET status = $3,
-         payment_status = coalesce($4, payment_status)
-     WHERE id = $1 AND tenant_id = $2
-     RETURNING *`,
-    [params.orderId, user.tenantId, body.status, paymentStatus ?? null],
-  );
-  if (!result.rows[0]) return reply.code(404).send({ message: "Order not found" });
-  return { order: result.rows[0] };
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      `UPDATE orders
+       SET status = $3,
+           payment_status = coalesce($4, payment_status)
+       WHERE id = $1 AND tenant_id = $2
+       RETURNING *`,
+      [params.orderId, user.tenantId, body.status, paymentStatus ?? null],
+    );
+    if (!result.rows[0]) {
+      await client.query("ROLLBACK");
+      return reply.code(404).send({ message: "Order not found" });
+    }
+    if (body.status === "cancelled") {
+      await restoreOrderStock(client, params.orderId);
+    }
+    await client.query("COMMIT");
+    return { order: result.rows[0] };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 });
 
 app.get("/api/merchant/payment-providers", async (request) => {
@@ -1448,12 +1492,28 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
          VALUES ($1,$2,$3,$4,$5,$6)`,
         [order.rows[0].id, item.product.id, item.product.title_en, item.quantity, item.product.price_cents, item.lineTotal],
       );
-      await client.query(`UPDATE products SET stock_quantity = stock_quantity - $2 WHERE id = $1`, [item.product.id, item.quantity]);
     }
+    await reserveOrderStock(
+      client,
+      itemRows.map((item) => ({ productId: item.product.id as string, quantity: item.quantity })),
+    );
     await client.query("COMMIT");
+
+    const notifyOrder = (checkoutUrl?: string | null) => {
+      void notifyNewStoreOrder(pool, {
+        tenantId: tenant.id as string,
+        orderId: order.rows[0].id as string,
+        totalCents: total,
+        customerName: body.customerName,
+        customerPhone: body.customerPhone,
+        customerEmail: body.customerEmail ?? null,
+        checkoutUrl: checkoutUrl ?? null,
+      }).catch((err) => app.log.error({ err }, "order notification failed"));
+    };
 
     const preferred = String(tenant.checkout_provider || "paymob");
     if (preferred !== "paymob") {
+      notifyOrder();
       return reply
         .code(201)
         .send({ order: order.rows[0], payment: { status: "pending", provider: preferred, message: "Checkout provider is not integrated yet. Connect Paymob for live checkout." } });
@@ -1462,6 +1522,7 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
     const paymob = await pool.query(`SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob' AND is_enabled = true`, [tenant.id]);
     const credentials = paymob.rows[0];
     if (!credentials) {
+      notifyOrder();
       return reply.code(201).send({ order: order.rows[0], payment: { status: "pending", provider: "manual_until_paymob_connected" } });
     }
 
@@ -1502,13 +1563,14 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
     });
     const intention = await intentionResponse.json().catch(() => ({}));
     if (!intentionResponse.ok || !intention.client_secret) {
-      await pool.query(`UPDATE orders SET payment_provider = 'paymob', payment_reference = $2 WHERE id = $1`, [
+      await restoreOrderStock(pool, order.rows[0].id as string);
+      await pool.query(`UPDATE orders SET payment_provider = 'paymob', payment_reference = $2, status = 'cancelled', payment_status = 'failed' WHERE id = $1`, [
         order.rows[0].id,
         intention.id ? String(intention.id) : null,
       ]);
       return reply.code(201).send({
-        order: order.rows[0],
-        payment: { status: "pending", provider: "paymob", message: intention.message || "Paymob intention creation failed", details: intention },
+        order: { ...order.rows[0], status: "cancelled", payment_status: "failed" },
+        payment: { status: "failed", provider: "paymob", message: intention.message || "Paymob intention creation failed", details: intention },
       });
     }
     const checkoutUrl = paymobCheckoutUrl(publicConfig.publicKey, intention.client_secret);
@@ -1516,6 +1578,7 @@ app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
       `UPDATE orders SET payment_provider = 'paymob', payment_reference = $2, checkout_url = $3 WHERE id = $1 RETURNING *`,
       [order.rows[0].id, String(intention.id || intention.intention_order_id || ""), checkoutUrl],
     );
+    notifyOrder(checkoutUrl);
     return reply.code(201).send({ order: updatedOrder.rows[0], payment: { status: "redirect_required", provider: "paymob", checkoutUrl } });
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
@@ -1561,20 +1624,35 @@ app.post("/api/webhooks/paymob", async (request, reply) => {
   );
   if (!orderCredentials.rows[0]) return { ok: true, ignored: true };
   const secret = decodeSecret<{ hmacSecret?: string }>(orderCredentials.rows[0].encrypted_secret);
-  if (secret.hmacSecret && !paymobHmacMatches(obj, secret.hmacSecret, receivedHmac)) {
+  if (!secret.hmacSecret) {
+    if (env.nodeEnv === "production") return reply.code(401).send({ message: "Paymob HMAC secret is not configured" });
+  } else if (!paymobHmacMatches(obj, secret.hmacSecret, receivedHmac)) {
     return reply.code(401).send({ message: "Invalid Paymob webhook signature" });
   }
   const paymentStatus = success ? "paid" : pending ? "pending" : "failed";
-  const orderStatus = success ? "confirmed" : "pending";
-  await pool.query(
-    `UPDATE orders
-     SET payment_status = $2,
-         status = $3,
-         payment_provider = 'paymob',
-         payment_reference = coalesce($4, payment_reference)
-     WHERE id = $1`,
-    [orderId, paymentStatus, orderStatus, transactionId || null],
-  );
+  const orderStatus = success ? "confirmed" : pending ? "pending" : "cancelled";
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `UPDATE orders
+       SET payment_status = $2,
+           status = $3,
+           payment_provider = 'paymob',
+           payment_reference = coalesce($4, payment_reference)
+       WHERE id = $1`,
+      [orderId, paymentStatus, orderStatus, transactionId || null],
+    );
+    if (!success && !pending) {
+      await restoreOrderStock(client, orderId);
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
   return { ok: true };
 });
 
