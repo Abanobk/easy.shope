@@ -1341,7 +1341,11 @@ app.get("/api/store/:tenantSlug", async (request, reply) => {
       ],
     ),
     pool.query(
-      `SELECT categories.id, categories.name_ar, categories.name_en, categories.slug, count(products.id)::int AS products_count
+      `SELECT categories.id, categories.name_ar, categories.name_en, categories.slug, categories.image_url,
+              count(products.id)::int AS products_count,
+              (SELECT p.image_url FROM products p
+               WHERE p.category_id = categories.id AND p.status = 'published' AND p.image_url IS NOT NULL
+               LIMIT 1) AS sample_product_image
        FROM categories
        JOIN tenants ON tenants.id = categories.tenant_id
        LEFT JOIN products ON products.category_id = categories.id AND products.status = 'published'

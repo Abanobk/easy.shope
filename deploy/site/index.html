@@ -18,7 +18,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060823" />
+  <link rel="stylesheet" href="/styles.css?v=2026060824" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -1018,14 +1018,25 @@
                   <p id="storefront-subtitle">حمّل متجرًا بالـ slug، اعرض المنتجات، أضف للسلة، وأنشئ Checkout كامل.</p>
                 </div>
                 <div class="store-hero-client-block" id="store-hero-client-block" hidden>
-                  <div class="store-hero-client-brand">
-                    <div class="store-hero-client-logo-wrap" id="store-hero-logo-wrap" hidden>
-                      <img id="store-hero-logo" class="store-hero-client-logo" alt="">
+                  <div class="store-hero-client-top">
+                    <div class="store-hero-client-brand">
+                      <div class="store-hero-client-logo-wrap" id="store-hero-logo-wrap" hidden>
+                        <img id="store-hero-logo" class="store-hero-client-logo" alt="">
+                      </div>
+                      <div class="store-hero-client-logo-fallback" id="store-hero-logo-fallback" aria-hidden="true"></div>
+                      <div class="store-hero-client-copy">
+                        <h2 id="storefront-client-title">متجرك</h2>
+                        <p id="storefront-client-tagline" class="store-hero-client-tagline">تسوّق بسهولة من مجموعة مختارة من المنتجات.</p>
+                      </div>
                     </div>
-                    <div class="store-hero-client-logo-fallback" id="store-hero-logo-fallback" aria-hidden="true"></div>
-                    <div class="store-hero-client-copy">
-                      <h2 id="storefront-client-title">متجرك</h2>
-                      <p id="storefront-client-tagline" class="store-hero-client-tagline">تسوّق بسهولة من مجموعة مختارة من المنتجات.</p>
+                    <div class="store-client-actions">
+                      <button type="button" id="store-account-btn" class="store-client-action-btn" aria-label="حسابي" title="حسابي">
+                        <span aria-hidden="true">👤</span>
+                      </button>
+                      <button type="button" id="store-cart-toolbar-btn" class="store-client-action-btn" aria-label="السلة" title="السلة">
+                        <span aria-hidden="true">🛒</span>
+                        <span id="store-cart-toolbar-count" class="store-client-action-badge">0</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1040,6 +1051,7 @@
               </div>
               <div id="storefront-stories" class="storefront-stories" hidden></div>
               <div id="storefront-spotlight" class="storefront-spotlight" hidden></div>
+              <div id="store-category-slider" class="store-category-slider" hidden aria-label="أقسام المتجر"></div>
               <div id="storefront-categories" class="category-pills"></div>
               <div class="store-products-head" id="store-products-head" hidden>
                 <div>
@@ -1059,28 +1071,9 @@
                   <h2>السلة</h2>
                 </div>
               </div>
-              <div id="product-detail" class="product-detail">اختر منتجًا لعرض التفاصيل.</div>
+              <div id="product-detail" class="product-detail store-cart-only-detail">اختر منتجًا لعرض التفاصيل.</div>
               <ul id="cart-items" class="list"></ul>
               <div class="status-line"><strong>الإجمالي</strong><span id="cart-total">0.00 EGP</span></div>
-              <details class="customer-account">
-                <summary>حساب العميل</summary>
-                <p class="customer-auth-lead">سجّل دخولك أو أنشئ حسابًا لمتابعة الطلبات من هذا المتجر.</p>
-                <form id="customer-login-form" class="form-stack">
-                  <label>البريد<input name="email" type="email" autocomplete="username" required></label>
-                  <label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label>
-                  <button type="submit">دخول</button>
-                </form>
-                <p class="customer-auth-divider">أو إنشاء حساب جديد</p>
-                <form id="customer-register-form" class="form-stack">
-                  <label>الاسم<input name="name"></label>
-                  <label>البريد<input name="email" type="email"></label>
-                  <label>الموبايل<input name="phone"></label>
-                  <label>كلمة المرور<input name="password" type="password" minlength="8"></label>
-                  <button>إنشاء حساب عميل</button>
-                </form>
-                <button type="button" class="secondary" id="customer-orders-button">عرض طلباتي</button>
-                <ul id="customer-orders" class="list"></ul>
-              </details>
               <form id="order-form" class="form-stack">
                 <label>اسم العميل<input name="customerName" required></label>
                 <label>موبايل العميل<input name="customerPhone" required></label>
@@ -1096,6 +1089,32 @@
           <nav id="storefront-bottom-nav" class="storefront-bottom-nav" hidden aria-label="تنقّل المتجر"></nav>
         </article>
         <div id="store-cart-backdrop" class="store-cart-backdrop" hidden aria-hidden="true"></div>
+        <aside id="store-account-panel" class="store-account-panel" aria-label="حساب العميل" hidden>
+          <div class="store-account-panel-head">
+            <button type="button" class="store-account-close" id="store-account-close" aria-label="إغلاق">×</button>
+            <div class="panel-heading">
+              <span class="eyebrow">حسابك</span>
+              <h2>تسجيل الدخول</h2>
+            </div>
+          </div>
+          <p class="customer-auth-lead">سجّل دخولك أو أنشئ حسابًا لمتابعة طلباتك من هذا المتجر.</p>
+          <form id="customer-login-form" class="form-stack">
+            <label>البريد<input name="email" type="email" autocomplete="username" required></label>
+            <label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label>
+            <button type="submit">دخول</button>
+          </form>
+          <p class="customer-auth-divider">أو إنشاء حساب جديد</p>
+          <form id="customer-register-form" class="form-stack">
+            <label>الاسم<input name="name"></label>
+            <label>البريد<input name="email" type="email"></label>
+            <label>الموبايل<input name="phone"></label>
+            <label>كلمة المرور<input name="password" type="password" minlength="8"></label>
+            <button type="submit">إنشاء حساب عميل</button>
+          </form>
+          <button type="button" class="secondary" id="customer-orders-button">عرض طلباتي</button>
+          <ul id="customer-orders" class="list"></ul>
+        </aside>
+        <div id="store-account-backdrop" class="store-account-backdrop" hidden aria-hidden="true"></div>
         <button type="button" id="store-cart-fab" class="store-cart-fab" hidden aria-label="فتح السلة">
           <span class="store-cart-fab-icon" aria-hidden="true">🛒</span>
           <span id="store-cart-fab-count" class="store-cart-fab-count">0</span>
@@ -1339,6 +1358,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060823"></script>
+  <script src="/app.js?v=2026060824"></script>
 </body>
 </html>

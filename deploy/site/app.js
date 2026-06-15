@@ -96,7 +96,7 @@ function applyStoreClientShell() {
   if (merchantHero) merchantHero.hidden = true;
   if (clientHero) clientHero.hidden = false;
   const cartFab = $("store-cart-fab");
-  if (cartFab) cartFab.hidden = false;
+  if (cartFab) cartFab.hidden = true;
   const productsHead = $("store-products-head");
   if (productsHead) productsHead.hidden = false;
   hideTrialBanner();
@@ -110,6 +110,70 @@ function setStoreCartOpen(open) {
     backdrop.hidden = !open;
     backdrop.setAttribute("aria-hidden", open ? "false" : "true");
   }
+  if (open) setStoreAccountOpen(false);
+}
+
+function setStoreAccountOpen(open) {
+  document.body.classList.toggle("store-account-open", open);
+  const panel = $("store-account-panel");
+  const backdrop = $("store-account-backdrop");
+  if (panel) panel.hidden = !open;
+  if (backdrop) {
+    backdrop.hidden = !open;
+    backdrop.setAttribute("aria-hidden", open ? "false" : "true");
+  }
+  if (open) setStoreCartOpen(false);
+}
+
+function categorySliderImage(category) {
+  return category.image_url || category.sample_product_image || "";
+}
+
+function renderStoreCategorySlider(categories) {
+  const el = $("store-category-slider");
+  if (!el || !isStoreClientMode()) {
+    if (el) {
+      el.hidden = true;
+      el.innerHTML = "";
+    }
+    return;
+  }
+  const active = state.storefrontCategory ?? "";
+  const allBtn = `<button type="button" class="store-category-card${active === "" ? " is-active" : ""}" data-store-category="">
+    <span class="store-category-card-media"><span class="store-category-card-fallback">★</span></span>
+    <span class="store-category-card-label">الكل</span>
+  </button>`;
+  const items = categories.map((c) => {
+    const img = categorySliderImage(c);
+    const media = img
+      ? `<img src="${img}" alt="" loading="lazy">`
+      : `<span class="store-category-card-fallback">${(c.name_ar || "?").slice(0, 1)}</span>`;
+    return `<button type="button" class="store-category-card${active === c.slug ? " is-active" : ""}" data-store-category="${c.slug}">
+      <span class="store-category-card-media">${media}</span>
+      <span class="store-category-card-label">${c.name_ar}</span>
+    </button>`;
+  });
+  el.hidden = false;
+  el.innerHTML = `<div class="store-category-slider-track">${allBtn}${items.join("")}</div>`;
+}
+
+function storefrontClientProductHtml(item) {
+  const letter = (item.title_ar || "?").slice(0, 1);
+  const imgInner = item.image_url
+    ? `<img src="${item.image_url}" alt="${item.title_ar}" loading="lazy">`
+    : `<span class="store-client-product-fallback">${letter}</span>`;
+  const title = item.title_ar;
+  const price = productPriceHtml(item);
+  return `<article class="store-client-product-card">
+    <button type="button" class="store-client-product-tap" data-view-product="${item.slug}" aria-label="${title}">
+      <div class="store-client-product-media">${imgInner}</div>
+    </button>
+    <div class="store-client-product-body">
+      <h3>${title}</h3>
+      <div class="store-client-product-meta">${price}</div>
+      <button type="button" class="store-client-add-btn success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${item.price_cents}">أضف للسلة</button>
+    </div>
+  </article>`;
 }
 
 function isMobileDashboard() {
@@ -1940,14 +2004,29 @@ async function loadStorefront(event) {
   }
   renderStorefrontStories(store.categories, layout);
   renderStorefrontSpotlight(store.store, data.products, layout);
-  $("storefront-products").innerHTML =
-    data.products.map((item) => storefrontProductHtml(item, layout)).join("") ||
-    (clientMode
-      ? `<div class="store-empty-state"><strong>لا توجد منتجات بعد</strong><p>تابعنا قريبًا — سيُضاف محتوى جديد إلى المتجر.</p></div>`
-      : "<p>لا توجد منتجات منشورة في هذا المتجر.</p>");
   if (clientMode) {
-    const acc = document.querySelector("#storefront-cart-panel .customer-account");
-    if (acc && !state.customerToken) acc.setAttribute("open", "");
+    renderStoreCategorySlider(store.categories);
+    const pills = $("storefront-categories");
+    if (pills) {
+      pills.hidden = true;
+      pills.innerHTML = "";
+    }
+    const bar = $("storefront-chrome-bar");
+    if (bar) bar.hidden = true;
+    $("storefront-products").classList.add("store-client-product-grid");
+    $("storefront-products").innerHTML =
+      data.products.map((item) => storefrontClientProductHtml(item)).join("") ||
+      `<div class="store-empty-state"><strong>لا توجد منتجات بعد</strong><p>تابعنا قريبًا — سيُضاف محتوى جديد إلى المتجر.</p></div>`;
+  } else {
+    const slider = $("store-category-slider");
+    if (slider) {
+      slider.hidden = true;
+      slider.innerHTML = "";
+    }
+    $("storefront-products").classList.remove("store-client-product-grid");
+    $("storefront-products").innerHTML =
+      data.products.map((item) => storefrontProductHtml(item, layout)).join("") ||
+      "<p>لا توجد منتجات منشورة في هذا المتجر.</p>";
   }
 }
 
@@ -2051,17 +2130,13 @@ function initStorefrontDelegation() {
         if (isStoreClientMode()) setStoreCartOpen(true);
         else $("storefront-cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       } else if (id === "cats") $("storefront-categories")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      else if (id === "account") {
-        if (isStoreClientMode()) setStoreCartOpen(true);
-        const det = document.querySelector("#storefront-cart-panel .customer-account");
-        if (det && !det.open) det.open = true;
-        document.querySelector("#customer-register-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      } else $("storefront-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (id === "account") setStoreAccountOpen(true);
+      else $("storefront-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelectorAll("#storefront-bottom-nav [data-store-nav]").forEach((b) => b.classList.toggle("is-active", b === navBtn));
       return;
     }
     const categoryBtn = e.target.closest(
-      "#storefront-categories [data-store-category], #storefront-stories [data-store-category], #storefront-chrome-tabs [data-store-category], #storefront-category-rail [data-store-category]",
+      "#store-category-slider [data-store-category], #storefront-categories [data-store-category], #storefront-stories [data-store-category], #storefront-chrome-tabs [data-store-category], #storefront-category-rail [data-store-category]",
     );
     if (categoryBtn) {
       e.preventDefault();
@@ -2096,6 +2171,10 @@ function initStorefrontDelegation() {
             .join("")}</div>`
         : ""
     }`;
+    if (isStoreClientMode()) {
+      document.body.classList.add("store-product-detail-open");
+      setStoreCartOpen(true);
+    }
   });
 }
 
@@ -2121,9 +2200,14 @@ function renderCart() {
       .join("") || "<li>السلة فارغة.</li>";
   $("cart-total").textContent = money(totalCents);
   const fabCount = $("store-cart-fab-count");
+  const toolbarCount = $("store-cart-toolbar-count");
   if (fabCount) {
     fabCount.textContent = String(totalQty);
     fabCount.classList.toggle("is-visible", totalQty > 0);
+  }
+  if (toolbarCount) {
+    toolbarCount.textContent = String(totalQty);
+    toolbarCount.classList.toggle("is-visible", totalQty > 0);
   }
   const cartFab = $("store-cart-fab");
   if (cartFab) cartFab.classList.toggle("has-items", totalQty > 0);
@@ -2774,8 +2858,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 350);
   });
   $("store-cart-fab")?.addEventListener("click", () => setStoreCartOpen(true));
+  $("store-cart-toolbar-btn")?.addEventListener("click", () => setStoreCartOpen(true));
   $("store-cart-close")?.addEventListener("click", () => setStoreCartOpen(false));
   $("store-cart-backdrop")?.addEventListener("click", () => setStoreCartOpen(false));
+  $("store-account-btn")?.addEventListener("click", () => setStoreAccountOpen(true));
+  $("store-account-close")?.addEventListener("click", () => setStoreAccountOpen(false));
+  $("store-account-backdrop")?.addEventListener("click", () => setStoreAccountOpen(false));
   initStorefrontDelegation();
   $("order-form").addEventListener("submit", placeOrder);
   $("customer-login-form")?.addEventListener("submit", loginCustomer);
