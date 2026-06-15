@@ -41,6 +41,25 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
+      - name: Wait for TrueNAS on Tailscale
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          set -euo pipefail
+          test -n "${SSH_HOST:-}" || { echo "Missing secret SSH_HOST"; exit 1; }
+          echo "Waiting for ${SSH_HOST} to appear on Tailscale..."
+          for i in $(seq 1 36); do
+            if tailscale ping -c 1 -timeout 5s "${SSH_HOST}" >/dev/null 2>&1; then
+              echo "Tailscale ping OK (attempt ${i})"
+              exit 0
+            fi
+            echo "Attempt ${i}/36: host not reachable yet, sleeping 10s..."
+            sleep 10
+          done
+          echo "TrueNAS did not respond to tailscale ping within 6 minutes."
+          tailscale status || true
+          exit 1
+
       - name: Trust host key
         env:
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -52,7 +71,12 @@ jobs:
             echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
           else
             echo "SSH_KNOWN_HOSTS not set; using ssh-keyscan after Tailscale"
-            ssh-keyscan -H -T 30 "$SSH_HOST" >> ~/.ssh/known_hosts || true
+            for i in $(seq 1 12); do
+              if ssh-keyscan -H -T 15 "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+                break
+              fi
+              sleep 5
+            done
           fi
           chmod 644 ~/.ssh/known_hosts
 
@@ -65,13 +89,31 @@ jobs:
           set -euo pipefail
           test -n "${SSH_USER:-}" || { echo "Missing secret SSH_USER"; exit 1; }
           test -n "${DEPLOY_PATH:-}" || { echo "Missing secret DEPLOY_PATH"; exit 1; }
+          SSH_OPTS="-i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          retry_ssh() {
+            local attempt=1
+            local max=8
+            while [ "$attempt" -le "$max" ]; do
+              echo "SSH attempt ${attempt}/${max}..."
+              if ssh ${SSH_OPTS} "${SSH_USER}@${SSH_HOST}" "$@"; then
+                return 0
+              fi
+              sleep $((attempt * 5))
+              attempt=$((attempt + 1))
+            done
+            return 1
+          }
           tar -czf /tmp/easy-shope-deploy.tgz docker-compose.yml .env.example deploy apps scripts
-          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
-            "${SSH_USER}@${SSH_HOST}" \
-            "set -euo pipefail; mkdir -p \"${DEPLOY_PATH}\""
-          cat /tmp/easy-shope-deploy.tgz | ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
-            "${SSH_USER}@${SSH_HOST}" \
-            "set -euo pipefail; tar -xzf - -C \"${DEPLOY_PATH}\""
+          retry_ssh "set -euo pipefail; mkdir -p \"${DEPLOY_PATH}\""
+          for attempt in $(seq 1 8); do
+            echo "Upload attempt ${attempt}/8..."
+            if cat /tmp/easy-shope-deploy.tgz | ssh ${SSH_OPTS} "${SSH_USER}@${SSH_HOST}" "set -euo pipefail; tar -xzf - -C \"${DEPLOY_PATH}\""; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          echo "Upload failed after retries"
+          exit 1
 
       - name: Run docker compose on TrueNAS
         env:
@@ -80,6 +122,13 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes \
-            "${SSH_USER}@${SSH_HOST}" \
-            "set -euo pipefail; cd \"${DEPLOY_PATH}\"; test -f .env || cp .env.example .env; (docker compose version >/dev/null 2>&1 || docker-compose version >/dev/null 2>&1) || { echo 'Docker Compose is not available on TrueNAS shell'; exit 1; }; if docker compose version >/dev/null 2>&1; then docker compose up -d postgres redis; docker compose up -d --build --remove-orphans --force-recreate api web; else docker-compose up -d postgres redis; docker-compose up -d --build --remove-orphans --force-recreate api web; fi; for i in \$(seq 1 40); do curl -fsS http://127.0.0.1:8098/api/health | grep -q 'easy-shope-api' && break; sleep 2; done; curl -fsS http://127.0.0.1:8098/api/health | grep 'easy-shope-api'; printf '%s %s\n' \"\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\" \"${GITHUB_SHA}\" | tee \"${DEPLOY_PATH}/phase2_last_deploy.txt\" >/dev/null"
+          SSH_OPTS="-i ~/.ssh/deploy_key -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=20 -o ServerAliveInterval=10 -o ServerAliveCountMax=3"
+          for attempt in $(seq 1 8); do
+            echo "Compose deploy attempt ${attempt}/8..."
+            if ssh ${SSH_OPTS} "${SSH_USER}@${SSH_HOST}" \
+              "set -euo pipefail; cd \"${DEPLOY_PATH}\"; test -f .env || cp .env.example .env; (docker compose version >/dev/null 2>&1 || docker-compose version >/dev/null 2>&1) || { echo 'Docker Compose is not available on TrueNAS shell'; exit 1; }; if docker compose version >/dev/null 2>&1; then docker compose up -d postgres redis; docker compose up -d --build --remove-orphans --force-recreate api web; else docker-compose up -d postgres redis; docker-compose up -d --build --remove-orphans --force-recreate api web; fi; for i in \$(seq 1 40); do curl -fsS http://127.0.0.1:8098/api/health | grep -q 'easy-shope-api' && break; sleep 2; done; curl -fsS http://127.0.0.1:8098/api/health | grep 'easy-shope-api'; printf '%s %s\n' \"\$(date -u +\"%Y-%m-%dT%H:%M:%SZ\")\" \"${GITHUB_SHA}\" | tee \"${DEPLOY_PATH}/phase2_last_deploy.txt\" >/dev/null"; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          exit 1
