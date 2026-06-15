@@ -54,41 +54,45 @@ jobs:
             -H "X-Easy-Shope-Build-Secret: ${CALLBACK_SECRET}" \
             -d "$BODY"
 
-      - name: Discover mobile repository secret
-        id: mobile
+      - name: Resolve mobile repository
+        id: mobilerepo
         env:
-          REPO: ${{ secrets.MOBILE_APP_REPOSITORY }}
+          MOBILE_REPO: ${{ secrets.MOBILE_APP_REPOSITORY }}
         run: |
-          if [ -n "${REPO:-}" ]; then
-            echo "ok=true" >> "$GITHUB_OUTPUT"
+          if [ -n "${MOBILE_REPO:-}" ]; then
+            echo "repo=${MOBILE_REPO}" >> "$GITHUB_OUTPUT"
           else
-            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "repo=${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"
+            echo "MOBILE_APP_REPOSITORY not set — using workflow repository ${GITHUB_REPOSITORY}"
           fi
 
-      - name: Stop when mobile repository is not configured
-        id: halt
-        if: steps.mobile.outputs.ok != 'true'
+      - name: Resolve storefront theme from API
+        id: storefront_theme
         env:
-          CALLBACK_SECRET: ${{ secrets.ANDROID_BUILD_CALLBACK_SECRET }}
           API_BASE: ${{ secrets.EASY_SHOPE_API_URL }}
+          TENANT_SLUG: ${{ inputs.tenant_slug }}
+          INPUT_THEME: ${{ inputs.storefront_theme }}
         run: |
           set -euo pipefail
+          THEME="${INPUT_THEME:-ocean}"
           API_BASE="${API_BASE%/}"
-          BODY=$(jq -n \
-            --arg bid "${{ inputs.build_id }}" \
-            --arg msg "Set GitHub secret MOBILE_APP_REPOSITORY to your Flutter white-label repo and MOBILE_REPO_PAT (read access)." \
-            '{phase:"completed", buildId:$bid, status:"failed", errorMessage:$msg}')
-          curl -sS -f -X POST "${API_BASE}/api/internal/android-build/callback" \
-            -H "Content-Type: application/json" \
-            -H "X-Easy-Shope-Build-Secret: ${CALLBACK_SECRET}" \
-            -d "$BODY"
-          exit 1
+          LIVE="$(curl -fsSL "${API_BASE}/api/store/${TENANT_SLUG}" | jq -r '.store.storefront_theme // empty' 2>/dev/null || true)"
+          case "$LIVE" in
+            ocean|violet|emerald|amber|rose|slate)
+              if [ "$THEME" != "$LIVE" ]; then
+                echo "Workflow input ($THEME) differs from live store ($LIVE) — using live store theme."
+                THEME="$LIVE"
+              fi
+              ;;
+          esac
+          echo "theme=$THEME" >> "$GITHUB_OUTPUT"
+          echo "==> Resolved STOREFRONT_THEME=$THEME"
 
       - name: Checkout mobile (white-label) app
         uses: actions/checkout@v4
         with:
-          repository: ${{ secrets.MOBILE_APP_REPOSITORY }}
-          token: ${{ secrets.MOBILE_REPO_PAT }}
+          repository: ${{ steps.mobilerepo.outputs.repo }}
+          token: ${{ secrets.MOBILE_REPO_PAT || github.token }}
           path: mobile
 
       - name: Set up Flutter
@@ -141,7 +145,7 @@ jobs:
         working-directory: mobile
         env:
           TENANT_SLUG: ${{ inputs.tenant_slug }}
-          STOREFRONT_THEME: ${{ inputs.storefront_theme }}
+          STOREFRONT_THEME: ${{ steps.storefront_theme.outputs.theme }}
           MOBILE_FLUTTER_SUBDIR: ${{ secrets.MOBILE_FLUTTER_SUBDIR }}
           STORE_BASE: ${{ secrets.EASY_SHOPE_API_URL }}
         run: |
@@ -204,7 +208,7 @@ jobs:
             -d "$BODY" || true
 
       - name: Notify API (failure)
-        if: failure() && steps.halt.outcome != 'failure'
+        if: failure()
         env:
           CALLBACK_SECRET: ${{ secrets.ANDROID_BUILD_CALLBACK_SECRET }}
           API_BASE: ${{ secrets.EASY_SHOPE_API_URL }}

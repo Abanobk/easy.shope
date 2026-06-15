@@ -25,8 +25,11 @@ class StoreSession extends ChangeNotifier {
 
   bool _guestBrowsing = false;
 
-  /// Theme from live store settings (API), then compile-time fallback from APK build.
+  /// Native shell theme: compile-time value from APK build (white-label), then live store API.
   String get activeTheme {
+    if (AppConfig.isConfigured) {
+      return AppConfig.normalizedTheme;
+    }
     final fromStore = store?.storefrontTheme.trim().toLowerCase();
     if (fromStore != null && fromStore.isNotEmpty && AppConfig.supportedThemes.contains(fromStore)) {
       return fromStore;

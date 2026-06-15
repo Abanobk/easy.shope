@@ -1569,13 +1569,17 @@ function renderMerchantAndroidBuilds() {
   ul.innerHTML = rows
     .map((row) => {
       const when = row.created_at ? new Date(row.created_at).toLocaleString("ar-EG") : "";
+      const themeLabel = row.storefront_theme
+        ? STOREFRONT_THEME_LABELS[row.storefront_theme] || row.storefront_theme
+        : "";
+      const themeMeta = themeLabel ? `<span class="muted">قالب: ${escapeHtmlText(themeLabel)}</span>` : "";
       const download = row.artifact_url
         ? `<a href="${row.artifact_url}" target="_blank" rel="noopener noreferrer">تحميل APK</a>`
         : "";
       const run = row.github_run_url ? `<a href="${row.github_run_url}" target="_blank" rel="noopener noreferrer">سجل GitHub</a>` : "";
       const meta = [download, run].filter(Boolean).join(" · ");
       const err = row.error_message ? `<div class="muted"><small>${escapeHtmlText(row.error_message)}</small></div>` : "";
-      return `<li><div class="provider-line"><strong>${formatAndroidBuildStatus(row.status)}</strong><span>${when}</span></div>${meta ? `<div>${meta}</div>` : ""}${err}</li>`;
+      return `<li><div class="provider-line"><strong>${formatAndroidBuildStatus(row.status)}</strong><span>${when}</span></div>${themeMeta ? `<div>${themeMeta}</div>` : ""}${meta ? `<div>${meta}</div>` : ""}${err}</li>`;
     })
     .join("");
 }
@@ -1618,27 +1622,22 @@ async function requestMerchantAndroidBuild() {
   }
   const unsaved = state.storefrontThemeDraft && state.storefrontThemeDraft !== state.savedStorefrontTheme;
   if (unsaved) {
-    const draftLabel = STOREFRONT_THEME_LABELS[state.storefrontThemeDraft] || state.storefrontThemeDraft;
-    const savedLabel = STOREFRONT_THEME_LABELS[state.savedStorefrontTheme] || state.savedStorefrontTheme;
-    const wantSave = window.confirm(
-      `لديك قالب مُعايَن غير محفوظ (${draftLabel}).\n` +
-        `سيُبنى التطبيق بالقالب المحفوظ حاليًا (${savedLabel}).\n\n` +
-        `اضغط «موافق» لحفظ القالب المُعايَن أولًا ثم متابعة البناء، أو «إلغاء» للبناء بالقالب المحفوظ.`,
-    );
-    if (wantSave) {
-      try {
-        await saveStorefrontTheme();
-      } catch (error) {
-        showMessage(error.message || "تعذّر حفظ القالب", true);
-        return;
-      }
+    try {
+      await saveStorefrontTheme();
+    } catch (error) {
+      showMessage(error.message || "تعذّر حفظ القالب قبل البناء", true);
+      return;
     }
   }
+  const themeForBuild = state.savedStorefrontTheme || state.storefrontThemeDraft || "ocean";
   setAndroidBuildInlineFeedback("");
   try {
     if (btn) btn.disabled = true;
-    await api("/api/merchant/android-build", { method: "POST", body: JSON.stringify({}) });
-    showMessage("تم طلب بناء التطبيق. راقب القائمة أدناه حتى يكتمل المسار.");
+    await api("/api/merchant/android-build", {
+      method: "POST",
+      body: JSON.stringify({ storefrontTheme: themeForBuild }),
+    });
+    showMessage(`تم طلب بناء التطبيق بقالب ${STOREFRONT_THEME_LABELS[themeForBuild] || themeForBuild}. راقب القائمة أدناه حتى يكتمل المسار.`);
     setAndroidBuildInlineFeedback("تم إرسال الطلب — راقب القائمة أدناه.", "ok");
     await loadAndroidBuildsOnly();
   } catch (error) {

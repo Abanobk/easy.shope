@@ -563,6 +563,7 @@ async function migrate() {
     );
     CREATE INDEX IF NOT EXISTS idx_tenant_android_builds_tenant_created
     ON tenant_android_builds (tenant_id, created_at DESC);
+    ALTER TABLE tenant_android_builds ADD COLUMN IF NOT EXISTS storefront_theme text;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS platform_settings (
@@ -1227,7 +1228,7 @@ app.patch("/api/merchant/store", async (request) => {
 app.get("/api/merchant/android-builds", async (request) => {
   const user = requireMerchantUser(request);
   const result = await pool.query(
-    `SELECT id, status, github_run_id, github_run_url, artifact_url, error_message, created_at, updated_at
+    `SELECT id, status, storefront_theme, github_run_id, github_run_url, artifact_url, error_message, created_at, updated_at
      FROM tenant_android_builds
      WHERE tenant_id = $1
      ORDER BY created_at DESC
@@ -1244,6 +1245,11 @@ app.get("/api/merchant/android-builds", async (request) => {
 
 app.post("/api/merchant/android-build", async (request, reply) => {
   const user = requireMerchantUser(request);
+  const body = z
+    .object({
+      storefrontTheme: z.enum(STOREFRONT_THEME_CODES).optional(),
+    })
+    .parse(request.body ?? {});
   if (user.role !== "merchant_owner") {
     return reply.code(403).send({ message: "هذا الإجراء متاح لصاحب المتجر فقط." });
   }
@@ -1273,15 +1279,19 @@ app.post("/api/merchant/android-build", async (request, reply) => {
   if (!slugRow) return reply.code(404).send({ message: "المتجر غير موجود" });
   const tenantId = user.tenantId;
   const tenantSlug = slugRow.slug;
-  const storefrontTheme = normalizeStorefrontThemeForBuild(slugRow.storefront_theme);
+  let storefrontTheme = normalizeStorefrontThemeForBuild(slugRow.storefront_theme);
+  if (body.storefrontTheme) {
+    storefrontTheme = normalizeStorefrontThemeForBuild(body.storefrontTheme);
+    await pool.query(`UPDATE tenants SET storefront_theme = $2 WHERE id = $1`, [tenantId, storefrontTheme]);
+  }
   if (!tenantId) return reply.code(403).send({ message: "Tenant required" });
   if (!tenantSlug) return reply.code(500).send({ message: "المتجر بدون slug" });
 
   const insert = await pool.query(
-    `INSERT INTO tenant_android_builds (tenant_id, status, requested_by_user_id)
-     VALUES ($1, 'queued', $2)
+    `INSERT INTO tenant_android_builds (tenant_id, status, storefront_theme, requested_by_user_id)
+     VALUES ($1, 'queued', $2, $3)
      RETURNING id`,
-    [tenantId, user.userId],
+    [tenantId, storefrontTheme, user.userId],
   );
   const buildId = insert.rows[0].id as string;
   try {
