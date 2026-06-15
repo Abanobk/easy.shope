@@ -47,13 +47,30 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${SSH_HOST:-}" || { echo "Missing secret SSH_HOST"; exit 1; }
-          echo "Waiting for ${SSH_HOST} to appear on Tailscale..."
-          for i in $(seq 1 36); do
-            if tailscale ping -c 1 -timeout 5s "${SSH_HOST}" >/dev/null 2>&1; then
-              echo "Tailscale ping OK (attempt ${i})"
-              exit 0
+          mapfile -t CANDIDATES < <(
+            printf '%s\n' "${SSH_HOST}"
+            tailscale status 2>/dev/null | awk '$2 ~ /^truenas/ && $NF != "offline" { print $1 }' || true
+          )
+          # unique hosts, preserve order (secret first)
+          declare -A SEEN=()
+          HOSTS=()
+          for host in "${CANDIDATES[@]}"; do
+            [ -n "${host:-}" ] || continue
+            if [ -z "${SEEN[$host]:-}" ]; then
+              SEEN[$host]=1
+              HOSTS+=("$host")
             fi
-            echo "Attempt ${i}/36: host not reachable yet, sleeping 10s..."
+          done
+          echo "TrueNAS candidates: ${HOSTS[*]}"
+          for i in $(seq 1 36); do
+            for host in "${HOSTS[@]}"; do
+              if tailscale ping -c 1 -timeout 5s "${host}" >/dev/null 2>&1; then
+                echo "Tailscale ping OK on ${host} (round ${i})"
+                echo "SSH_HOST=${host}" >> "${GITHUB_ENV}"
+                exit 0
+              fi
+            done
+            echo "Round ${i}/36: no TrueNAS peer reachable yet, sleeping 10s..."
             sleep 10
           done
           echo "TrueNAS did not respond to tailscale ping within 6 minutes."
@@ -63,7 +80,7 @@ jobs:
       - name: Trust host key
         env:
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_HOST: ${{ env.SSH_HOST }}
         run: |
           set -euo pipefail
           test -n "${SSH_HOST:-}" || { echo "Missing secret SSH_HOST"; exit 1; }
@@ -82,7 +99,7 @@ jobs:
 
       - name: Upload deploy bundle
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_HOST: ${{ env.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
@@ -117,7 +134,7 @@ jobs:
 
       - name: Run docker compose on TrueNAS
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_HOST: ${{ env.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
