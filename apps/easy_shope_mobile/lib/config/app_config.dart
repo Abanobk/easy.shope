@@ -19,5 +19,18 @@ class AppConfig {
     return '$base/api';
   }
 
+  /// Resolves a media reference returned by the API. Absolute http(s) URLs are
+  /// returned as-is; relative paths (e.g. /api/media/...) are prefixed with the
+  /// configured API base so Image.network can load them.
+  static String? resolveMedia(String? raw) {
+    if (raw == null) return null;
+    final value = raw.trim();
+    if (value.isEmpty) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    final base = apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    if (value.startsWith('/')) return '$base$value';
+    return value;
+  }
+
   static bool get isConfigured => tenantSlug.trim().isNotEmpty;
 }

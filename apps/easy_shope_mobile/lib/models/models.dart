@@ -1,3 +1,5 @@
+import '../config/app_config.dart';
+
 class StoreInfo {
   StoreInfo({
     required this.id,
@@ -33,7 +35,7 @@ class StoreInfo {
       status: json['status'] as String? ?? '',
       storefrontTheme: json['storefront_theme'] as String? ?? 'ocean',
       brandColor: json['brand_color'] as String?,
-      logoUrl: json['logo_url'] as String?,
+      logoUrl: AppConfig.resolveMedia(json['logo_url'] as String?),
       serialCode: json['serial_code'] as String?,
     );
   }
@@ -93,7 +95,7 @@ class ProductInfo {
       slug: json['slug'] as String,
       priceCents: json['price_cents'] as int? ?? 0,
       description: json['description'] as String?,
-      imageUrl: json['image_url'] as String?,
+      imageUrl: AppConfig.resolveMedia(json['image_url'] as String?),
       stockQuantity: json['stock_quantity'] as int? ?? 0,
     );
   }
