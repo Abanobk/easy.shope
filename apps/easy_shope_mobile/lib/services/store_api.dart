@@ -27,6 +27,30 @@ class StoreApi {
     return Uri.parse('$base$path').replace(queryParameters: query);
   }
 
+  /// GET with a request timeout and a couple of retries to survive transient
+  /// network hiccups (slow mobile connections, brief drops).
+  Future<http.Response> _getWithRetry(
+    Uri uri, {
+    Map<String, String>? headers,
+    int attempts = 3,
+    Duration timeout = const Duration(seconds: 40),
+  }) async {
+    Object? lastError;
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await _client.get(uri, headers: headers).timeout(timeout);
+      } catch (error) {
+        lastError = error;
+        if (attempt < attempts) {
+          await Future<void>.delayed(Duration(milliseconds: 400 * attempt));
+        }
+      }
+    }
+    throw StoreApiException(
+      'تعذّر الاتصال بالخادم. تحقّق من الإنترنت وحاول مرة أخرى. ($lastError)',
+    );
+  }
+
   Future<Map<String, dynamic>> _decode(http.Response res) async {
     final body = jsonDecode(res.body.isEmpty ? '{}' : res.body) as Map<String, dynamic>;
     if (res.statusCode >= 400) {
@@ -38,7 +62,7 @@ class StoreApi {
   Future<({StoreInfo store, List<CategoryInfo> categories, List<ProductInfo> featured})> fetchStore(
     String slug,
   ) async {
-    final data = await _decode(await _client.get(_uri('/store/$slug')));
+    final data = await _decode(await _getWithRetry(_uri('/store/$slug')));
     final store = StoreInfo.fromJson(data['store'] as Map<String, dynamic>);
     final categories = (data['categories'] as List<dynamic>? ?? [])
         .map((e) => CategoryInfo.fromJson(e as Map<String, dynamic>))
@@ -53,14 +77,14 @@ class StoreApi {
     final q = <String, String>{};
     if (query != null && query.trim().isNotEmpty) q['q'] = query.trim();
     if (categorySlug != null && categorySlug.isNotEmpty) q['category'] = categorySlug;
-    final data = await _decode(await _client.get(_uri('/store/$slug/products', q.isEmpty ? null : q)));
+    final data = await _decode(await _getWithRetry(_uri('/store/$slug/products', q.isEmpty ? null : q)));
     return (data['products'] as List<dynamic>? ?? [])
         .map((e) => ProductInfo.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<ProductInfo> fetchProduct(String slug, String productSlug) async {
-    final data = await _decode(await _client.get(_uri('/store/$slug/products/$productSlug')));
+    final data = await _decode(await _getWithRetry(_uri('/store/$slug/products/$productSlug')));
     return ProductInfo.fromJson(data['product'] as Map<String, dynamic>);
   }
 

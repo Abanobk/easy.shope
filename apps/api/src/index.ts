@@ -1,3 +1,4 @@
+import compress from "@fastify/compress";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import bcrypt from "bcryptjs";
@@ -70,6 +71,7 @@ if (env.nodeEnv === "production" && [env.jwtSecret, env.encryptionKey, env.platf
 assertProductionSecrets();
 
 await app.register(cors, { origin: true });
+await app.register(compress, { global: true, threshold: 1024 });
 await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
 
 app.setErrorHandler((error, _request, reply) => {
@@ -627,6 +629,77 @@ const STOREFRONT_THEME_CODES = ["ocean", "violet", "emerald", "amber", "rose", "
 function normalizeStorefrontThemeForBuild(raw: string | null | undefined): string {
   const t = String(raw || "ocean").toLowerCase();
   return (STOREFRONT_THEME_CODES as readonly string[]).includes(t) ? t : "ocean";
+}
+
+// --- Public media handling -------------------------------------------------
+// Images/videos may be stored as large base64 data URIs in the DB. Embedding
+// them inside list/store JSON makes responses huge and slow on mobile networks
+// (connection closed while receiving data). Public endpoints instead return
+// short relative media URLs, and the bytes are streamed lazily per item.
+
+function isHttpUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value);
+}
+
+function isDataUri(value: unknown): value is string {
+  return typeof value === "string" && /^data:/i.test(value);
+}
+
+/** Returns an http URL untouched, a relative media path for base64, else null. */
+function toMediaRef(raw: unknown, mediaPath: string): string | null {
+  if (typeof raw !== "string" || raw.length === 0) return null;
+  if (isHttpUrl(raw)) return raw;
+  if (isDataUri(raw)) return mediaPath;
+  return null;
+}
+
+function publicStoreRow<T extends { id: string; logo_url?: string | null }>(row: T | undefined) {
+  if (!row) return row;
+  return { ...row, logo_url: toMediaRef(row.logo_url, `/api/media/tenant/${row.id}/logo`) };
+}
+
+function publicCategoryRow(row: any) {
+  if (!row) return row;
+  const out = { ...row };
+  out.image_url = toMediaRef(row.image_url, `/api/media/category/${row.id}`);
+  const sampleId = row.sample_product_id;
+  out.sample_product_image = sampleId ? `/api/media/product/${sampleId}` : null;
+  delete out.sample_product_id;
+  return out;
+}
+
+function publicProductRow(row: any) {
+  if (!row) return row;
+  const media: unknown[] = Array.isArray(row.media_urls) ? row.media_urls : [];
+  const primaryRaw =
+    (typeof row.image_url === "string" && row.image_url) ||
+    (typeof media[0] === "string" ? (media[0] as string) : "");
+  const out = { ...row };
+  out.image_url = primaryRaw ? toMediaRef(primaryRaw, `/api/media/product/${row.id}`) : null;
+  out.media_urls = media
+    .map((item, index) => toMediaRef(item, `/api/media/product/${row.id}/m/${index}`))
+    .filter((value): value is string => Boolean(value));
+  out.video_url = toMediaRef(row.video_url, `/api/media/product/${row.id}/video`);
+  return out;
+}
+
+function sendMediaPayload(reply: import("fastify").FastifyReply, raw: string | null | undefined) {
+  if (typeof raw !== "string" || raw.length === 0) {
+    return reply.code(404).send({ message: "Not found" });
+  }
+  if (isHttpUrl(raw)) {
+    return reply.redirect(raw);
+  }
+  const match = /^data:([^;,]*)(;base64)?,([\s\S]*)$/i.exec(raw);
+  if (!match) return reply.code(404).send({ message: "Unsupported media" });
+  const mime = match[1] || "application/octet-stream";
+  const isBase64 = Boolean(match[2]);
+  const buffer = isBase64
+    ? Buffer.from(match[3], "base64")
+    : Buffer.from(decodeURIComponent(match[3]), "utf8");
+  reply.header("Content-Type", mime);
+  reply.header("Cache-Control", "public, max-age=86400");
+  return reply.send(buffer);
 }
 
 async function ensureTenantSerialCode(tenantId: string | null | undefined): Promise<string | null> {
@@ -1353,9 +1426,10 @@ app.get("/api/store/:tenantSlug", async (request, reply) => {
     pool.query(
       `SELECT categories.id, categories.name_ar, categories.name_en, categories.slug, categories.image_url,
               count(products.id)::int AS products_count,
-              (SELECT p.image_url FROM products p
-               WHERE p.category_id = categories.id AND p.status = 'published' AND p.image_url IS NOT NULL
-               LIMIT 1) AS sample_product_image
+              (SELECT p.id FROM products p
+               WHERE p.category_id = categories.id AND p.status = 'published'
+                 AND (p.image_url IS NOT NULL OR jsonb_array_length(p.media_urls) > 0)
+               LIMIT 1) AS sample_product_id
        FROM categories
        JOIN tenants ON tenants.id = categories.tenant_id
        LEFT JOIN products ON products.category_id = categories.id AND products.status = 'published'
@@ -1374,7 +1448,49 @@ app.get("/api/store/:tenantSlug", async (request, reply) => {
     ),
   ]);
   if (!tenant.rows[0]) return reply.code(404).send({ message: "Store not found or subscription inactive" });
-  return { store: tenant.rows[0], categories: categories.rows, featuredProducts: products.rows };
+  return {
+    store: publicStoreRow(tenant.rows[0]),
+    categories: categories.rows.map(publicCategoryRow),
+    featuredProducts: products.rows.map(publicProductRow),
+  };
+});
+
+app.get("/api/media/tenant/:id/logo", async (request, reply) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`SELECT logo_url FROM tenants WHERE id = $1`, [id]);
+  return sendMediaPayload(reply, result.rows[0]?.logo_url);
+});
+
+app.get("/api/media/category/:id", async (request, reply) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`SELECT image_url FROM categories WHERE id = $1`, [id]);
+  return sendMediaPayload(reply, result.rows[0]?.image_url);
+});
+
+app.get("/api/media/product/:id", async (request, reply) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`SELECT image_url, media_urls FROM products WHERE id = $1`, [id]);
+  const row = result.rows[0];
+  const media = Array.isArray(row?.media_urls) ? row.media_urls : [];
+  const raw =
+    (typeof row?.image_url === "string" && row.image_url) ||
+    (typeof media[0] === "string" ? media[0] : null);
+  return sendMediaPayload(reply, raw);
+});
+
+app.get("/api/media/product/:id/m/:index", async (request, reply) => {
+  const { id, index } = z
+    .object({ id: z.string().uuid(), index: z.coerce.number().int().min(0).max(50) })
+    .parse(request.params);
+  const result = await pool.query(`SELECT media_urls FROM products WHERE id = $1`, [id]);
+  const media = Array.isArray(result.rows[0]?.media_urls) ? result.rows[0].media_urls : [];
+  return sendMediaPayload(reply, media[index]);
+});
+
+app.get("/api/media/product/:id/video", async (request, reply) => {
+  const { id } = z.object({ id: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`SELECT video_url FROM products WHERE id = $1`, [id]);
+  return sendMediaPayload(reply, result.rows[0]?.video_url);
 });
 
 app.get("/api/store/:tenantSlug/products", async (request) => {
@@ -1392,7 +1508,7 @@ app.get("/api/store/:tenantSlug/products", async (request) => {
      ORDER BY products.created_at DESC`,
     [params.tenantSlug, query.q ?? null, query.category ?? null],
   );
-  return { products: result.rows };
+  return { products: result.rows.map(publicProductRow) };
 });
 
 app.get("/api/store/:tenantSlug/products/:productSlug", async (request, reply) => {
@@ -1409,7 +1525,7 @@ app.get("/api/store/:tenantSlug/products/:productSlug", async (request, reply) =
     [params.tenantSlug, params.productSlug],
   );
   if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });
-  return { product: result.rows[0] };
+  return { product: publicProductRow(result.rows[0]) };
 });
 
 app.post("/api/store/:tenantSlug/customers/register", async (request, reply) => {

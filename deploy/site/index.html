@@ -18,7 +18,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026060824" />
+  <link rel="stylesheet" href="/styles.css?v=2026061601" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -99,19 +99,62 @@
       </section>
 
       <section class="view" id="view-onboarding">
-        <div class="auth-shell">
+        <div class="auth-layout">
+          <aside class="auth-aside">
+            <div class="auth-aside-glow" aria-hidden="true"></div>
+            <div class="auth-aside-top">
+              <span class="auth-logo">Easy Shope</span>
+              <h2 class="auth-aside-title">متجرك الإلكتروني<br>يبدأ من هنا</h2>
+              <p class="auth-aside-sub">منصة عربية متكاملة لإدارة المنتجات والطلبات والمدفوعات وبناء تطبيق أندرويد خاص بمتجرك — كل ذلك من لوحة واحدة.</p>
+              <div class="auth-stats">
+                <div class="auth-stat"><strong>+1000</strong><span>تاجر نشِط</span></div>
+                <div class="auth-stat"><strong>%99.9</strong><span>وقت تشغيل</span></div>
+                <div class="auth-stat"><strong>24/7</strong><span>دعم فني</span></div>
+              </div>
+            </div>
+            <ul class="auth-feature-list">
+              <li>
+                <span class="auth-feature-icon" aria-hidden="true">🛍️</span>
+                <span><strong>واجهة متجر احترافية</strong><small>قوالب جاهزة تعكس هوية علامتك التجارية.</small></span>
+              </li>
+              <li>
+                <span class="auth-feature-icon" aria-hidden="true">📦</span>
+                <span><strong>إدارة كاملة</strong><small>منتجات، مخزون، طلبات وفريق عمل في مكان واحد.</small></span>
+              </li>
+              <li>
+                <span class="auth-feature-icon" aria-hidden="true">💳</span>
+                <span><strong>دفع إلكتروني</strong><small>ربط Paymob و EasyCash جاهز للتشغيل.</small></span>
+              </li>
+              <li>
+                <span class="auth-feature-icon" aria-hidden="true">📱</span>
+                <span><strong>تطبيق أندرويد خاص</strong><small>ابنِ APK باسم متجرك وقالبك بضغطة زر.</small></span>
+              </li>
+            </ul>
+            <div class="auth-aside-foot">
+              <span class="auth-trust-dot" aria-hidden="true"></span>
+              <span>اتصال آمن ومشفّر — بياناتك محمية</span>
+            </div>
+          </aside>
+          <div class="auth-shell">
           <article class="panel auth-panel register-panel">
             <div class="panel-heading">
               <span class="eyebrow">ابدأ الآن</span>
               <h2>إنشاء متجر جديد</h2>
+              <p class="auth-panel-sub">أنشئ حسابك ولوحة متجرك في أقل من دقيقة.</p>
             </div>
-            <form id="register-form" class="form-grid">
-              <label>اسم التاجر<input name="name" required></label>
-              <label>البريد<input name="email" type="email" required></label>
-              <label>رقم الموبايل<input name="phone" required></label>
-              <label>كلمة المرور
-                <span class="password-input-wrap">
-                  <input name="password" type="password" minlength="8" required autocomplete="new-password">
+            <form id="register-form" class="form-grid auth-form">
+              <label>اسم التاجر<input name="name" required placeholder="الاسم الكامل"></label>
+              <label class="auth-field">البريد
+                <span class="auth-input-wrap">
+                  <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm16 4.24-7.38 6.45a1 1 0 0 1-1.24 0L4 8.24V18h16V8.24ZM4 6v.01L12 13l8-6.99V6H4Z"/></svg>
+                  <input name="email" type="email" required autocomplete="email" placeholder="example@email.com">
+                </span>
+              </label>
+              <label>رقم الموبايل<input name="phone" required placeholder="01xxxxxxxxx"></label>
+              <label class="auth-field">كلمة المرور
+                <span class="auth-input-wrap password-input-wrap">
+                  <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5Zm3 8H9V6a3 3 0 0 1 6 0v3Z"/></svg>
+                  <input name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="8 أحرف على الأقل">
                   <button type="button" class="password-toggle" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
                     <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5C7 5 2.73 8.11 1 12.5 2.73 16.89 7 20 12 20s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5Zm0 11a3.5 3.5 0 110-7 3.5 3.5 0 010 7Z"/></svg>
                     <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true" hidden><path fill="currentColor" d="M3.27 3 2 4.27l2.28 2.28A11.8 11.8 0 001 12.5C2.73 16.89 7 20 12 20a11.6 11.6 0 005.09-1.18L20.73 22 22 20.73 3.27 3ZM12 17.5a5 5 0 01-4.87-3.75l1.46 1.46A3 3 0 0012 15.5c.69 0 1.33-.23 1.84-.62l1.43 1.43A4.9 4.9 0 0112 17.5Zm6.59-2.41-1.55-1.55a6.8 6.8 0 00.45-2.04C17.27 8.11 15 6.5 12 6.5c-.69 0-1.36.1-2 .28L8.4 5.18A10.2 10.2 0 0112 5c5 0 9.27 3.11 11 7.5-.55 1.28-1.4 2.42-2.41 3.59Z"/></svg>
@@ -121,7 +164,9 @@
               <label>اسم المتجر عربي<input name="storeNameAr" required></label>
               <label>Store name English<input name="storeNameEn" required></label>
               <label class="span-2">البلد<input name="country" value="Egypt" required></label>
-              <button class="span-2">إنشاء المتجر ولوحة التحكم</button>
+              <button class="span-2 auth-submit">إنشاء المتجر ولوحة التحكم
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 5l-1.4 1.4L18.2 11H3v2h15.2l-4.6 4.6L15 19l7-7-7-7Z"/></svg>
+              </button>
             </form>
             <div id="register-result" class="hint-box">ابدأ ببيانات حقيقية للتاجر. بعد الإنشاء ستدخل مباشرة إلى لوحة متجرك فقط.</div>
             <button type="button" class="ghost auth-switch" data-auth-mode="login">لدي حساب بالفعل</button>
@@ -130,28 +175,33 @@
             <div class="panel-heading">
               <span class="eyebrow">أهلا بعودتك</span>
               <h2>تسجيل الدخول</h2>
+              <p class="auth-panel-sub">ادخل ببياناتك وسيتم توجيهك تلقائيًا للوحة المناسبة.</p>
             </div>
-            <form id="login-form" class="form-stack">
-              <label>البريد<input name="email" type="email" required></label>
-              <label>كلمة المرور
-                <span class="password-input-wrap">
-                  <input name="password" type="password" required autocomplete="current-password">
+            <form id="login-form" class="form-stack auth-form">
+              <label class="auth-field">البريد الإلكتروني
+                <span class="auth-input-wrap">
+                  <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm16 4.24-7.38 6.45a1 1 0 0 1-1.24 0L4 8.24V18h16V8.24ZM4 6v.01L12 13l8-6.99V6H4Z"/></svg>
+                  <input name="email" type="email" required autocomplete="email" placeholder="example@email.com">
+                </span>
+              </label>
+              <label class="auth-field">كلمة المرور
+                <span class="auth-input-wrap password-input-wrap">
+                  <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5Zm3 8H9V6a3 3 0 0 1 6 0v3Z"/></svg>
+                  <input name="password" type="password" required autocomplete="current-password" placeholder="••••••••">
                   <button type="button" class="password-toggle" aria-label="إظهار كلمة المرور" title="إظهار كلمة المرور">
                     <svg class="icon-eye" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5C7 5 2.73 8.11 1 12.5 2.73 16.89 7 20 12 20s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5Zm0 11a3.5 3.5 0 110-7 3.5 3.5 0 010 7Z"/></svg>
                     <svg class="icon-eye-off" viewBox="0 0 24 24" aria-hidden="true" hidden><path fill="currentColor" d="M3.27 3 2 4.27l2.28 2.28A11.8 11.8 0 001 12.5C2.73 16.89 7 20 12 20a11.6 11.6 0 005.09-1.18L20.73 22 22 20.73 3.27 3ZM12 17.5a5 5 0 01-4.87-3.75l1.46 1.46A3 3 0 0012 15.5c.69 0 1.33-.23 1.84-.62l1.43 1.43A4.9 4.9 0 0112 17.5Zm6.59-2.41-1.55-1.55a6.8 6.8 0 00.45-2.04C17.27 8.11 15 6.5 12 6.5c-.69 0-1.36.1-2 .28L8.4 5.18A10.2 10.2 0 0112 5c5 0 9.27 3.11 11 7.5-.55 1.28-1.4 2.42-2.41 3.59Z"/></svg>
                   </button>
                 </span>
               </label>
-              <button>دخول</button>
+              <button class="auth-submit">دخول
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 5l-1.4 1.4L18.2 11H3v2h15.2l-4.6 4.6L15 19l7-7-7-7Z"/></svg>
+              </button>
             </form>
             <div id="login-store-serial" class="login-serial-card">
               <span class="eyebrow">رقم المتجر التسلسلي</span>
               <strong id="login-store-serial-value">—</strong>
               <small id="login-store-serial-hint" class="muted">سيظهر رقم متجرك هنا بعد تسجيل الدخول بنجاح.</small>
-            </div>
-            <div class="hint-box">
-              <strong>دخول آمن</strong>
-              <p>استخدم البريد وكلمة المرور الخاصة بحسابك، وسيتم توجيهك تلقائيًا للوحة المناسبة.</p>
             </div>
             <button type="button" class="ghost auth-switch" data-auth-mode="register">إنشاء متجر جديد</button>
           </article>
@@ -161,6 +211,7 @@
             و
             <a href="/privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.
           </p>
+          </div>
         </div>
       </section>
 
@@ -1358,6 +1409,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026060825"></script>
+  <script src="/app.js?v=2026061601"></script>
 </body>
 </html>
