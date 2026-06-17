@@ -15,6 +15,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Install SSH key
         env:
@@ -42,38 +43,48 @@ jobs:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
       - name: Wait for TrueNAS on Tailscale
+        timeout-minutes: 35
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
+          # Total wait window = WAIT_ROUNDS * WAIT_SLEEP seconds (default ~30 min).
+          # Lets a temporarily offline / rebooting TrueNAS come online without a manual rerun.
+          WAIT_ROUNDS: ${{ vars.TRUENAS_WAIT_ROUNDS || '90' }}
+          WAIT_SLEEP: ${{ vars.TRUENAS_WAIT_SLEEP || '20' }}
         run: |
           set -euo pipefail
           test -n "${SSH_HOST:-}" || { echo "Missing secret SSH_HOST"; exit 1; }
-          mapfile -t CANDIDATES < <(
-            printf '%s\n' "${SSH_HOST}"
-            tailscale status 2>/dev/null | awk '$2 ~ /^truenas/ && $NF != "offline" { print $1 }' || true
-          )
-          # unique hosts, preserve order (secret first)
-          declare -A SEEN=()
-          HOSTS=()
-          for host in "${CANDIDATES[@]}"; do
-            [ -n "${host:-}" ] || continue
-            if [ -z "${SEEN[$host]:-}" ]; then
-              SEEN[$host]=1
-              HOSTS+=("$host")
-            fi
-          done
-          echo "TrueNAS candidates: ${HOSTS[*]}"
-          for i in $(seq 1 36); do
+          rounds="${WAIT_ROUNDS:-90}"
+          sleep_secs="${WAIT_SLEEP:-20}"
+          total_min=$(( rounds * sleep_secs / 60 ))
+          echo "Waiting up to ~${total_min} min for TrueNAS (${rounds} rounds x ${sleep_secs}s)."
+          for i in $(seq 1 "${rounds}"); do
+            # Re-resolve candidates each round so a peer that just came online is picked up.
+            mapfile -t CANDIDATES < <(
+              printf '%s\n' "${SSH_HOST}"
+              tailscale status 2>/dev/null | awk '$2 ~ /^truenas/ && $NF != "offline" { print $1 }' || true
+            )
+            declare -A SEEN=()
+            HOSTS=()
+            for host in "${CANDIDATES[@]}"; do
+              [ -n "${host:-}" ] || continue
+              if [ -z "${SEEN[$host]:-}" ]; then
+                SEEN[$host]=1
+                HOSTS+=("$host")
+              fi
+            done
             for host in "${HOSTS[@]}"; do
               if tailscale ping -c 1 -timeout 5s "${host}" >/dev/null 2>&1; then
-                echo "Tailscale ping OK on ${host} (round ${i})"
+                echo "Tailscale ping OK on ${host} (round ${i}/${rounds})"
                 echo "SSH_HOST=${host}" >> "${GITHUB_ENV}"
                 exit 0
               fi
             done
-            echo "Round ${i}/36: no TrueNAS peer reachable yet, sleeping 10s..."
-            sleep 10
+            unset SEEN HOSTS
+            echo "Round ${i}/${rounds}: no TrueNAS peer reachable yet, sleeping ${sleep_secs}s..."
+            sleep "${sleep_secs}"
           done
-          echo "TrueNAS did not respond to tailscale ping within 6 minutes."
+          echo "TrueNAS did not respond to tailscale ping within ~${total_min} minutes."
+          echo "Make sure the TrueNAS machine is powered on and connected to Tailscale, then re-run this deploy."
           tailscale status || true
           exit 1
 
