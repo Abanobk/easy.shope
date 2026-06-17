@@ -153,6 +153,19 @@ function requireMerchantUser(request: Parameters<typeof getAuth>[0]) {
   return user;
 }
 
+/// Granular permissions that the merchant owner can grant to staff accounts.
+const STAFF_PERMISSION_KEYS = ["orders", "products", "categories", "settings", "providers", "billing", "android"] as const;
+
+function sanitizeStaffPermissions(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const allowed = new Set<string>(STAFF_PERMISSION_KEYS);
+  const out = new Set<string>();
+  for (const item of input) {
+    if (typeof item === "string" && allowed.has(item)) out.add(item);
+  }
+  return Array.from(out);
+}
+
 function slugify(value: string) {
   return value
     .trim()
@@ -520,6 +533,7 @@ async function migrate() {
   `);
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions jsonb NOT NULL DEFAULT '[]'::jsonb;
     ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url text;
     ALTER TABLE products ADD COLUMN IF NOT EXISTS media_urls jsonb NOT NULL DEFAULT '[]'::jsonb;
     ALTER TABLE products ADD COLUMN IF NOT EXISTS video_url text;
@@ -840,7 +854,7 @@ app.post("/api/auth/login", async (request, reply) => {
 app.get("/api/me", async (request) => {
   const user = requireAuth(request);
   const result = await pool.query(
-    `SELECT users.id, users.name, users.email, users.role, users.status, users.tenant_id,
+    `SELECT users.id, users.name, users.email, users.role, users.status, users.permissions, users.tenant_id,
             tenants.name_en AS store_name, tenants.slug, tenants.serial_code AS store_serial
      FROM users LEFT JOIN tenants ON tenants.id = users.tenant_id
      WHERE users.id = $1`,
@@ -865,26 +879,35 @@ app.post("/api/auth/change-password", async (request, reply) => {
 app.get("/api/merchant/staff", async (request) => {
   const user = requireMerchantOwner(request);
   const result = await pool.query(
-    `SELECT id, name, email, phone, role, status, created_at
+    `SELECT id, name, email, phone, role, status, permissions, created_at
      FROM users
      WHERE tenant_id = $1 AND role = 'merchant_staff'
      ORDER BY created_at DESC`,
     [user.tenantId],
   );
-  return { staff: result.rows };
+  return { staff: result.rows, availablePermissions: STAFF_PERMISSION_KEYS };
 });
 
 app.post("/api/merchant/staff", async (request, reply) => {
   const user = requireMerchantOwner(request);
-  const body = z.object({ name: z.string().min(2), email: z.string().email(), phone: z.string().optional(), password: z.string().min(8) }).parse(request.body);
+  const body = z
+    .object({
+      name: z.string().min(2),
+      email: z.string().email(),
+      phone: z.string().optional(),
+      password: z.string().min(8),
+      permissions: z.array(z.string()).optional(),
+    })
+    .parse(request.body);
   const existing = await pool.query(`SELECT id FROM users WHERE email = $1`, [body.email.toLowerCase()]);
   if (existing.rows[0]) return reply.code(409).send({ message: "هذا البريد مستخدم بالفعل." });
   const passwordHash = await bcrypt.hash(body.password, 12);
+  const permissions = sanitizeStaffPermissions(body.permissions);
   const result = await pool.query(
-    `INSERT INTO users (tenant_id, name, email, phone, password_hash, role, status)
-     VALUES ($1, $2, $3, $4, $5, 'merchant_staff', 'active')
-     RETURNING id, name, email, phone, role, status, created_at`,
-    [user.tenantId, body.name, body.email.toLowerCase(), body.phone ?? null, passwordHash],
+    `INSERT INTO users (tenant_id, name, email, phone, password_hash, role, status, permissions)
+     VALUES ($1, $2, $3, $4, $5, 'merchant_staff', 'active', $6::jsonb)
+     RETURNING id, name, email, phone, role, status, permissions, created_at`,
+    [user.tenantId, body.name, body.email.toLowerCase(), body.phone ?? null, passwordHash, JSON.stringify(permissions)],
   );
   return reply.code(201).send({ staff: result.rows[0] });
 });
@@ -892,15 +915,34 @@ app.post("/api/merchant/staff", async (request, reply) => {
 app.patch("/api/merchant/staff/:staffId", async (request, reply) => {
   const user = requireMerchantOwner(request);
   const params = z.object({ staffId: z.string().uuid() }).parse(request.params);
-  const body = z.object({ name: z.string().min(2).optional(), phone: z.string().nullable().optional(), status: z.enum(["active", "disabled"]).optional() }).parse(request.body);
+  const body = z
+    .object({
+      name: z.string().min(2).optional(),
+      phone: z.string().nullable().optional(),
+      status: z.enum(["active", "disabled"]).optional(),
+      permissions: z.array(z.string()).optional(),
+    })
+    .parse(request.body);
+  const hasPermissions = Object.prototype.hasOwnProperty.call(body, "permissions");
+  const permissions = hasPermissions ? sanitizeStaffPermissions(body.permissions) : [];
   const result = await pool.query(
     `UPDATE users
      SET name = coalesce($3, name),
          phone = CASE WHEN $4::boolean THEN $5::text ELSE phone END,
-         status = coalesce($6, status)
+         status = coalesce($6, status),
+         permissions = CASE WHEN $7::boolean THEN $8::jsonb ELSE permissions END
      WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff'
-     RETURNING id, name, email, phone, role, status, created_at`,
-    [params.staffId, user.tenantId, body.name ?? null, Object.prototype.hasOwnProperty.call(body, "phone"), body.phone ?? null, body.status ?? null],
+     RETURNING id, name, email, phone, role, status, permissions, created_at`,
+    [
+      params.staffId,
+      user.tenantId,
+      body.name ?? null,
+      Object.prototype.hasOwnProperty.call(body, "phone"),
+      body.phone ?? null,
+      body.status ?? null,
+      hasPermissions,
+      JSON.stringify(permissions),
+    ],
   );
   if (!result.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
   return { staff: result.rows[0] };

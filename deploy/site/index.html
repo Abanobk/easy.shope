@@ -18,7 +18,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026061601" />
+  <link rel="stylesheet" href="/styles.css?v=2026061701" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -1021,8 +1021,8 @@
               <div class="page-head">
                 <div>
                   <div class="breadcrumb">لوحة المتجر <span>/</span> الفريق</div>
-                  <h2>الفريق والأمان</h2>
-                  <p class="page-subtitle">أضف موظفين، فعّل/عطّل الحسابات، وراجع كلمات المرور.</p>
+                  <h2>الفريق والصلاحيات</h2>
+                  <p class="page-subtitle">أضف موظفين، حدّد صلاحيات كل موظف، وفعّل/عطّل الحسابات.</p>
                 </div>
               </div>
               <div class="grid two">
@@ -1036,6 +1036,10 @@
                     <label>البريد<input name="email" type="email" required></label>
                     <label>موبايل<input name="phone"></label>
                     <label>كلمة مرور مؤقتة<input name="password" type="password" minlength="8" required></label>
+                    <fieldset class="perm-fieldset span-2">
+                      <legend>صلاحيات الموظف</legend>
+                      <div class="perm-grid" id="staff-create-permissions"></div>
+                    </fieldset>
                     <button class="span-2">إضافة موظف</button>
                   </form>
                   <ul id="staff-list" class="list"></ul>
@@ -1409,6 +1413,6 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026061601"></script>
+  <script src="/app.js?v=2026061701"></script>
 </body>
 </html>
