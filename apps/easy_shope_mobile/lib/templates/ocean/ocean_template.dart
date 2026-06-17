@@ -76,7 +76,17 @@ class _OceanTemplateState extends State<OceanTemplate> {
           ),
           const SizedBox(height: 16),
           StoreSearchBar(onSubmitted: s.setSearch),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
+          if (s.products.length > 2) ...[
+            SectionHeader(title: 'وصل حديثًا', palette: s.palette),
+            FeaturedRail(
+              products: s.products.take(8).toList(),
+              palette: s.palette,
+              onTap: (p) => openProduct(context, p),
+              onAdd: (p) => s.addToCart(p),
+            ),
+            const SizedBox(height: 18),
+          ],
           CategoryStrip(categories: s.categories, selected: s.selectedCategorySlug, onSelect: s.selectCategory, palette: s.palette),
           const SizedBox(height: 16),
           SectionHeader(title: 'الأكثر رواجًا', palette: s.palette),

@@ -19,17 +19,23 @@ class ProductDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(palette.cornerRadius + 4),
-            child: (product.imageUrl != null && product.imageUrl!.isNotEmpty)
-                ? Image.network(
-                    product.imageUrl!,
-                    height: 280,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _imageFallback(palette),
-                  )
-                : _imageFallback(palette),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(palette.cornerRadius + 4),
+              boxShadow: palette.cardShadow,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(palette.cornerRadius + 4),
+              child: (product.imageUrl != null && product.imageUrl!.isNotEmpty)
+                  ? Image.network(
+                      product.imageUrl!,
+                      height: 280,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _imageFallback(palette),
+                    )
+                  : _imageFallback(palette),
+            ),
           ),
           const SizedBox(height: 18),
           Text(product.title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
