@@ -17,7 +17,20 @@ const state = {
   savedStorefrontTheme: "ocean",
   adminTenants: [],
   adminPlans: [],
+  /** صلاحيات المستخدم الحالي (للموظف) */
+  permissions: [],
 };
+
+/// مفاتيح الصلاحيات الممنوحة للموظفين + تسمياتها العربية.
+const STAFF_PERMISSIONS = [
+  { key: "orders", label: "الطلبات", hint: "عرض وإدارة الطلبات" },
+  { key: "products", label: "المنتجات", hint: "إضافة وتعديل المنتجات" },
+  { key: "categories", label: "الأصناف", hint: "تنظيم الأقسام" },
+  { key: "settings", label: "إعدادات المتجر", hint: "البيانات والهوية" },
+  { key: "providers", label: "إعدادات الدفع", hint: "Paymob و EasyCash" },
+  { key: "billing", label: "اشتراك المنصة", hint: "الفواتير والخطة" },
+  { key: "android", label: "تطبيق أندرويد", hint: "بناء APK" },
+];
 
 const STOREFRONT_THEME_LABELS = {
   ocean: "Ocean — أزياء كلاسيكية (شبكة + شريط سفلي)",
@@ -588,6 +601,7 @@ function fillPaymobCallbackUrls() {
 function clearAuthState() {
   state.token = "";
   state.role = "";
+  state.permissions = [];
   state.tenantSlug = "";
   localStorage.removeItem("easyShopeToken");
   localStorage.removeItem("easyShopeTenantSlug");
@@ -897,12 +911,14 @@ function setView(view, options = {}) {
 async function refreshMe() {
   if (!state.token) {
     state.role = "";
+    state.permissions = [];
     $("current-user").textContent = "guest";
     updateNavigation();
     return;
   }
   const me = await api("/api/me");
   state.role = me.role;
+  state.permissions = Array.isArray(me.permissions) ? me.permissions : [];
   state.tenantSlug = me.slug || state.tenantSlug;
   localStorage.setItem("easyShopeRole", state.role);
   localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
@@ -1165,8 +1181,12 @@ async function createStaff(event) {
   try {
     button.disabled = true;
     button.textContent = "جارٍ إضافة الموظف...";
-    const form = new FormData(event.currentTarget);
-    await api("/api/merchant/staff", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
+    const formEl = event.currentTarget;
+    const form = new FormData(formEl);
+    const payload = Object.fromEntries(form.entries());
+    delete payload.permissions;
+    payload.permissions = Array.from(formEl.querySelectorAll('input[name="permissions"]:checked')).map((el) => el.value);
+    await api("/api/merchant/staff", { method: "POST", body: JSON.stringify(payload) });
     showMessage("تم إضافة الموظف.");
     event.currentTarget.reset();
     await loadStaff();
@@ -1508,6 +1528,25 @@ async function loadMerchantData() {
   renderMerchantProducts();
   renderMerchantOrders();
   await loadAndroidBuildsOnly();
+  applyMerchantPermissions();
+}
+
+/// إخفاء التبويبات غير المسموح بها للموظف، وإبقاء كل شيء لصاحب المتجر.
+function applyMerchantPermissions() {
+  const isStaff = state.role === "merchant_staff";
+  let activeHidden = false;
+  document.querySelectorAll(".merchant-side-item[data-merchant-tab]").forEach((button) => {
+    const tab = button.dataset.merchantTab;
+    let allowed = true;
+    if (isStaff) {
+      if (tab === "overview") allowed = true;
+      else if (tab === "team") allowed = false;
+      else allowed = state.permissions.includes(tab);
+    }
+    button.hidden = !allowed;
+    if (!allowed && button.classList.contains("active")) activeHidden = true;
+  });
+  if (isStaff && activeHidden) setMerchantTab("overview");
 }
 
 function formatAndroidBuildStatus(status) {
@@ -1804,6 +1843,7 @@ async function loadStaff() {
   $("staff-form")?.querySelectorAll("input, button").forEach((element) => {
     element.disabled = false;
   });
+  renderCreatePermissions();
   const data = await api("/api/merchant/staff");
   const filter = ($("staff-filter")?.value || "").trim().toLowerCase();
   const rows = (data.staff || []).filter((m) => {
@@ -1812,28 +1852,93 @@ async function loadStaff() {
   });
   staffList.innerHTML =
     rows
-      .map(
-        (member) => `<li>
-          <div class="provider-line">
-            <strong>${member.name}<br><small>${member.email}${member.phone ? ` • ${member.phone}` : ""}</small></strong>
-            <span class="status-badge ${member.status === "active" ? "ok" : "off"}">${member.status}</span>
-          </div>
-          <span class="row-actions">
-            <button class="mini-button" data-staff-status="${member.id}:${member.status === "active" ? "disabled" : "active"}">${member.status === "active" ? "تعطيل" : "تفعيل"}</button>
-            <button class="mini-button danger-button" data-staff-delete="${member.id}">حذف</button>
-          </span>
-        </li>`,
-      )
+      .map((member) => renderStaffRow(member))
       .join("") || "<li>لا يوجد موظفون مطابقون.</li>";
   bindStaffActions();
 }
 
+function permissionLabel(key) {
+  return STAFF_PERMISSIONS.find((p) => p.key === key)?.label || key;
+}
+
+function renderCreatePermissions() {
+  const container = $("staff-create-permissions");
+  if (!container || container.dataset.ready === "1") return;
+  container.innerHTML = STAFF_PERMISSIONS.map(
+    (perm) => `<label class="perm-check">
+        <input type="checkbox" name="permissions" value="${perm.key}">
+        <span><strong>${perm.label}</strong><small>${perm.hint}</small></span>
+      </label>`,
+  ).join("");
+  container.dataset.ready = "1";
+}
+
+function renderStaffRow(member) {
+  const perms = Array.isArray(member.permissions) ? member.permissions : [];
+  const badges = perms.length
+    ? perms.map((key) => `<span class="perm-badge">${permissionLabel(key)}</span>`).join("")
+    : `<span class="perm-badge perm-badge--none">بدون صلاحيات</span>`;
+  const checkboxes = STAFF_PERMISSIONS.map(
+    (perm) => `<label class="perm-check">
+        <input type="checkbox" value="${perm.key}" ${perms.includes(perm.key) ? "checked" : ""}>
+        <span><strong>${perm.label}</strong><small>${perm.hint}</small></span>
+      </label>`,
+  ).join("");
+  return `<li class="staff-row" data-staff-id="${member.id}">
+      <div class="provider-line">
+        <strong>${member.name}<br><small>${member.email}${member.phone ? ` • ${member.phone}` : ""}</small></strong>
+        <span class="status-badge ${member.status === "active" ? "ok" : "off"}">${member.status === "active" ? "نشط" : "معطّل"}</span>
+      </div>
+      <div class="perm-badges">${badges}</div>
+      <span class="row-actions">
+        <button class="mini-button" data-staff-edit="${member.id}">تعديل الصلاحيات</button>
+        <button class="mini-button" data-staff-status="${member.id}:${member.status === "active" ? "disabled" : "active"}">${member.status === "active" ? "تعطيل" : "تفعيل"}</button>
+        <button class="mini-button danger-button" data-staff-delete="${member.id}">حذف</button>
+      </span>
+      <div class="perm-editor" data-staff-editor="${member.id}" hidden>
+        <div class="perm-grid">${checkboxes}</div>
+        <div class="perm-editor-actions">
+          <button class="mini-button primary-button" data-staff-save="${member.id}">حفظ الصلاحيات</button>
+          <button class="mini-button" data-staff-cancel="${member.id}">إلغاء</button>
+        </div>
+      </div>
+    </li>`;
+}
+
 function bindStaffActions() {
+  document.querySelectorAll("[data-staff-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const editor = document.querySelector(`[data-staff-editor="${button.dataset.staffEdit}"]`);
+      if (editor) editor.hidden = !editor.hidden;
+    });
+  });
+  document.querySelectorAll("[data-staff-cancel]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const editor = document.querySelector(`[data-staff-editor="${button.dataset.staffCancel}"]`);
+      if (editor) editor.hidden = true;
+    });
+  });
+  document.querySelectorAll("[data-staff-save]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const staffId = button.dataset.staffSave;
+      const editor = document.querySelector(`[data-staff-editor="${staffId}"]`);
+      const permissions = Array.from(editor?.querySelectorAll('input[type="checkbox"]:checked') || []).map((el) => el.value);
+      try {
+        button.disabled = true;
+        await api(`/api/merchant/staff/${staffId}`, { method: "PATCH", body: JSON.stringify({ permissions }) });
+        showMessage("تم تحديث صلاحيات الموظف.");
+        await loadStaff();
+      } catch (error) {
+        showMessage(error.message, true);
+        button.disabled = false;
+      }
+    });
+  });
   document.querySelectorAll("[data-staff-status]").forEach((button) => {
     button.addEventListener("click", async () => {
       const [staffId, status] = button.dataset.staffStatus.split(":");
       await api(`/api/merchant/staff/${staffId}`, { method: "PATCH", body: JSON.stringify({ status }) });
-      showMessage(`تم تحديث الموظف إلى ${status}.`);
+      showMessage(`تم تحديث حالة الموظف.`);
       await loadStaff();
     });
   });
