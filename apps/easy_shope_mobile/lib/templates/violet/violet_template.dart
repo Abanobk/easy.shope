@@ -50,6 +50,18 @@ class VioletTemplate extends StatelessWidget {
                 ],
                 StoreSearchBar(onSubmitted: s.setSearch, hint: 'ابحثي عن منتج'),
                 const SizedBox(height: 16),
+                if (s.products.isNotEmpty) ...[
+                  SectionHeader(title: 'منتج العناية المميز', palette: s.palette),
+                  SpotlightCard(
+                    product: s.products.first,
+                    palette: s.palette,
+                    label: 'الأكثر مبيعًا',
+                    addLabel: 'أضيفي للسلة',
+                    onTap: () => openProduct(context, s.products.first),
+                    onAdd: () => s.addToCart(s.products.first),
+                  ),
+                  const SizedBox(height: 18),
+                ],
                 SectionHeader(title: 'وصل حديثًا', palette: s.palette),
                 if (s.products.isEmpty)
                   const StoreEmptyState()

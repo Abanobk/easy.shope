@@ -37,6 +37,24 @@ class TemplatePalette {
   Color get softSurface => Color.alphaBlend(primary.withValues(alpha: 0.06), surface);
   List<Color> get heroGradient => heroColors.isNotEmpty ? heroColors : [primary, secondary];
 
+  /// Soft elevation shadow for product cards (premium depth).
+  List<BoxShadow> get cardShadow => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.30),
+          blurRadius: 16,
+          offset: const Offset(0, 8),
+        ),
+      ];
+
+  /// Colored glow shadow used under hero banners and primary actions.
+  List<BoxShadow> get heroShadow => [
+        BoxShadow(
+          color: primary.withValues(alpha: 0.35),
+          blurRadius: 24,
+          offset: const Offset(0, 12),
+        ),
+      ];
+
   ThemeData toThemeData() {
     final base = ThemeData(
       useMaterial3: true,

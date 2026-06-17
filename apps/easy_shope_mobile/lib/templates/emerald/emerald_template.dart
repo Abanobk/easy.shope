@@ -77,21 +77,39 @@ class _EmeraldTemplateState extends State<EmeraldTemplate> {
           ),
           const SizedBox(height: 16),
           StoreSearchBar(onSubmitted: s.setSearch),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
+          if (s.products.length > 2) ...[
+            SectionHeader(title: 'الأكثر مبيعًا', palette: s.palette),
+            FeaturedRail(
+              products: s.products.take(8).toList(),
+              palette: s.palette,
+              onTap: (p) => openProduct(context, p),
+              onAdd: (p) => s.addToCart(p),
+            ),
+            const SizedBox(height: 18),
+          ],
           CategoryStrip(categories: s.categories, selected: s.selectedCategorySlug, onSelect: s.selectCategory, palette: s.palette),
           const SizedBox(height: 16),
-          SectionHeader(title: 'كل المنتجات', palette: s.palette),
+          SectionHeader(title: 'كل الأجهزة', palette: s.palette),
           if (s.products.isEmpty)
             const StoreEmptyState()
           else
-            ...s.products.map(
-              (p) => ProductTile(
-                product: p,
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.60,
+              ),
+              itemCount: s.products.length,
+              itemBuilder: (_, i) => ProductTile(
+                product: s.products[i],
                 palette: s.palette,
-                style: ProductLayoutStyle.list,
                 addLabel: 'أضف للسلة',
-                onAdd: () => s.addToCart(p),
-                onTap: () => openProduct(context, p),
+                onAdd: () => s.addToCart(s.products[i]),
+                onTap: () => openProduct(context, s.products[i]),
               ),
             ),
         ],

@@ -88,6 +88,8 @@ class ProductTile extends StatelessWidget {
 
   Widget _addButton() {
     return Material(
+      elevation: _outOfStock ? 0 : 3,
+      shadowColor: palette.primary.withValues(alpha: 0.5),
       color: _outOfStock ? palette.chipBackground : palette.primary,
       shape: const CircleBorder(),
       child: InkWell(
@@ -103,6 +105,9 @@ class ProductTile extends StatelessWidget {
 
   Widget _gridCard() {
     return Card(
+      elevation: 8,
+      shadowColor: palette.primary.withValues(alpha: 0.28),
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -112,6 +117,18 @@ class ProductTile extends StatelessWidget {
             Stack(
               children: [
                 _image(140, rounded: false),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black.withValues(alpha: 0.30)],
+                        stops: const [0.55, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
                 Positioned(top: 10, right: 10, child: _stockBadge()),
               ],
             ),
@@ -153,6 +170,9 @@ class ProductTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
+        elevation: 5,
+        shadowColor: palette.primary.withValues(alpha: 0.20),
+        surfaceTintColor: Colors.transparent,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -217,6 +237,302 @@ class ProductTile extends StatelessWidget {
   }
 }
 
+/// Horizontal showcase of featured products with premium overlay cards.
+/// Uses an [Expanded] image so the card never overflows its fixed height.
+class FeaturedRail extends StatelessWidget {
+  const FeaturedRail({
+    super.key,
+    required this.products,
+    required this.palette,
+    required this.onTap,
+    required this.onAdd,
+    this.height = 232,
+    this.cardWidth = 168,
+  });
+
+  final List<ProductInfo> products;
+  final TemplatePalette palette;
+  final void Function(ProductInfo) onTap;
+  final void Function(ProductInfo) onAdd;
+  final double height;
+  final double cardWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    if (products.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: height,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        clipBehavior: Clip.none,
+        itemCount: products.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (_, i) {
+          final p = products[i];
+          return SizedBox(
+            width: cardWidth,
+            child: _FeaturedCard(
+              product: p,
+              palette: palette,
+              onTap: () => onTap(p),
+              onAdd: () => onAdd(p),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FeaturedCard extends StatelessWidget {
+  const _FeaturedCard({
+    required this.product,
+    required this.palette,
+    required this.onTap,
+    required this.onAdd,
+  });
+
+  final ProductInfo product;
+  final TemplatePalette palette;
+  final VoidCallback onTap;
+  final VoidCallback onAdd;
+
+  bool get _outOfStock => product.stockQuantity <= 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 8,
+      shadowColor: palette.primary.withValues(alpha: 0.28),
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _image(),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black54],
+                        stops: [0.5, 1.0],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.priceLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: palette.accent, fontWeight: FontWeight.w900, fontSize: 14),
+                        ),
+                      ),
+                      Material(
+                        color: _outOfStock ? palette.chipBackground : palette.primary,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: _outOfStock ? null : onAdd,
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(Icons.add_rounded, size: 18, color: _outOfStock ? palette.muted : Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _image() {
+    if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
+      return Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder());
+    }
+    return _placeholder();
+  }
+
+  Widget _placeholder() {
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [palette.primary.withValues(alpha: 0.35), palette.surface],
+        ),
+      ),
+      child: Text(
+        product.title.characters.isEmpty ? '?' : product.title.characters.first,
+        style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: palette.accent),
+      ),
+    );
+  }
+}
+
+/// Large editorial highlight card for a single featured product.
+/// All heights are intrinsic (image on top), so it never overflows.
+class SpotlightCard extends StatelessWidget {
+  const SpotlightCard({
+    super.key,
+    required this.product,
+    required this.palette,
+    required this.onTap,
+    required this.onAdd,
+    this.label = 'منتج مميز',
+    this.addLabel = 'أضف للسلة',
+    this.imageHeight = 196,
+  });
+
+  final ProductInfo product;
+  final TemplatePalette palette;
+  final VoidCallback onTap;
+  final VoidCallback onAdd;
+  final String label;
+  final String addLabel;
+  final double imageHeight;
+
+  bool get _outOfStock => product.stockQuantity <= 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 12,
+      shadowColor: palette.primary.withValues(alpha: 0.35),
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: imageHeight,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _image(),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black87],
+                        stops: [0.45, 1.0],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: palette.primary,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: palette.cardShadow,
+                      ),
+                      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+                    ),
+                  ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 14,
+                    child: Text(
+                      product.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20, height: 1.2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(product.priceLabel, style: TextStyle(color: palette.accent, fontWeight: FontWeight.w900, fontSize: 18)),
+                        if (product.description?.trim().isNotEmpty == true) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            product.description!.trim(),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: palette.muted, fontSize: 12.5, height: 1.4),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    onPressed: _outOfStock ? null : onAdd,
+                    child: Text(_outOfStock ? 'غير متوفر' : addLabel),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _image() {
+    if (product.imageUrl != null && product.imageUrl!.isNotEmpty) {
+      return Image.network(product.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, _, _) => _placeholder());
+    }
+    return _placeholder();
+  }
+
+  Widget _placeholder() {
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(gradient: LinearGradient(colors: palette.heroGradient)),
+      child: Text(
+        product.title.characters.isEmpty ? '?' : product.title.characters.first,
+        style: const TextStyle(fontSize: 56, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+    );
+  }
+}
+
 /// Gradient hero banner used across templates with store identity + tagline.
 class StoreHero extends StatelessWidget {
   const StoreHero({
@@ -249,6 +565,7 @@ class StoreHero extends StatelessWidget {
           end: Alignment.bottomLeft,
           colors: palette.heroGradient,
         ),
+        boxShadow: palette.heroShadow,
       ),
       child: Stack(
         children: [
@@ -324,11 +641,23 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = palette?.accent ?? Theme.of(context).colorScheme.tertiary;
+    final primary = palette?.primary ?? Theme.of(context).colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Container(width: 4, height: 18, decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(4))),
+          Container(
+            width: 5,
+            height: 20,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [accent, primary],
+              ),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17))),
           if (actionLabel != null)

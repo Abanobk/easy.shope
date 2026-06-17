@@ -48,6 +48,19 @@ class AmberTemplate extends StatelessWidget {
                   children: [
                     _banner(s),
                     const SizedBox(height: 16),
+                    if (s.products.isNotEmpty) ...[
+                      SectionHeader(title: 'طبق اليوم', palette: s.palette),
+                      SpotlightCard(
+                        product: s.products.first,
+                        palette: s.palette,
+                        label: 'مميز',
+                        addLabel: 'اطلب الآن',
+                        imageHeight: 170,
+                        onTap: () => openProduct(context, s.products.first),
+                        onAdd: () => s.addToCart(s.products.first),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
                     SectionHeader(title: 'الأطباق المتاحة', palette: s.palette),
                     if (s.products.isEmpty)
                       const StoreEmptyState(message: 'لا توجد أصناف متاحة الآن.')
