@@ -52,11 +52,28 @@ class StoreApi {
   }
 
   Future<Map<String, dynamic>> _decode(http.Response res) async {
-    final body = jsonDecode(res.body.isEmpty ? '{}' : res.body) as Map<String, dynamic>;
-    if (res.statusCode >= 400) {
-      throw StoreApiException(body['message'] as String? ?? 'Request failed (${res.statusCode})', statusCode: res.statusCode);
+    dynamic parsed;
+    try {
+      parsed = jsonDecode(res.body.isEmpty ? '{}' : res.body);
+    } catch (_) {
+      // Non-JSON response (e.g. a Cloudflare/gateway error page such as
+      // "error code: 1033"). Surface a clear, user-friendly message instead of
+      // a raw FormatException so the screen doesn't look broken.
+      if (res.statusCode >= 500 || res.statusCode == 0) {
+        throw StoreApiException('المتجر غير متاح مؤقتًا، يرجى المحاولة بعد قليل.', statusCode: res.statusCode);
+      }
+      if (res.statusCode >= 400) {
+        throw StoreApiException('تعذّر تنفيذ الطلب (رمز ${res.statusCode}).', statusCode: res.statusCode);
+      }
+      throw StoreApiException('استجابة غير متوقعة من الخادم، حاول مرة أخرى لاحقًا.', statusCode: res.statusCode);
     }
-    return body;
+    if (parsed is! Map<String, dynamic>) {
+      throw StoreApiException('استجابة غير متوقعة من الخادم، حاول مرة أخرى لاحقًا.', statusCode: res.statusCode);
+    }
+    if (res.statusCode >= 400) {
+      throw StoreApiException(parsed['message'] as String? ?? 'تعذّر تنفيذ الطلب (رمز ${res.statusCode}).', statusCode: res.statusCode);
+    }
+    return parsed;
   }
 
   Future<({StoreInfo store, List<CategoryInfo> categories, List<ProductInfo> featured})> fetchStore(
