@@ -8,6 +8,15 @@ import jwt from "jsonwebtoken";
 import pg from "pg";
 import { z } from "zod";
 import { restoreOrderStock, reserveOrderStock } from "./inventory.js";
+import {
+  discoverCashTenantsByEmail,
+  getAccountingLink,
+  getMerchantOwnerEmail,
+  maybeSyncOrderToAccounting,
+  syncItemFromAccountingToShope,
+  syncProductToAccounting,
+  upsertAccountingLink,
+} from "./accounting-integration.js";
 import { emailNotificationsConfigured, notifyNewStoreOrder } from "./notifications.js";
 
 const { Pool } = pg;
@@ -30,6 +39,7 @@ const env = {
   androidBuildCallbackSecret: process.env.ANDROID_BUILD_CALLBACK_SECRET ?? "",
   /** فرع GitHub المستخدم عند workflow_dispatch (مثلاً main) */
   githubDispatchRef: process.env.GITHUB_DISPATCH_REF ?? "main",
+  shopeIntegrationSecret: process.env.SHOPE_INTEGRATION_SECRET ?? "",
   smtpHost: process.env.SMTP_HOST?.trim() ?? "",
 };
 
@@ -60,6 +70,8 @@ type AuthUser = {
   tenantId: string | null;
   role: "platform_owner" | "platform_admin" | "merchant_owner" | "merchant_staff" | "customer";
 };
+
+type TenantAuthUser = AuthUser & { tenantId: string };
 
 const pool = new Pool({ connectionString: env.databaseUrl });
 const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
@@ -127,17 +139,17 @@ function requirePlatformOwner(request: Parameters<typeof getAuth>[0]) {
   return user;
 }
 
-function requireTenantUser(request: Parameters<typeof getAuth>[0]) {
+function requireTenantUser(request: Parameters<typeof getAuth>[0]): TenantAuthUser {
   const user = requireAuth(request);
   if (!user.tenantId) {
     const error = new Error("Tenant required");
     (error as Error & { statusCode: number }).statusCode = 403;
     throw error;
   }
-  return user;
+  return { ...user, tenantId: user.tenantId };
 }
 
-function requireMerchantOwner(request: Parameters<typeof getAuth>[0]) {
+function requireMerchantOwner(request: Parameters<typeof getAuth>[0]): TenantAuthUser {
   const user = requireTenantUser(request);
   if (user.role !== "merchant_owner") {
     throw httpError("Only the merchant owner can manage staff", 403);
@@ -145,7 +157,7 @@ function requireMerchantOwner(request: Parameters<typeof getAuth>[0]) {
   return user;
 }
 
-function requireMerchantUser(request: Parameters<typeof getAuth>[0]) {
+function requireMerchantUser(request: Parameters<typeof getAuth>[0]): TenantAuthUser {
   const user = requireTenantUser(request);
   if (!["merchant_owner", "merchant_staff"].includes(user.role)) {
     throw httpError("Merchant account required", 403);
@@ -580,6 +592,56 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_tenant_android_builds_tenant_created
     ON tenant_android_builds (tenant_id, created_at DESC);
     ALTER TABLE tenant_android_builds ADD COLUMN IF NOT EXISTS storefront_theme text;
+
+    CREATE TABLE IF NOT EXISTS tenant_accounting_links (
+      tenant_id uuid PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+      enabled boolean NOT NULL DEFAULT false,
+      cash_base_url text NOT NULL DEFAULT 'https://cash.easytecheg.net',
+      cash_tenant_slug text,
+      integration_secret text NOT NULL,
+      sync_products_to_cash boolean NOT NULL DEFAULT true,
+      sync_products_from_cash boolean NOT NULL DEFAULT true,
+      sync_orders_to_cash boolean NOT NULL DEFAULT true,
+      accounting_status text NOT NULL DEFAULT 'inactive',
+      accounting_plan_code text,
+      accounting_expires_at timestamptz,
+      last_sync_at timestamptz,
+      last_sync_error text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_accounting_links_cash_slug
+      ON tenant_accounting_links (lower(cash_tenant_slug))
+      WHERE cash_tenant_slug IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS integration_entity_maps (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      entity_type text NOT NULL,
+      shope_id text NOT NULL,
+      cash_id text NOT NULL,
+      code text,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (tenant_id, entity_type, shope_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_integration_entity_maps_code
+      ON integration_entity_maps (tenant_id, entity_type, code);
+    CREATE INDEX IF NOT EXISTS idx_integration_entity_maps_cash
+      ON integration_entity_maps (tenant_id, entity_type, cash_id);
+
+    CREATE TABLE IF NOT EXISTS integration_sync_log (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      direction text NOT NULL,
+      entity_type text NOT NULL,
+      entity_id text,
+      status text NOT NULL,
+      message text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS accounting_invoice_synced boolean NOT NULL DEFAULT false;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS accounting_invoice_ref text;
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS platform_settings (
@@ -1034,7 +1096,9 @@ app.post("/api/merchant/products", async (request, reply) => {
       JSON.stringify(body.variants.filter((variant) => variant.type || variant.color)),
     ],
   );
-  return reply.code(201).send({ product: result.rows[0] });
+  const product = result.rows[0];
+  void syncProductToAccounting(pool, user.tenantId, product).catch((err) => app.log.error({ err }, "accounting product sync failed"));
+  return reply.code(201).send({ product });
 });
 
 app.get("/api/merchant/products", async (request) => {
@@ -1121,6 +1185,7 @@ app.patch("/api/merchant/products/:productId", async (request, reply) => {
     ],
   );
   if (!result.rows[0]) return reply.code(404).send({ message: "Product not found" });
+  void syncProductToAccounting(pool, user.tenantId, result.rows[0]).catch((err) => app.log.error({ err }, "accounting product sync failed"));
   return { product: result.rows[0] };
 });
 
@@ -1300,6 +1365,151 @@ app.get("/api/merchant/store", async (request) => {
   const user = requireMerchantUser(request);
   const result = await pool.query(`SELECT * FROM tenants WHERE id = $1`, [user.tenantId]);
   return { store: result.rows[0] };
+});
+
+app.get("/api/merchant/accounting", async (request) => {
+  const user = requireMerchantUser(request);
+  const [link, logs, plans, ownerEmail] = await Promise.all([
+    getAccountingLink(pool, user.tenantId),
+    pool.query(`SELECT * FROM integration_sync_log WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 40`, [user.tenantId]),
+    pool.query(`SELECT * FROM plans ORDER BY duration_months ASC`),
+    getMerchantOwnerEmail(pool, user.tenantId),
+  ]);
+  return {
+    link,
+    syncLog: logs.rows,
+    plans: plans.rows,
+    integrationConfigured: Boolean(env.shopeIntegrationSecret),
+    merchantOwnerEmail: ownerEmail,
+  };
+});
+
+app.post("/api/merchant/accounting/discover", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const body = z.object({ cashBaseUrl: z.string().url().optional() }).parse(request.body ?? {});
+  const ownerEmail = await getMerchantOwnerEmail(pool, user.tenantId);
+  if (!ownerEmail) return reply.code(400).send({ message: "لم يُعثر على إيميل صاحب المتجر" });
+  const cashBaseUrl = body.cashBaseUrl ?? (await getAccountingLink(pool, user.tenantId))?.cash_base_url ?? "https://cash.easytecheg.net";
+  try {
+    const matches = await discoverCashTenantsByEmail(cashBaseUrl, ownerEmail);
+    return { email: ownerEmail, cashBaseUrl, matches };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return reply.code(502).send({ message });
+  }
+});
+
+app.post("/api/merchant/accounting/auto-link", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const body = z
+    .object({
+      cashBaseUrl: z.string().url().optional(),
+      cashTenantSlug: z.string().min(1).max(80).optional(),
+      enable: z.boolean().default(true),
+    })
+    .parse(request.body ?? {});
+  const ownerEmail = await getMerchantOwnerEmail(pool, user.tenantId);
+  if (!ownerEmail) return reply.code(400).send({ message: "لم يُعثر على إيميل صاحب المتجر" });
+  const existing = await getAccountingLink(pool, user.tenantId);
+  const cashBaseUrl = body.cashBaseUrl ?? existing?.cash_base_url ?? "https://cash.easytecheg.net";
+
+  let slug = body.cashTenantSlug?.trim().toLowerCase();
+  if (!slug) {
+    const matches = await discoverCashTenantsByEmail(cashBaseUrl, ownerEmail);
+    if (!matches.length) {
+      return reply.code(404).send({
+        message: `لا توجد شركة Easy Cash مسجّلة بإيميل ${ownerEmail}. أنشئ حساباً في Easy Cash بنفس الإيميل ثم حاول مرة أخرى.`,
+        email: ownerEmail,
+        matches: [],
+      });
+    }
+    if (matches.length > 1) {
+      return reply.code(409).send({
+        message: "يوجد أكثر من شركة Easy Cash بنفس الإيميل — اختر slug الشركة يدوياً.",
+        email: ownerEmail,
+        matches,
+      });
+    }
+    slug = matches[0].slug;
+  }
+
+  const link = await upsertAccountingLink(pool, user.tenantId, {
+    enabled: body.enable,
+    cash_tenant_slug: slug,
+    cash_base_url: cashBaseUrl,
+    accounting_status: body.enable ? "active" : "inactive",
+  });
+  return { link, matchedByEmail: !body.cashTenantSlug, email: ownerEmail };
+});
+
+app.put("/api/merchant/accounting", async (request) => {
+  const user = requireMerchantUser(request);
+  const body = z
+    .object({
+      enabled: z.boolean().optional(),
+      cashTenantSlug: z.string().min(1).max(80).optional(),
+      cashBaseUrl: z.string().url().optional(),
+      syncProductsToCash: z.boolean().optional(),
+      syncProductsFromCash: z.boolean().optional(),
+      syncOrdersToCash: z.boolean().optional(),
+    })
+    .parse(request.body);
+  const link = await upsertAccountingLink(pool, user.tenantId, {
+    enabled: body.enabled,
+    cash_tenant_slug: body.cashTenantSlug?.trim().toLowerCase(),
+    cash_base_url: body.cashBaseUrl,
+    sync_products_to_cash: body.syncProductsToCash,
+    sync_products_from_cash: body.syncProductsFromCash,
+    sync_orders_to_cash: body.syncOrdersToCash,
+    accounting_status: body.enabled === true ? "active" : body.enabled === false ? "inactive" : undefined,
+  });
+  return { link };
+});
+
+app.post("/api/merchant/accounting/test", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const link = await getAccountingLink(pool, user.tenantId);
+  if (!link?.cash_tenant_slug) return reply.code(400).send({ message: "أدخل slug شركة Easy Cash أولاً" });
+  const base = link.cash_base_url.replace(/\/$/, "");
+  const secret = env.shopeIntegrationSecret || link.integration_secret;
+  if (!secret) return reply.code(503).send({ message: "SHOPE_INTEGRATION_SECRET غير مضبوط على الخادم" });
+  const response = await fetch(`${base}/api/integration/shope/health`, {
+    headers: { "X-Shope-Integration-Secret": secret, "X-Tenant-Slug": link.cash_tenant_slug },
+  });
+  const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!response.ok) return reply.code(502).send({ message: String(data.error || "فشل الاتصال بـ Easy Cash") });
+  return { ok: true, ...data };
+});
+
+app.post("/api/integration/accounting/item-sync", async (request, reply) => {
+  const secret = String(request.headers["x-shope-integration-secret"] ?? "");
+  const cashSlug = String(request.headers["x-cash-tenant-slug"] ?? "")
+    .trim()
+    .toLowerCase();
+  if (!env.shopeIntegrationSecret || secret !== env.shopeIntegrationSecret) {
+    return reply.code(401).send({ message: "Invalid integration secret" });
+  }
+  if (!cashSlug) return reply.code(400).send({ message: "X-Cash-Tenant-Slug required" });
+  const tenantRes = await pool.query(
+    `SELECT tenant_id FROM tenant_accounting_links
+     WHERE lower(cash_tenant_slug) = $1 AND enabled = true AND sync_products_from_cash = true
+     LIMIT 1`,
+    [cashSlug],
+  );
+  if (!tenantRes.rows[0]) return reply.code(404).send({ message: "No linked Shope store for this Cash tenant" });
+  const body = z
+    .object({
+      code: z.string().min(1),
+      name: z.string().min(1),
+      salePrice: z.string().optional(),
+      currentStock: z.string().optional(),
+      barcode: z.string().optional(),
+      description: z.string().optional(),
+      cashItemId: z.union([z.number(), z.string()]).optional(),
+    })
+    .parse(request.body);
+  const result = await syncItemFromAccountingToShope(pool, tenantRes.rows[0].tenant_id as string, body);
+  return { ok: true, ...result };
 });
 
 app.patch("/api/merchant/store", async (request) => {
@@ -1824,6 +2034,9 @@ app.post("/api/webhooks/paymob", async (request, reply) => {
     throw error;
   } finally {
     client.release();
+  }
+  if (success) {
+    void maybeSyncOrderToAccounting(pool, orderId, "paid");
   }
   return { ok: true };
 });

@@ -18,7 +18,11 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="/styles.css?v=2026061701" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css?v=2026070202" />
+  <link rel="stylesheet" href="/design-system.css?v=2026070202" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -225,7 +229,7 @@
                   <img id="merchant-brand-logo" class="merchant-brand-logo" alt="شعار المتجر">
                 </div>
                 <div class="merchant-brand-text">
-                  <span class="eyebrow">Merchant workspace</span>
+                  <span class="eyebrow">مساحة التاجر</span>
                   <strong id="merchant-brand-name">إدارة المتجر</strong>
                   <small id="merchant-brand-slug" class="muted"></small>
                   <small id="merchant-brand-serial" class="merchant-brand-serial muted" hidden></small>
@@ -234,15 +238,11 @@
               <button type="button" class="drawer-close" id="merchant-drawer-close" aria-label="إغلاق القائمة">×</button>
             </div>
             <nav class="merchant-side-nav">
-              <button type="button" class="merchant-side-item active" data-merchant-tab="overview"><strong>نظرة عامة</strong><small>الأداء والتنبيهات</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="orders"><strong>الطلبات</strong><small>إدارة وتتبع</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="products"><strong>المنتجات</strong><small>قائمة وإضافة</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="categories"><strong>الأصناف</strong><small>تنظيم وتصنيف</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="billing"><strong>اشتراك المنصة</strong><small>الفواتير والخطة</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="providers"><strong>إعدادات الدفع</strong><small>Paymob و EasyCash</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="team"><strong>الفريق والصلاحيات</strong><small>موظفون وأمان</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="android"><strong>تطبيق أندرويد</strong><small>بناء APK للمتجر</small></button>
-              <button type="button" class="merchant-side-item" data-merchant-tab="settings"><strong>إعدادات المتجر</strong><small>البيانات والهوية</small></button>
+              <button type="button" class="merchant-side-item active" data-merchant-tab="overview"><span class="merchant-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-9.5z"/></svg></span><span><strong>نظرة عامة</strong><small>الأداء والتنبيهات</small></span></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="catalog"><span class="merchant-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2l3 3h8l3-3 2 2-3 3v13H7V7L4 4l2-2z"/><path d="M9 10h6M9 14h6"/></svg></span><span><strong>الكتالوج</strong><small>منتجات وأصناف</small></span></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="orders"><span class="merchant-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg></span><span><strong>الطلبات</strong><small>إدارة وتتبع</small></span></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="store"><span class="merchant-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M9 22V12h6v10"/></svg></span><span><strong>المتجر</strong><small>الهوية والقوالب</small></span></button>
+              <button type="button" class="merchant-side-item" data-merchant-tab="account"><span class="merchant-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span><strong>الحساب</strong><small>اشتراك ودفع وفريق</small></span></button>
             </nav>
           </aside>
 
@@ -257,6 +257,22 @@
               </div>
             </header>
 
+            <nav class="merchant-subnav" id="subnav-catalog" hidden aria-label="أقسام الكتالوج">
+              <button type="button" class="merchant-subnav-item active" data-merchant-sub="products">المنتجات</button>
+              <button type="button" class="merchant-subnav-item" data-merchant-sub="categories">الأصناف</button>
+            </nav>
+            <nav class="merchant-subnav" id="subnav-store" hidden aria-label="أقسام المتجر">
+              <button type="button" class="merchant-subnav-item active" data-merchant-sub="settings">بيانات المتجر</button>
+              <button type="button" class="merchant-subnav-item" data-merchant-sub="themes">استوديو القوالب</button>
+            </nav>
+            <nav class="merchant-subnav" id="subnav-account" hidden aria-label="أقسام الحساب">
+              <button type="button" class="merchant-subnav-item active" data-merchant-sub="billing">اشتراك المنصة</button>
+              <button type="button" class="merchant-subnav-item" data-merchant-sub="accounting">المحاسبة</button>
+              <button type="button" class="merchant-subnav-item" data-merchant-sub="providers">إعدادات الدفع</button>
+              <button type="button" class="merchant-subnav-item" data-merchant-sub="team" data-owner-only>الفريق</button>
+              <button type="button" class="merchant-subnav-item" data-merchant-sub="android">تطبيق أندرويد</button>
+            </nav>
+
           <div class="merchant-main">
             <article class="panel merchant-tab active" data-merchant-panel="overview">
               <div class="page-head">
@@ -266,16 +282,38 @@
                   <p class="page-subtitle">ملخص سريع لمؤشرات الأداء، التنبيهات، والإجراءات المقترحة لتشغيل متجرك.</p>
                 </div>
               </div>
-              <div class="grid four">
-                <div class="metric compact metric--sky"><span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small></div>
-                <div class="metric compact metric--amber"><span>طلبات</span><strong id="catalog-orders-total">0</strong><small>إجمالي الطلبات</small></div>
-                <div class="metric compact metric--emerald"><span>مبيعات</span><strong id="catalog-revenue-total">0.00 EGP</strong><small>إجمالي الإيراد</small></div>
-                <div class="metric compact metric--violet"><span>تصنيفات</span><strong id="catalog-categories-total">0</strong><small>تنظيم الكتالوج</small></div>
+              <div class="shop-welcome-banner" id="shop-welcome-banner">
+                <div>
+                  <h2 id="shop-welcome-title">مرحباً بك في Easy Shope</h2>
+                  <p>منصة متجرك الإلكتروني — منتجات، طلبات، ومدفوعات في مكان واحد</p>
+                </div>
+                <div class="shop-welcome-date" id="shop-welcome-date" aria-hidden="true">
+                  <strong id="shop-welcome-day">—</strong>
+                  <small id="shop-welcome-month">—</small>
+                </div>
+              </div>
+              <div class="grid four merchant-kpi-grid">
+                <div class="metric compact metric--sky">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 01-8 0"/></svg></span>
+                  <span>منتجات</span><strong id="catalog-products-total">0</strong><small id="catalog-products-published">0 منشور</small>
+                </div>
+                <div class="metric compact metric--amber">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></span>
+                  <span>طلبات</span><strong id="catalog-orders-total">0</strong><small>إجمالي الطلبات</small>
+                </div>
+                <div class="metric compact metric--emerald">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+                  <span>مبيعات</span><strong id="catalog-revenue-total">0.00 EGP</strong><small>إجمالي الإيراد</small>
+                </div>
+                <div class="metric compact metric--violet">
+                  <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span>
+                  <span>تصنيفات</span><strong id="catalog-categories-total">0</strong><small>تنظيم الكتالوج</small>
+                </div>
               </div>
               <div class="performance-grid">
                 <div class="chart-card">
                   <div class="panel-heading">
-                    <span class="eyebrow">Performance</span>
+                    <span class="eyebrow">الأداء</span>
                     <h3>حالة المتجر</h3>
                   </div>
                   <div class="bar-chart">
@@ -286,23 +324,28 @@
                 </div>
                 <div class="chart-card">
                   <div class="panel-heading">
-                    <span class="eyebrow">Next actions</span>
+                    <span class="eyebrow">إجراءات سريعة</span>
                     <h3>تنبيهات وإجراءات سريعة</h3>
                   </div>
                   <ul class="insight-list" id="overview-alerts">
                     <li>جاري تحميل التنبيهات...</li>
                   </ul>
-                  <div class="quick-actions-grid" id="overview-quick-actions">
-                    <button type="button" class="mini-cta" data-merchant-jump="products">إضافة منتج</button>
-                    <button type="button" class="mini-cta" data-merchant-jump="categories">إضافة صنف</button>
-                    <button type="button" class="mini-cta" data-merchant-jump="billing">فواتير الاشتراك</button>
-                    <button type="button" class="mini-cta" data-merchant-jump="providers">إعدادات الدفع</button>
+                  <div class="quick-actions-grid quick-actions-grid--commerce" id="overview-quick-actions">
+                    <button type="button" class="quick-action-card qa--indigo" data-merchant-jump="products"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>منتج جديد</button>
+                    <button type="button" class="quick-action-card qa--violet" data-merchant-jump="categories"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></span>صنف جديد</button>
+                    <button type="button" class="quick-action-card qa--sky" data-merchant-jump="orders"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg></span>الطلبات</button>
+                    <button type="button" class="quick-action-card qa--emerald" data-merchant-jump="providers"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span>ربط الدفع</button>
+                    <button type="button" class="quick-action-card qa--orange" data-merchant-jump="themes"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>قوالب المتجر</button>
+                    <button type="button" class="quick-action-card qa--violet" data-merchant-jump="accounting"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8M8 11h8"/></svg></span>ربط المحاسبة</button>
+                    <button type="button" class="quick-action-card qa--amber" data-merchant-jump="billing"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>اشتراك المنصة</button>
+                    <button type="button" class="quick-action-card qa--teal" data-merchant-jump="storefront"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></span>معاينة المتجر</button>
+                    <button type="button" class="quick-action-card qa--rose" data-merchant-jump="android"><span class="qa-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>تطبيق أندرويد</button>
                   </div>
                 </div>
               </div>
               <div class="panel-divider"></div>
               <div class="panel-heading">
-                <span class="eyebrow">Latest</span>
+                <span class="eyebrow">الأحدث</span>
                 <h3>آخر الطلبات</h3>
               </div>
               <ul id="merchant-latest-orders" class="list"></ul>
@@ -320,11 +363,11 @@
                 <input id="orders-filter" placeholder="ابحث باسم العميل أو رقم الطلب">
                 <select id="orders-filter-status">
                   <option value="">كل الحالات</option>
-                  <option value="pending">pending</option>
-                  <option value="processing">processing</option>
-                  <option value="shipped">shipped</option>
-                  <option value="delivered">delivered</option>
-                  <option value="cancelled">cancelled</option>
+                  <option value="pending">معلق</option>
+                  <option value="processing">قيد المعالجة</option>
+                  <option value="shipped">تم الشحن</option>
+                  <option value="delivered">تم التسليم</option>
+                  <option value="cancelled">ملغي</option>
                 </select>
               </div>
               <div class="table-wrap">
@@ -353,15 +396,18 @@
 
             <article class="panel merchant-tab" data-merchant-panel="billing">
               <div class="panel-heading">
-                <span class="eyebrow">Platform billing</span>
+                <span class="eyebrow">اشتراك المنصة</span>
                 <h2>اشتراك التاجر للمنصة</h2>
+                <p class="page-subtitle">اختر خطتك، ادفع عبر Paymob، ويتم تجديد اشتراك المتجر تلقائياً.</p>
               </div>
               <div class="billing-layout">
                 <div>
-                  <div id="subscription-status" class="hint-box">اختر خطة لإنشاء فاتورة اشتراك.</div>
+                  <div id="subscription-status" class="subscription-status-card">اختر خطة لإنشاء فاتورة اشتراك.</div>
+                  <h3 class="section-title">اختر الخطة</h3>
+                  <div id="subscription-plans-grid" class="plans-grid" role="listbox" aria-label="خطط الاشتراك"></div>
                   <form id="subscription-form" class="billing-form">
-                    <label>الخطة<select id="planCode" name="planCode"></select></label>
-                    <button>إنشاء فاتورة اشتراك</button>
+                    <input type="hidden" id="planCode" name="planCode" value="">
+                    <button type="submit" id="subscription-create-btn" disabled>إنشاء فاتورة اشتراك</button>
                   </form>
                   <div class="hint-box">
                     <strong>الدفع الرسمي للمنصة</strong>
@@ -382,6 +428,49 @@
               </div>
             </article>
 
+            <article class="panel merchant-tab" data-merchant-panel="accounting">
+              <div class="panel-heading">
+                <span class="eyebrow">Easy Cash</span>
+                <h2>مديول المحاسبة والربط التلقائي</h2>
+                <p class="page-subtitle">اربط متجرك بنظام Easy Cash — المنتجات والمخزون والفواتير تتزامن تلقائياً بين النظامين.</p>
+              </div>
+              <div class="accounting-module-layout">
+                <div class="accounting-offer-card">
+                  <div class="accounting-offer-badge">إضافة مدفوعة</div>
+                  <h3>Easy Cash — محاسبة ومخزون متكامل</h3>
+                  <p>نفس خطط Easy Cash: فواتير بيع وشراء، مخزون، حسابات، تقارير — مع ربط مباشر بمتجر Easy Shope.</p>
+                  <ul class="accounting-feature-list">
+                    <li>إضافة صنف في المحاسبة ← يظهر في المتجر</li>
+                    <li>بيع من المتجر ← ينقص المخزون + فاتورة بيع في Easy Cash</li>
+                    <li>تعديل منتج في أي نظام ← يتحدّث في الآخر</li>
+                  </ul>
+                  <div id="accounting-plans-grid" class="plans-grid accounting-plans-grid" role="listbox" aria-label="خطط المحاسبة"></div>
+                  <p class="hint-inline">الاشتراك في Easy Cash من <a id="accounting-cash-link" href="https://cash.easytecheg.net" target="_blank" rel="noopener">cash.easytecheg.net</a> — نفس أسعار المنصة.</p>
+                </div>
+                <div>
+                  <div id="accounting-status" class="subscription-status-card">فعّل الربط بإدخال slug شركتك في Easy Cash.</div>
+                  <div id="accounting-discover-box" class="hint-box accounting-discover-box" hidden></div>
+                  <form id="accounting-link-form" class="billing-form accounting-link-form">
+                    <label class="check"><input name="enabled" type="checkbox"> تفعيل الربط التلقائي</label>
+                    <label>Slug شركة Easy Cash<small>مثل philo من الرابط cash.easytecheg.net/philo</small><input name="cashTenantSlug" placeholder="philo" autocomplete="off"></label>
+                    <label>رابط Easy Cash<input name="cashBaseUrl" value="https://cash.easytecheg.net"></label>
+                    <div class="accounting-sync-toggles">
+                      <label class="check"><input name="syncProductsToCash" type="checkbox" checked> منتجات Shope → Cash</label>
+                      <label class="check"><input name="syncProductsFromCash" type="checkbox" checked> أصناف Cash → Shope</label>
+                      <label class="check"><input name="syncOrdersToCash" type="checkbox" checked> طلبات مدفوعة → فواتير Cash</label>
+                    </div>
+                    <div class="inline-actions">
+                      <button type="button" class="secondary" id="accounting-auto-link-btn">ربط تلقائي بإيميل حسابك</button>
+                      <button type="submit">حفظ إعدادات الربط</button>
+                      <button type="button" class="secondary" id="accounting-test-btn">اختبار الاتصال</button>
+                    </div>
+                  </form>
+                  <h3 class="section-title">سجل المزامنة</h3>
+                  <ul id="accounting-sync-log" class="list invoice-list accounting-sync-log"></ul>
+                </div>
+              </div>
+            </article>
+
             <article class="panel merchant-tab" data-merchant-panel="providers">
               <div class="grid two">
                 <article class="panel">
@@ -390,7 +479,7 @@
                     <h2>إعدادات دفع المتجر</h2>
                   </div>
                   <form id="easycash-form" class="form-stack">
-                    <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+                    <label>الوضع<select name="mode"><option value="test">تجريبي</option><option value="live">مباشر</option></select></label>
                     <label>Merchant ID<input name="merchantId" required></label>
                     <label>API Key<input name="apiKey" required></label>
                     <label>Secret<input name="secret" required></label>
@@ -419,17 +508,28 @@
                     <span class="eyebrow">Paymob Accept</span>
                     <h2>ربط Paymob للتاجر</h2>
                   </div>
+                  <div id="merchant-paymob-status" class="paymob-panel"></div>
                   <div class="hint-box">
                     <strong>بيانات Paymob المطلوبة للتاجر</strong>
-                    <p>من Paymob: Settings هات Public Key و Secret Key، ومن Developers > Payment Integrations هات ID الخاص بـ Online Card. بعد أول حفظ تقدر تفعل/تعطل بدون إدخال المفاتيح مرة أخرى.</p>
+                    <p>من Paymob: Settings هات Public Key و Secret Key، ومن Developers &gt; Payment Integrations هات ID الخاص بـ Online Card. بعد أول حفظ تقدر تفعل/تعطل بدون إدخال المفاتيح مرة أخرى.</p>
                   </div>
                   <div class="callback-box">
-                    <label>Transaction processed callback<input id="merchant-paymob-processed-callback" readonly></label>
-                    <label>Transaction response callback<input id="merchant-paymob-response-callback" readonly></label>
-                    <small>ضع اللينكين دول في Paymob داخل Developers > Payment Integrations > Edit callbacks. اللينكات ثابتة للمنصة وتتعرف على الطلب والتاجر تلقائيًا من رقم الطلب.</small>
+                    <label>Transaction processed callback (Webhook)
+                      <div class="copy-field">
+                        <input id="merchant-paymob-processed-callback" readonly>
+                        <button type="button" class="secondary" data-copy-target="merchant-paymob-processed-callback">نسخ</button>
+                      </div>
+                    </label>
+                    <label>Transaction response callback
+                      <div class="copy-field">
+                        <input id="merchant-paymob-response-callback" readonly>
+                        <button type="button" class="secondary" data-copy-target="merchant-paymob-response-callback">نسخ</button>
+                      </div>
+                    </label>
+                    <small>ضع اللينكين دول في Paymob داخل Developers &gt; Payment Integrations &gt; Edit callbacks.</small>
                   </div>
                   <form id="paymob-form" class="form-grid">
-                    <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
+                    <label>الوضع<select name="mode"><option value="test">تجريبي</option><option value="live">مباشر</option></select></label>
                     <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
                     <label class="span-2">Public Key<input name="publicKey" placeholder="pk_..."></label>
                     <label class="span-2">Secret Key<input name="secretKey" placeholder="sk_..."></label>
@@ -445,9 +545,12 @@
             </article>
 
             <article class="panel merchant-tab panel-mode-list" data-merchant-panel="categories" id="categories-panel">
-              <div class="panel-heading">
-                <span class="eyebrow">Categories</span>
-                <h2>الأصناف</h2>
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">الكتالوج <span>/</span> الأصناف</div>
+                  <h2>الأصناف</h2>
+                  <p class="page-subtitle">نظّم منتجاتك في أقسام واضحة ليسهل على العملاء التصفح.</p>
+                </div>
               </div>
               <div class="list-mode">
                 <div class="section-tools">
@@ -467,7 +570,7 @@
                   </table>
                 </div>
               </div>
-              <form id="category-form" class="form-grid creation-form hidden" hidden>
+              <form id="category-form" class="form-grid creation-form hidden" hidden aria-hidden="true">
                 <div class="span-2 form-header-row">
                   <h3>إضافة صنف جديد</h3>
                   <button type="button" class="ghost" id="cancel-category-form">رجوع لقائمة الأصناف</button>
@@ -480,15 +583,18 @@
             </article>
 
             <article class="panel merchant-tab panel-mode-list" data-merchant-panel="products" id="products-panel">
-              <div class="panel-heading">
-                <span class="eyebrow">Products</span>
-                <h2>المنتجات</h2>
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">الكتالوج <span>/</span> المنتجات</div>
+                  <h2>المنتجات</h2>
+                  <p class="page-subtitle">أضف منتجاتك، انشرها، وتابع المخزون والأسعار من مكان واحد.</p>
+                </div>
               </div>
               <div class="list-mode">
                 <div class="section-tools">
                   <input id="product-filter" placeholder="ابحث عن منتج">
                   <select id="product-filter-category"><option value="">كل الأصناف</option></select>
-                  <select id="product-filter-status"><option value="">كل الحالات</option><option value="published">Published</option><option value="draft">Draft</option></select>
+                  <select id="product-filter-status"><option value="">كل الحالات</option><option value="published">منشور</option><option value="draft">مسودة</option></select>
                   <button type="button" id="show-product-form">إضافة منتج جديد</button>
                 </div>
                 <div class="section-tools">
@@ -514,7 +620,7 @@
                   </table>
                 </div>
               </div>
-              <form id="product-form" class="form-grid creation-form hidden" hidden>
+              <form id="product-form" class="form-grid creation-form hidden" hidden aria-hidden="true">
                 <div class="span-2 form-header-row">
                   <h3>إضافة منتج جديد</h3>
                   <button type="button" class="ghost" id="cancel-product-form">رجوع لقائمة المنتجات</button>
@@ -546,16 +652,73 @@
             <article class="panel merchant-tab" data-merchant-panel="settings">
               <div class="page-head">
                 <div>
-                  <div class="breadcrumb">لوحة المتجر <span>/</span> الإعدادات</div>
-                  <h2>إعدادات المتجر</h2>
-                  <p class="page-subtitle">هوية المتجر، بيانات التواصل، وقالب واجهة المتجر — نفس القالب يُستخدم للويب وتطبيق الأندرويد بعد حفظه وطلب بناء الـ APK.</p>
+                  <div class="breadcrumb">المتجر <span>/</span> بيانات المتجر</div>
+                  <h2>بيانات وهوية المتجر</h2>
+                  <p class="page-subtitle">اسم المتجر، الشعار، وروابط الويب والتطبيق — القالب يُدار من «استوديو القوالب».</p>
                 </div>
               </div>
-              <div class="merchant-settings-layout">
+                            <div class="merchant-settings-layout merchant-settings-layout--identity">
+                  <article class="panel">
+                    <div class="panel-heading">
+                      <span class="eyebrow">الهوية</span>
+                      <h3>بيانات المتجر</h3>
+                    </div>
+                    <form id="store-settings-form" class="form-grid">
+                      <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
+                      <label>اسم المتجر إنجليزي<input id="store-name-en" name="nameEn"></label>
+                      <label class="span-2">البلد<input id="store-country" name="country"></label>
+                      <div class="span-2 store-logo-upload">
+                        <span class="field-label">شعار المتجر</span>
+                        <p class="muted store-logo-help"><strong>اختياري</strong> — مش مطلوب عند التسجيل. يُفضّل رفعه قبل طلب بناء APK: يظهر في لوحة التحكم، متجر الويب، داخل التطبيق، وأيقونة APK على الموبايل.</p>
+                        <div id="store-logo-preview-wrap" class="store-logo-preview-wrap" hidden>
+                          <img id="store-logo-preview" class="store-logo-preview" alt="معاينة الشعار">
+                          <small>الشعار المحفوظ حاليًا</small>
+                        </div>
+                        <label class="store-logo-file-label">رفع شعار جديد (PNG أو JPG)<input id="store-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/*"></label>
+                      </div>
+                      <label class="span-2">لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
+                      <button class="span-2">حفظ بيانات المتجر</button>
+                    </form>
+                  </article>
+
+                  <article class="panel">
+                    <div class="panel-heading">
+                      <span class="eyebrow">الروابط</span>
+                      <h3>روابط متجرك</h3>
+                    </div>
+                    <p class="muted store-links-lead">كل متجر له <strong>slug</strong> (من الاسم الإنجليزي). الرابط العام = دومين المنصة + <code>/store/اسم-متجرك</code></p>
+                    <div class="store-link-block">
+                      <span class="field-label">🌐 متجر الويب (متصفح — للعملاء)</span>
+                      <p id="storefront-web-url" class="store-link-url">سيظهر بعد تحميل المتجر.</p>
+                      <button type="button" class="secondary" id="copy-storefront-web-url">نسخ رابط الويب</button>
+                    </div>
+                    <div class="store-link-block">
+                      <span class="field-label">📱 تطبيق أندرويد (APK — منفصل عن الويب)</span>
+                      <p class="muted">ليس رابط موقع — ملف تطبيق يُبنى من تبويب «تطبيق أندرويد». العملاء يحمّلونه ويثبتونه على الموبايل.</p>
+                      <button type="button" class="secondary" data-merchant-jump="android">الذهاب لطلب بناء APK</button>
+                    </div>
+                    <p class="muted"><small>رابط بديل (قديم): <span id="storefront-url">—</span></small></p>
+                  </article>
+              </div>
+            </article>
+
+            <article class="panel merchant-tab" data-merchant-panel="themes">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">المتجر <span>/</span> استوديو القوالب</div>
+                  <h2>استوديو القوالب</h2>
+                  <p class="page-subtitle">اختر قالبًا واحدًا — يُطبَّق على متجر الويب وتطبيق الأندرويد بعد الحفظ وطلب بناء APK.</p>
+                </div>
+              </div>
+              <ol class="theme-studio-steps" aria-label="خطوات اختيار القالب">
+                <li class="active"><span>1</span> اختر القالب</li>
+                <li><span>2</span> معاينة</li>
+                <li><span>3</span> احفظ</li>
+              </ol>
                   <article class="panel theme-library-panel theme-library-span-full">
                     <div class="theme-library-head">
                       <div class="panel-heading">
-                        <span class="eyebrow">Theme studio</span>
+                        <span class="eyebrow">استوديو القوالب</span>
                         <h3>استوديو اختيار القالب</h3>
                       </div>
                       <p class="muted theme-library-lead">اختر تخطيطًا واحدًا يطابق طبيعة متجرك: المعاينة التفاعلية تمثّل شكل التطبيق والواجهة العامة. اضغط البطاقة للاختيار، ثم «حفظ القالب». استخدم «معاينة» لعرض أكبر دون تغيير الاختيار. القالب المحفوظ يُمرَّر تلقائيًا إلى بناء APK مع معرف متجرك.</p>
@@ -900,50 +1063,7 @@
                       </div>
                       <button type="button" class="primary" id="save-storefront-theme">حفظ القالب</button>
                     </div>
-                  </article>
 
-                  <article class="panel">
-                    <div class="panel-heading">
-                      <span class="eyebrow">Brand</span>
-                      <h3>بيانات وهوية المتجر</h3>
-                    </div>
-                    <form id="store-settings-form" class="form-grid">
-                      <label>اسم المتجر عربي<input id="store-name-ar" name="nameAr"></label>
-                      <label>Store name English<input id="store-name-en" name="nameEn"></label>
-                      <label class="span-2">البلد<input id="store-country" name="country"></label>
-                      <div class="span-2 store-logo-upload">
-                        <span class="field-label">شعار المتجر</span>
-                        <p class="muted store-logo-help"><strong>اختياري</strong> — مش مطلوب عند التسجيل. يُفضّل رفعه قبل طلب بناء APK: يظهر في لوحة التحكم، متجر الويب، داخل التطبيق، وأيقونة APK على الموبايل.</p>
-                        <div id="store-logo-preview-wrap" class="store-logo-preview-wrap" hidden>
-                          <img id="store-logo-preview" class="store-logo-preview" alt="معاينة الشعار">
-                          <small>الشعار المحفوظ حاليًا</small>
-                        </div>
-                        <label class="store-logo-file-label">رفع شعار جديد (PNG أو JPG)<input id="store-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/*"></label>
-                      </div>
-                      <label class="span-2">لون الهوية (اختياري)<input id="store-brand-color" name="brandColor" placeholder="#38bdf8"></label>
-                      <button class="span-2">حفظ بيانات المتجر</button>
-                    </form>
-                  </article>
-
-                  <article class="panel">
-                    <div class="panel-heading">
-                      <span class="eyebrow">Link</span>
-                      <h3>روابط متجرك</h3>
-                    </div>
-                    <p class="muted store-links-lead">كل متجر له <strong>slug</strong> (من الاسم الإنجليزي). الرابط العام = دومين المنصة + <code>/store/اسم-متجرك</code></p>
-                    <div class="store-link-block">
-                      <span class="field-label">🌐 متجر الويب (متصفح — للعملاء)</span>
-                      <p id="storefront-web-url" class="store-link-url">سيظهر بعد تحميل المتجر.</p>
-                      <button type="button" class="secondary" id="copy-storefront-web-url">نسخ رابط الويب</button>
-                    </div>
-                    <div class="store-link-block">
-                      <span class="field-label">📱 تطبيق أندرويد (APK — منفصل عن الويب)</span>
-                      <p class="muted">ليس رابط موقع — ملف تطبيق يُبنى من تبويب «تطبيق أندرويد». العملاء يحمّلونه ويثبتونه على الموبايل.</p>
-                      <button type="button" class="secondary" data-merchant-jump="android">الذهاب لطلب بناء APK</button>
-                    </div>
-                    <p class="muted"><small>رابط بديل (قديم): <span id="storefront-url">—</span></small></p>
-                  </article>
-              </div>
             </article>
 
             <dialog id="theme-preview-dialog" class="theme-preview-dialog">
@@ -1189,11 +1309,11 @@
               <button type="button" class="drawer-close" id="admin-drawer-close" aria-label="إغلاق القائمة">×</button>
             </div>
             <nav class="admin-side-nav">
-              <button type="button" class="admin-side-item active" data-admin-tab="overview"><strong>نظرة عامة</strong><small>مؤشرات وتنبيهات</small></button>
-              <button type="button" class="admin-side-item" data-admin-tab="tenants"><strong>التجار</strong><small>بحث وإدارة المتاجر</small></button>
-              <button type="button" class="admin-side-item" data-admin-tab="subscriptions"><strong>الاشتراكات</strong><small>خطط وفواتير وتجربة</small></button>
-              <button type="button" class="admin-side-item" data-admin-tab="orders"><strong>طلبات المنصة</strong><small>كل طلبات المتاجر</small></button>
-              <button type="button" class="admin-side-item" data-admin-tab="system"><strong>النظام</strong><small>Paymob وAPK</small></button>
+              <button type="button" class="admin-side-item active" data-admin-tab="overview"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-9.5z"/></svg></span><span><strong>نظرة عامة</strong><small>مؤشرات وتنبيهات</small></span></button>
+              <button type="button" class="admin-side-item" data-admin-tab="tenants"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></span><span><strong>التجار</strong><small>بحث وإدارة المتاجر</small></span></button>
+              <button type="button" class="admin-side-item" data-admin-tab="subscriptions"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><span><strong>الاشتراكات</strong><small>خطط وفواتير وتجربة</small></span></button>
+              <button type="button" class="admin-side-item" data-admin-tab="orders"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg></span><span><strong>طلبات المنصة</strong><small>كل طلبات المتاجر</small></span></button>
+              <button type="button" class="admin-side-item" data-admin-tab="system"><span class="admin-side-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/></svg></span><span><strong>النظام</strong><small>Paymob وAPK</small></span></button>
             </nav>
           </aside>
 
@@ -1253,6 +1373,16 @@
                   <span>إيراد اشتراكات المنصة</span>
                   <strong id="admin-subscription-revenue">0.00 EGP</strong>
                   <small>فواتير مدفوعة</small>
+                </div>
+              </div>
+
+              <div class="admin-section-card">
+                <div class="panel-heading"><span class="eyebrow">إجراءات سريعة</span><h3>اختصارات السوبر أدمن</h3></div>
+                <div class="admin-quick-actions">
+                  <button type="button" class="admin-quick-btn" data-admin-jump="tenants"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>إدارة التجار</button>
+                  <button type="button" class="admin-quick-btn" data-admin-jump="subscriptions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>خطط الاشتراك</button>
+                  <button type="button" class="admin-quick-btn" data-admin-jump="system"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/></svg>إعداد Paymob</button>
+                  <button type="button" class="admin-quick-btn" id="admin-refresh-overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.65-3.36L23 10M1 14l5.15 4.36A9 9 0 0020.5 15"/></svg>تحديث البيانات</button>
                 </div>
               </div>
 
@@ -1359,7 +1489,15 @@
             <article class="panel admin-tab" data-admin-panel="system">
               <div class="page-head"><div><div class="breadcrumb">السوبر أدمن <span>/</span> النظام</div><h2>الدفع وبناء APK</h2></div></div>
               <div class="panel-heading"><span class="eyebrow">Paymob</span><h3>بوابة دفع اشتراكات المنصة</h3></div>
-              <div id="platform-paymob-status" class="hint-box">لم يتم تحميل حالة Paymob.</div>
+              <div id="platform-paymob-status" class="paymob-panel"></div>
+              <div class="callback-box">
+                <label>رابط Webhook (ضعه في Paymob)
+                  <div class="copy-field">
+                    <input id="platform-paymob-webhook" readonly>
+                    <button type="button" class="secondary" data-copy-target="platform-paymob-webhook">نسخ</button>
+                  </div>
+                </label>
+              </div>
               <form id="platform-paymob-form" class="form-grid">
                 <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
                 <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
@@ -1413,6 +1551,16 @@
       <small>01557827829</small>
     </span>
   </a>
-  <script src="/app.js?v=2026061701"></script>
+  <dialog id="app-modal" class="app-modal">
+    <div class="app-modal-card">
+      <header class="app-modal-head">
+        <h3 id="app-modal-title">—</h3>
+        <button type="button" class="app-modal-close" id="app-modal-close" aria-label="إغلاق">×</button>
+      </header>
+      <div id="app-modal-body" class="app-modal-body"></div>
+      <footer id="app-modal-foot" class="app-modal-foot" hidden></footer>
+    </div>
+  </dialog>
+  <script src="/app.js?v=2026070202"></script>
 </body>
 </html>

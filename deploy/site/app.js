@@ -17,8 +17,11 @@ const state = {
   savedStorefrontTheme: "ocean",
   adminTenants: [],
   adminPlans: [],
+  merchantPlans: [],
   /** صلاحيات المستخدم الحالي (للموظف) */
   permissions: [],
+  merchantMainTab: "overview",
+  merchantPanel: "overview",
 };
 
 /// مفاتيح الصلاحيات الممنوحة للموظفين + تسمياتها العربية.
@@ -29,6 +32,7 @@ const STAFF_PERMISSIONS = [
   { key: "settings", label: "إعدادات المتجر", hint: "البيانات والهوية" },
   { key: "providers", label: "إعدادات الدفع", hint: "Paymob و EasyCash" },
   { key: "billing", label: "اشتراك المنصة", hint: "الفواتير والخطة" },
+  { key: "accounting", label: "المحاسبة", hint: "ربط Easy Cash" },
   { key: "android", label: "تطبيق أندرويد", hint: "بناء APK" },
 ];
 
@@ -43,15 +47,40 @@ const STOREFRONT_THEME_LABELS = {
 
 const MERCHANT_TAB_LABELS = {
   overview: "نظرة عامة",
+  catalog: "الكتالوج",
   orders: "الطلبات",
+  store: "المتجر",
+  account: "الحساب",
   products: "المنتجات",
   categories: "الأصناف",
   billing: "اشتراك المنصة",
+  accounting: "المحاسبة",
   providers: "إعدادات الدفع",
-  team: "الفريق والصلاحيات",
+  team: "الفريق",
   android: "تطبيق أندرويد",
-  settings: "إعدادات المتجر",
+  settings: "بيانات المتجر",
+  themes: "استوديو القوالب",
 };
+
+/** Maps legacy/sub tab ids → main nav + active panel (Phase 2 grouping). */
+const MERCHANT_TAB_ROUTES = {
+  overview: { main: "overview", panel: "overview" },
+  catalog: { main: "catalog", panel: "products" },
+  orders: { main: "orders", panel: "orders" },
+  store: { main: "store", panel: "settings" },
+  account: { main: "account", panel: "billing" },
+  products: { main: "catalog", panel: "products" },
+  categories: { main: "catalog", panel: "categories" },
+  settings: { main: "store", panel: "settings" },
+  themes: { main: "store", panel: "themes" },
+  billing: { main: "account", panel: "billing" },
+  accounting: { main: "account", panel: "accounting" },
+  providers: { main: "account", panel: "providers" },
+  team: { main: "account", panel: "team" },
+  android: { main: "account", panel: "android" },
+};
+
+const MERCHANT_MAIN_TABS = ["overview", "catalog", "orders", "store", "account"];
 
 const ADMIN_TAB_LABELS = {
   overview: "نظرة عامة",
@@ -69,6 +98,232 @@ const STOREFRONT_CHROME_HINTS = {
   rose: "منزل وديكور · معرض صور",
   slate: "إبداعي · قائمة بسيطة",
 };
+
+/** Arabic labels + semantic class for order/payment/product statuses. */
+const STATUS_LABELS = {
+  active: "نشط",
+  disabled: "معطّل",
+  published: "منشور",
+  draft: "مسودة",
+  paid: "مدفوع",
+  pending: "معلق",
+  failed: "فشل",
+  cancelled: "ملغي",
+  canceled: "ملغي",
+  processing: "قيد المعالجة",
+  shipped: "تم الشحن",
+  delivered: "تم التسليم",
+  succeeded: "نجح",
+  running: "قيد التنفيذ",
+  queued: "في الانتظار",
+  trial: "تجريبي",
+  expired: "منتهي",
+  suspended: "موقوف",
+};
+
+function statusBadge(status, { type } = {}) {
+  const key = String(status || "").toLowerCase();
+  const label = STATUS_LABELS[key] || status || "—";
+  const ok = new Set(["active", "paid", "published", "succeeded", "delivered", "shipped"]);
+  const warn = new Set(["pending", "draft", "processing", "running", "queued", "trial"]);
+  let cls = "off";
+  if (ok.has(key)) cls = "ok";
+  else if (warn.has(key)) cls = "warn";
+  if (type === "enabled") cls = status ? "ok" : "off";
+  return `<span class="status-badge ${cls}">${type === "enabled" ? (status ? "مفعّل" : "غير مفعّل") : label}</span>`;
+}
+
+const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+function copyTextToClipboard(text) {
+  if (!text) return Promise.reject(new Error("لا يوجد نص للنسخ"));
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
+function paymobStatusIcon(ok, warn) {
+  if (ok) return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`;
+  if (warn) return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 4h3.4L22 20H2L10.3 4z"/></svg>`;
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
+}
+
+function paymobStatusRow(ok, warn, label, value) {
+  return `<div class="paymob-status-row"><span class="ps-label">${paymobStatusIcon(ok, warn)} ${label}</span><span class="ps-value">${value || "—"}</span></div>`;
+}
+
+function renderPaymobStatusPanel(containerId, paymob, { scope = "platform" } = {}) {
+  const el = $(containerId);
+  if (!el) return;
+  const cfg = paymob?.public_config || {};
+  const cardId = cfg.cardIntegrationId;
+  const walletId = cfg.walletIntegrationId;
+  const hasKey = Boolean(cfg.publicKeyLast8);
+  const configured = Boolean(paymob);
+  const cardOk = Boolean(cardId);
+  const ready = configured && hasKey && cardOk && paymob.is_enabled;
+  const cardClass = ready ? "is-ready" : configured ? "is-pending" : "";
+  const title = ready ? "Paymob جاهز — الدفع مفعّل" : configured ? "Paymob محفوظ — أكمل الإعداد" : "Paymob غير مربوط";
+  const subtitle = ready
+    ? "لا حاجة لإعادة إدخال المفاتيح. يمكنك «اختبار الاتصال» أو تعديل المفاتيح عند الحاجة."
+    : configured
+      ? "أكمل رقم تكامل البطاقة وفعّل Paymob، ثم اختبر الاتصال."
+      : scope === "platform"
+        ? "اربط حساب Paymob لتفعيل الدفع المباشر عند اختيار التاجر لخطة مدفوعة."
+        : "اربط حساب Paymob لاستقبال مدفوعات عملاء متجرك في Checkout.";
+
+  el.innerHTML = `<div class="paymob-status-card ${cardClass}">
+    <div class="paymob-status-head">
+      <div><h3>${title}</h3><p class="muted" style="margin:6px 0 0;font-size:0.88rem">${subtitle}</p></div>
+      ${statusBadge(paymob?.is_enabled ? "active" : "disabled", { type: "enabled" })}
+    </div>
+    <div class="paymob-status-rows">
+      ${paymobStatusRow(configured, !configured, "الإعداد", configured ? "محفوظ" : "غير مضاف")}
+      ${paymobStatusRow(hasKey, configured && !hasKey, "Public Key", hasKey ? `…${cfg.publicKeyLast8}` : "مطلوب")}
+      ${paymobStatusRow(cardOk, configured && !cardOk, "تكامل البطاقة", cardId || "مطلوب")}
+      ${paymobStatusRow(Boolean(walletId), false, "تكامل المحفظة", walletId ? String(walletId) : "اختياري")}
+      ${paymobStatusRow(Boolean(paymob?.mode), false, "الوضع", paymob?.mode || "—")}
+    </div>
+    <table class="paymob-methods-table" aria-label="طرق الدفع">
+      <thead><tr><th>الطريقة</th><th>رقم التكامل</th><th>الحالة</th></tr></thead>
+      <tbody>
+        <tr><td>بطاقة (Unified Checkout)</td><td dir="ltr">${cardId || "—"}</td><td>${statusBadge(cardOk ? "active" : "disabled", { type: "enabled" })}</td></tr>
+        <tr><td>محفظة</td><td dir="ltr">${walletId || "—"}</td><td>${statusBadge(walletId ? "active" : "disabled", { type: "enabled" })}</td></tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderShopWelcomeBanner(store) {
+  const now = new Date();
+  const dayEl = $("shop-welcome-day");
+  const monthEl = $("shop-welcome-month");
+  const titleEl = $("shop-welcome-title");
+  if (dayEl) dayEl.textContent = String(now.getDate());
+  if (monthEl) monthEl.textContent = `${AR_MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  if (titleEl && store?.name_ar) titleEl.textContent = `مرحباً — ${store.name_ar}`;
+}
+
+function renderSubscriptionPlanCards(plans, selectedCode) {
+  const grid = $("subscription-plans-grid");
+  const hidden = $("planCode");
+  const btn = $("subscription-create-btn");
+  if (!grid) return;
+  const activePlans = (plans || []).filter((p) => p.is_active !== false);
+  if (!activePlans.length) {
+    grid.innerHTML = `<div class="empty-state"><strong>لا توجد خطط متاحة</strong><p>تواصل مع إدارة المنصة لتفعيل خطط الاشتراك.</p></div>`;
+    if (hidden) hidden.value = "";
+    if (btn) btn.disabled = true;
+    return;
+  }
+  const current = selectedCode || hidden?.value || activePlans[0].code;
+  if (hidden) hidden.value = current;
+  if (btn) btn.disabled = !current;
+  grid.innerHTML = activePlans
+    .map(
+      (plan) => `<button type="button" class="plan-picker-card${plan.code === current ? " selected" : ""}" data-plan-code="${plan.code}" role="option" aria-selected="${plan.code === current}">
+        <strong>${escapeHtmlText(plan.name)}</strong>
+        <div class="plan-price">${money(plan.price_cents)}</div>
+        <small>${plan.duration_months || 1} شهر · ${plan.code === current ? "مختارة" : "اضغط للاختيار"}</small>
+      </button>`,
+    )
+    .join("");
+  grid.querySelectorAll("[data-plan-code]").forEach((card) => {
+    card.addEventListener("click", () => {
+      grid.querySelectorAll(".plan-picker-card").forEach((c) => {
+        c.classList.toggle("selected", c.dataset.planCode === card.dataset.planCode);
+        c.setAttribute("aria-selected", c.dataset.planCode === card.dataset.planCode ? "true" : "false");
+      });
+      if (hidden) hidden.value = card.dataset.planCode;
+      if (btn) btn.disabled = false;
+    });
+  });
+}
+
+function openAppModal({ title, bodyHtml, footHtml }) {
+  const dlg = $("app-modal");
+  if (!dlg) return;
+  const titleEl = $("app-modal-title");
+  const bodyEl = $("app-modal-body");
+  const footEl = $("app-modal-foot");
+  if (titleEl) titleEl.textContent = title || "";
+  if (bodyEl) bodyEl.innerHTML = bodyHtml || "";
+  if (footEl) {
+    if (footHtml) {
+      footEl.innerHTML = footHtml;
+      footEl.hidden = false;
+    } else {
+      footEl.innerHTML = "";
+      footEl.hidden = true;
+    }
+  }
+  if (typeof dlg.showModal === "function") dlg.showModal();
+}
+
+function closeAppModal() {
+  const dlg = $("app-modal");
+  if (dlg && typeof dlg.close === "function") dlg.close();
+}
+
+function emptyStateBlock({ title, hint, actionLabel, actionId }) {
+  const action = actionLabel && actionId ? `<button type="button" class="mini-cta" id="${actionId}">${actionLabel}</button>` : "";
+  return `<div class="empty-state" role="status">
+    <div class="empty-state-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>
+    </div>
+    <strong>${title}</strong>
+    <p class="muted">${hint}</p>
+    ${action}
+  </div>`;
+}
+
+function updateMerchantSubnavs(mainTab) {
+  $("subnav-catalog")?.toggleAttribute("hidden", mainTab !== "catalog");
+  $("subnav-store")?.toggleAttribute("hidden", mainTab !== "store");
+  $("subnav-account")?.toggleAttribute("hidden", mainTab !== "account");
+}
+
+function merchantMainTabAllowed(mainTab) {
+  const isStaff = state.role === "merchant_staff";
+  if (!isStaff) return true;
+  if (mainTab === "overview") return true;
+  if (mainTab === "catalog") return state.permissions.includes("products") || state.permissions.includes("categories");
+  if (mainTab === "orders") return state.permissions.includes("orders");
+  if (mainTab === "store") return state.permissions.includes("settings");
+  if (mainTab === "account") return state.permissions.some((p) => ["billing", "accounting", "providers", "android"].includes(p));
+  return false;
+}
+
+function merchantSubTabAllowed(subTab) {
+  const isStaff = state.role === "merchant_staff";
+  if (!isStaff) {
+    if (subTab === "team") return state.role === "merchant_owner";
+    return true;
+  }
+  if (subTab === "team") return false;
+  if (subTab === "products") return state.permissions.includes("products");
+  if (subTab === "categories") return state.permissions.includes("categories");
+  if (subTab === "settings" || subTab === "themes") return state.permissions.includes("settings");
+  return state.permissions.includes(subTab);
+}
+
+function firstAllowedMerchantPanel(mainTab) {
+  const defaults = {
+    catalog: ["products", "categories"],
+    store: ["settings", "themes"],
+    account: ["billing", "accounting", "providers", "team", "android"],
+  };
+  const candidates = defaults[mainTab];
+  if (!candidates) return mainTab;
+  return candidates.find((sub) => merchantSubTabAllowed(sub)) || candidates[0];
+}
 
 let storefrontSearchTimer = null;
 
@@ -227,9 +482,15 @@ function closeAdminNav() {
   setAdminNavOpen(false);
 }
 
-function updateMerchantMobileChrome(tab = "overview") {
+function updateMerchantMobileChrome(route = { main: "overview", panel: "overview" }) {
   const title = $("merchant-mobile-tab-title");
-  if (title) title.textContent = MERCHANT_TAB_LABELS[tab] || tab;
+  const subLabel = MERCHANT_TAB_LABELS[route.panel];
+  const mainLabel = MERCHANT_TAB_LABELS[route.main] || route.main;
+  if (title) {
+    title.textContent = route.main === route.panel || MERCHANT_MAIN_TABS.includes(route.panel)
+      ? mainLabel
+      : `${mainLabel} · ${subLabel}`;
+  }
   const storeName = $("merchant-mobile-store-name");
   const brandName = $("merchant-brand-name");
   if (storeName) storeName.textContent = brandName?.textContent?.trim() || "لوحة المتجر";
@@ -594,8 +855,10 @@ function fillPaymobCallbackUrls() {
   const origin = window.location.origin;
   const processed = $("merchant-paymob-processed-callback");
   const response = $("merchant-paymob-response-callback");
+  const platformWebhook = $("platform-paymob-webhook");
   if (processed) processed.value = `${origin}/api/webhooks/paymob`;
   if (response) response.value = `${origin}/?payment=paymob`;
+  if (platformWebhook) platformWebhook.value = `${origin}/api/webhooks/paymob`;
 }
 
 function clearAuthState() {
@@ -641,6 +904,7 @@ async function api(path, options = {}) {
     const error = new Error(data.hint ? `${baseMessage} - ${data.hint}` : baseMessage);
     error.details = data.details;
     error.statusCode = response.status;
+    error.payload = data;
     error.code = typeof data.code === "string" ? data.code : undefined;
     throw error;
   }
@@ -834,32 +1098,42 @@ function setOnboardingMode(mode = "register") {
 }
 
 function setMerchantTab(tab = "overview") {
-  document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
-    if (button.dataset.merchantTab !== tab) {
-      button.classList.remove("active");
-      return;
-    }
-    button.classList.add("active");
+  let route = MERCHANT_TAB_ROUTES[tab] || MERCHANT_TAB_ROUTES.overview;
+  if (!merchantMainTabAllowed(route.main)) {
+    route = MERCHANT_TAB_ROUTES.overview;
+  }
+  if (!merchantSubTabAllowed(route.panel)) {
+    const fallbackPanel = firstAllowedMerchantPanel(route.main);
+    route = { main: route.main, panel: fallbackPanel };
+  }
+
+  state.merchantMainTab = route.main;
+  state.merchantPanel = route.panel;
+
+  document.querySelectorAll(".merchant-side-item[data-merchant-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.merchantTab === route.main);
   });
-  document.querySelectorAll(".merchant-side-item").forEach((button) => {
-    if (!button.dataset.merchantTab) return;
-    if (button.dataset.merchantTab !== tab) {
-      button.classList.remove("active");
-      return;
-    }
-    button.classList.add("active");
-  });
+
   document.querySelectorAll("[data-merchant-panel]").forEach((panel) => {
-    panel.classList.toggle("active", panel.dataset.merchantPanel === tab);
+    panel.classList.toggle("active", panel.dataset.merchantPanel === route.panel);
   });
-  if (tab === "billing") loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
-  if (tab === "android") {
+
+  document.querySelectorAll("[data-merchant-sub]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.merchantSub === route.panel);
+  });
+
+  updateMerchantSubnavs(route.main);
+
+  if (route.panel === "billing") loadPlans().then(loadBillingData).catch((error) => showMessage(error.message, true));
+  if (route.panel === "accounting") loadAccountingData().catch((error) => showMessage(error.message, true));
+  if (route.panel === "android") {
     void loadAndroidBuildsOnly();
     updateAndroidThemeBridge();
   }
-  if (tab !== "categories") setCreationForm("category-form", false);
-  if (tab !== "products") setCreationForm("product-form", false);
-  updateMerchantMobileChrome(tab);
+  if (route.panel === "themes") updateThemePickerUi();
+  if (route.panel !== "categories") setCreationForm("category-form", false);
+  if (route.panel !== "products") setCreationForm("product-form", false);
+  updateMerchantMobileChrome(route);
   if (isMobileDashboard()) closeMerchantNav();
   updateWhatsAppFab();
 }
@@ -1047,6 +1321,12 @@ async function login(event) {
   }
 }
 
+async function submitNewProduct(payload) {
+  showMessage("جارٍ حفظ المنتج...");
+  await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload), timeoutMs: 25000 });
+  showMessage("تم إنشاء المنتج.");
+}
+
 async function createCategory(event) {
   event.preventDefault();
   event.stopPropagation();
@@ -1065,13 +1345,258 @@ async function createCategory(event) {
     formEl?.reset?.();
     $("category-filter").value = "";
     await loadMerchantData();
-    setCreationForm("category-form", false);
+    closeAppModal();
     setMerchantTab("categories");
   } catch (error) {
     showMessage(error.message, true);
   } finally {
     button.disabled = false;
     button.textContent = "إضافة تصنيف";
+  }
+}
+
+function openCategoryModal() {
+  const bodyHtml = `
+    <form id="category-modal-form" class="form-grid wizard-form">
+      <label>اسم التصنيف عربي<input name="nameAr" id="cm-nameAr" required></label>
+      <label>اسم التصنيف إنجليزي<input name="nameEn" id="cm-nameEn" required></label>
+      <label class="span-2">صورة التصنيف<input name="imageFile" type="file" accept="image/*"></label>
+    </form>`;
+  openAppModal({
+    title: "إضافة صنف جديد",
+    bodyHtml,
+    footHtml: `<button type="button" class="secondary" id="cm-cancel">إلغاء</button><button type="button" id="cm-submit">إضافة الصنف</button>`,
+  });
+  $("cm-cancel")?.addEventListener("click", closeAppModal);
+  $("cm-submit")?.addEventListener("click", async () => {
+    const form = $("category-modal-form");
+    if (!form?.reportValidity()) return;
+    const fd = new FormData(form);
+    const button = $("cm-submit");
+    try {
+      button.disabled = true;
+      button.textContent = "جارٍ الإضافة...";
+      const payload = Object.fromEntries(fd.entries());
+      const imageUrl = await fileToDataUrl(fd.get("imageFile"));
+      delete payload.imageFile;
+      if (imageUrl) payload.imageUrl = imageUrl;
+      await api("/api/merchant/categories", { method: "POST", body: JSON.stringify(payload) });
+      showMessage("تم إنشاء التصنيف.");
+      $("category-filter").value = "";
+      await loadMerchantData();
+      closeAppModal();
+      setMerchantTab("categories");
+    } catch (error) {
+      showMessage(error.message, true);
+    } finally {
+      button.disabled = false;
+      button.textContent = "إضافة الصنف";
+    }
+  });
+}
+
+const productWizardState = { step: 1, data: {}, variantRows: [] };
+
+function productWizardCategoryOptions(selected = "") {
+  return (
+    `<option value="">بدون تصنيف</option>` +
+    state.merchantCategories.map((item) => `<option value="${item.id}"${String(item.id) === String(selected) ? " selected" : ""}>${item.name_ar}</option>`).join("")
+  );
+}
+
+function renderProductWizardVariants() {
+  return productWizardState.variantRows
+    .map(
+      (v, i) => `
+    <div class="variant-row" data-wizard-variant="${i}">
+      <input data-field="type" placeholder="النوع / المقاس" value="${escapeHtmlText(v.type || "")}">
+      <input data-field="color" placeholder="اللون" value="${escapeHtmlText(v.color || "")}">
+      <input data-field="extraPrice" type="number" step="0.01" placeholder="إضافة سعر" value="${v.extraPrice || ""}">
+      <input data-field="stock" type="number" placeholder="مخزون" value="${v.stock ?? ""}">
+      <button type="button" class="danger-button" data-remove-wizard-variant="${i}">حذف</button>
+    </div>`
+    )
+    .join("");
+}
+
+function collectProductWizardStep() {
+  const d = productWizardState.data;
+  const step = productWizardState.step;
+  if (step === 1) {
+    d.titleAr = $("pw-titleAr")?.value.trim() || "";
+    d.titleEn = $("pw-titleEn")?.value.trim() || "";
+    d.categoryId = $("pw-categoryId")?.value || "";
+    d.description = $("pw-description")?.value.trim() || "";
+  } else if (step === 2) {
+    d.price = $("pw-price")?.value || "";
+    d.discountPercent = $("pw-discountPercent")?.value || "0";
+    d.compareAtPrice = $("pw-compareAtPrice")?.value || "";
+    d.stockQuantity = $("pw-stockQuantity")?.value || "10";
+  } else if (step === 3) {
+    d.videoUrl = $("pw-videoUrl")?.value.trim() || "";
+    d.imageFiles = $("pw-imageFiles")?.files || null;
+  } else if (step === 4) {
+    d.status = $("pw-status")?.value || "draft";
+    productWizardState.variantRows = Array.from(document.querySelectorAll("[data-wizard-variant]")).map((row) => ({
+      type: row.querySelector('[data-field="type"]')?.value.trim() || "",
+      color: row.querySelector('[data-field="color"]')?.value.trim() || "",
+      extraPrice: row.querySelector('[data-field="extraPrice"]')?.value || "",
+      stock: row.querySelector('[data-field="stock"]')?.value || "",
+    }));
+  }
+}
+
+function productWizardStepHtml(step) {
+  const d = productWizardState.data;
+  if (step === 1) {
+    return `<div class="wizard-steps-indicator" aria-hidden="true"><span class="active">1</span><span>2</span><span>3</span><span>4</span></div>
+      <p class="wizard-lead">ابدأ باسم المنتج والتصنيف.</p>
+      <label>اسم المنتج عربي<input id="pw-titleAr" required value="${escapeHtmlText(d.titleAr || "")}"></label>
+      <label>اسم المنتج إنجليزي<input id="pw-titleEn" required value="${escapeHtmlText(d.titleEn || "")}"></label>
+      <label>التصنيف<select id="pw-categoryId">${productWizardCategoryOptions(d.categoryId)}</select></label>
+      <label>الوصف<textarea id="pw-description">${escapeHtmlText(d.description || "")}</textarea></label>`;
+  }
+  if (step === 2) {
+    return `<div class="wizard-steps-indicator" aria-hidden="true"><span class="done">1</span><span class="active">2</span><span>3</span><span>4</span></div>
+      <p class="wizard-lead">حدّد السعر والمخزون.</p>
+      <label>السعر (جنيه)<input id="pw-price" type="number" step="0.01" required value="${escapeHtmlText(d.price || "")}"></label>
+      <label>خصم %<input id="pw-discountPercent" type="number" min="0" max="100" value="${escapeHtmlText(d.discountPercent ?? "0")}"></label>
+      <label>السعر قبل الخصم (اختياري)<input id="pw-compareAtPrice" type="number" step="0.01" value="${escapeHtmlText(d.compareAtPrice || "")}"></label>
+      <label>المخزون<input id="pw-stockQuantity" type="number" value="${escapeHtmlText(d.stockQuantity ?? "10")}"></label>`;
+  }
+  if (step === 3) {
+    return `<div class="wizard-steps-indicator" aria-hidden="true"><span class="done">1</span><span class="done">2</span><span class="active">3</span><span>4</span></div>
+      <p class="wizard-lead">أضف صورًا واضحة — حتى 6 صور.</p>
+      <label>صور المنتج<input id="pw-imageFiles" type="file" accept="image/*" multiple></label>
+      <label>رابط فيديو (اختياري)<input id="pw-videoUrl" type="url" placeholder="https://..." value="${escapeHtmlText(d.videoUrl || "")}"></label>`;
+  }
+  return `<div class="wizard-steps-indicator" aria-hidden="true"><span class="done">1</span><span class="done">2</span><span class="done">3</span><span class="active">4</span></div>
+    <p class="wizard-lead">خيارات إضافية ثم انشر أو احفظ كمسودة.</p>
+    <label>الحالة<select id="pw-status"><option value="draft"${d.status === "draft" ? " selected" : ""}>مسودة</option><option value="published"${d.status === "published" ? " selected" : ""}>منشور</option></select></label>
+    <div class="variant-builder">
+      <div class="panel-heading"><span class="eyebrow">خيارات</span><h3>النوع واللون (اختياري)</h3></div>
+      <div id="pw-variant-rows" class="variant-rows">${renderProductWizardVariants()}</div>
+      <button type="button" class="secondary" id="pw-add-variant">إضافة نوع / لون</button>
+    </div>`;
+}
+
+function bindProductWizardEvents(step) {
+  $("pw-add-variant")?.addEventListener("click", () => {
+    collectProductWizardStep();
+    productWizardState.variantRows.push({});
+    $("pw-variant-rows").innerHTML = renderProductWizardVariants();
+    bindProductWizardEvents(step);
+  });
+  document.querySelectorAll("[data-remove-wizard-variant]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      collectProductWizardStep();
+      const idx = Number(btn.dataset.removeWizardVariant);
+      productWizardState.variantRows.splice(idx, 1);
+      $("pw-variant-rows").innerHTML = renderProductWizardVariants();
+      bindProductWizardEvents(step);
+    });
+  });
+  $("pw-back")?.addEventListener("click", () => {
+    collectProductWizardStep();
+    openProductWizard(step - 1);
+  });
+  $("pw-next")?.addEventListener("click", async () => {
+    if (step === 1) {
+      if (!$("pw-titleAr")?.value.trim() || !$("pw-titleEn")?.value.trim()) {
+        showMessage("أدخل اسم المنتج بالعربي والإنجليزي.", true);
+        return;
+      }
+    }
+    if (step === 2 && !$("pw-price")?.value) {
+      showMessage("أدخل سعر المنتج.", true);
+      return;
+    }
+    collectProductWizardStep();
+    if (step < 4) {
+      openProductWizard(step + 1);
+      return;
+    }
+    await submitProductWizard();
+  });
+}
+
+function openProductWizard(step = 1, options = {}) {
+  if (step === 1 && options.reset) {
+    productWizardState.data = { status: "draft", discountPercent: "0", stockQuantity: "10" };
+    productWizardState.variantRows = [];
+  }
+  productWizardState.step = step;
+  const foot =
+    step > 1
+      ? `<button type="button" class="secondary" id="pw-back">رجوع</button><button type="button" id="pw-next">${step < 4 ? "التالي" : "إضافة المنتج"}</button>`
+      : `<button type="button" class="secondary" id="pw-cancel">إلغاء</button><button type="button" id="pw-next">التالي</button>`;
+  openAppModal({
+    title: `إضافة منتج — الخطوة ${step} من 4`,
+    bodyHtml: productWizardStepHtml(step),
+    footHtml: foot,
+  });
+  $("pw-cancel")?.addEventListener("click", closeAppModal);
+  bindProductWizardEvents(step);
+}
+
+async function submitProductWizard() {
+  const d = productWizardState.data;
+  const button = $("pw-next");
+  try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = "جارٍ الإضافة...";
+    }
+    const imageFiles = d.imageFiles ? Array.from(d.imageFiles).filter((f) => f?.size) : [];
+    if (imageFiles.length > 6) throw new Error("اختر بحد أقصى 6 صور للمنتج.");
+    const totalImageBytes = imageFiles.reduce((sum, file) => sum + Number(file.size || 0), 0);
+    if (totalImageBytes > 6 * 1024 * 1024) throw new Error("إجمالي حجم الصور كبير. استخدم صورًا أقل/أخف (حد أقصى 6MB).");
+    showMessage("جارٍ تجهيز الصور...");
+    const mediaUrls = [];
+    for (const file of imageFiles) {
+      mediaUrls.push(await fileToDataUrl(file));
+      await sleep(0);
+    }
+    const variants = (productWizardState.variantRows || [])
+      .map((v) => ({
+        type: v.type || "",
+        color: v.color || "",
+        extraPriceCents: parseMoneyToCents(v.extraPrice || 0),
+        stockQuantity: v.stock ? Number(v.stock) : null,
+      }))
+      .filter((v) => v.type || v.color);
+    const payload = {
+      titleAr: d.titleAr,
+      titleEn: d.titleEn,
+      description: d.description || "",
+      categoryId: d.categoryId || undefined,
+      priceCents: parseMoneyToCents(d.price),
+      discountPercent: Number(d.discountPercent || 0),
+      stockQuantity: Number(d.stockQuantity || 0),
+      status: d.status || "draft",
+      mediaUrls: mediaUrls.filter(Boolean),
+      imageUrl: mediaUrls[0] || "",
+      videoUrl: d.videoUrl || "",
+      variants,
+    };
+    if (d.compareAtPrice) payload.compareAtPriceCents = parseMoneyToCents(d.compareAtPrice);
+    if (!payload.categoryId) delete payload.categoryId;
+    if (!payload.imageUrl) delete payload.imageUrl;
+    if (!payload.videoUrl) delete payload.videoUrl;
+    await submitNewProduct(payload);
+    $("product-filter").value = "";
+    $("product-filter-category").value = "";
+    $("product-filter-status").value = "";
+    await loadMerchantData();
+    closeAppModal();
+    setMerchantTab("products");
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "إضافة المنتج";
+    }
   }
 }
 
@@ -1127,14 +1652,13 @@ async function createProduct(event) {
       await sleep(0);
     }
     if (form.get("videoFile")?.size) throw new Error("رفع الفيديو من الجهاز غير مدعوم حاليًا. استخدم رابط فيديو فقط.");
-    const uploadedVideo = "";
     payload.priceCents = parseMoneyToCents(payload.price);
     if (payload.compareAtPrice) payload.compareAtPriceCents = parseMoneyToCents(payload.compareAtPrice);
     payload.discountPercent = Number(payload.discountPercent || 0);
     payload.stockQuantity = Number(payload.stockQuantity || 0);
     payload.mediaUrls = mediaUrls.filter(Boolean);
     payload.imageUrl = payload.mediaUrls[0] || "";
-    payload.videoUrl = uploadedVideo || payload.videoUrl || "";
+    payload.videoUrl = payload.videoUrl || "";
     payload.variants = collectVariants();
     delete payload.price;
     delete payload.compareAtPrice;
@@ -1143,9 +1667,7 @@ async function createProduct(event) {
     if (!payload.categoryId) delete payload.categoryId;
     if (!payload.imageUrl) delete payload.imageUrl;
     if (!payload.videoUrl) delete payload.videoUrl;
-    showMessage("جارٍ حفظ المنتج...");
-    await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload), timeoutMs: 25000 });
-    showMessage("تم إنشاء المنتج.");
+    await submitNewProduct(payload);
     formEl?.reset?.();
     $("product-filter").value = "";
     $("product-filter-category").value = "";
@@ -1390,7 +1912,8 @@ async function savePaymob(event) {
 
 async function testPaymob() {
   const data = await api("/api/merchant/payment-providers/paymob/test", { method: "POST", body: JSON.stringify({}) });
-  showMessage(data.ok ? "Paymob connection ok." : "Paymob connection failed.", !data.ok);
+  showMessage(data.ok ? "اتصال Paymob ناجح — جاهز لاستقبال مدفوعات المتجر." : "فشل اختبار Paymob.", !data.ok);
+  await loadMerchantData();
 }
 
 async function savePlatformPaymob(event) {
@@ -1420,7 +1943,8 @@ async function savePlatformTrialSettings(event) {
 
 async function testPlatformPaymob() {
   const data = await api("/api/admin/payment-providers/paymob/test", { method: "POST", body: JSON.stringify({}) });
-  showMessage(data.ok ? "Platform Paymob connection ok." : "Platform Paymob connection failed.", !data.ok);
+  showMessage(data.ok ? "اتصال Paymob للمنصة ناجح — جاهز لتحصيل اشتراكات التجار." : "فشل اختبار Paymob.", !data.ok);
+  await loadAdmin();
 }
 
 async function createSubscriptionInvoice(event) {
@@ -1452,7 +1976,8 @@ async function createSubscriptionInvoice(event) {
 
 async function loadPlans() {
   const plans = await api("/api/plans");
-  $("planCode").innerHTML = plans.plans.map((plan) => `<option value="${plan.code}">${plan.name} - ${money(plan.price_cents)}</option>`).join("");
+  state.merchantPlans = plans.plans || [];
+  renderSubscriptionPlanCards(state.merchantPlans, $("planCode")?.value);
 }
 
 async function loadMerchantData() {
@@ -1480,12 +2005,14 @@ async function loadMerchantData() {
             `<li>
             <div class="provider-line">
               <strong>${item.provider}</strong>
-              <span class="status-badge ${item.is_enabled ? "ok" : "off"}">${item.is_enabled ? "Active" : "Inactive"}</span>
+              <span class="status-badge ${item.is_enabled ? "ok" : "off"}">${item.is_enabled ? "مفعّل" : "غير مفعّل"}</span>
             </div>
             <small>${item.mode}${item.provider === "paymob" ? ` • Card integration: ${item.public_config.cardIntegrationId || "-"}` : ""}</small>
           </li>`,
         )
         .join("") || "<li>لم يتم ربط دفع بعد.</li>";
+    const paymobProvider = providers.providers.find((p) => p.provider === "paymob");
+    renderPaymobStatusPanel("merchant-paymob-status", paymobProvider, { scope: "merchant" });
     await loadPlans();
     renderBilling(dashboard.tenant, billingInvoices);
     bindMerchantActions("orders");
@@ -1512,9 +2039,12 @@ async function loadMerchantData() {
   $("chart-orders-bar").style.setProperty("--value", `${Math.max(10, (Number(dashboard.revenue.count || 0) / maxChartValue) * 100)}%`);
   $("chart-revenue-bar").style.setProperty("--value", `${Math.max(10, ((Number(dashboard.revenue.total_cents || 0) / 100) / maxChartValue) * 100)}%`);
   fillStoreSettings(dashboard.tenant);
+  renderShopWelcomeBanner(dashboard.tenant);
   const latestOrders = dashboard.latestOrders || [];
   const latestMarkup =
-    latestOrders.map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} - ${order.status}</span></li>`).join("") ||
+    latestOrders
+      .map((order) => `<li><strong>${order.customer_name}</strong><span>${money(order.total_cents)} — ${statusBadge(order.status)}</span></li>`)
+      .join("") ||
     "<li>لا توجد طلبات حديثة.</li>";
   if ($("merchant-latest-orders")) $("merchant-latest-orders").innerHTML = latestMarkup;
 
@@ -1533,20 +2063,32 @@ async function loadMerchantData() {
 
 /// إخفاء التبويبات غير المسموح بها للموظف، وإبقاء كل شيء لصاحب المتجر.
 function applyMerchantPermissions() {
-  const isStaff = state.role === "merchant_staff";
   let activeHidden = false;
+
   document.querySelectorAll(".merchant-side-item[data-merchant-tab]").forEach((button) => {
-    const tab = button.dataset.merchantTab;
-    let allowed = true;
-    if (isStaff) {
-      if (tab === "overview") allowed = true;
-      else if (tab === "team") allowed = false;
-      else allowed = state.permissions.includes(tab);
-    }
+    const mainTab = button.dataset.merchantTab;
+    const allowed = merchantMainTabAllowed(mainTab);
     button.hidden = !allowed;
     if (!allowed && button.classList.contains("active")) activeHidden = true;
   });
-  if (isStaff && activeHidden) setMerchantTab("overview");
+
+  document.querySelectorAll("[data-merchant-sub]").forEach((button) => {
+    const sub = button.dataset.merchantSub;
+    const allowed = merchantSubTabAllowed(sub);
+    button.hidden = !allowed;
+  });
+
+  if (state.role === "merchant_staff") {
+    $("subnav-account")?.querySelector('[data-merchant-sub="team"]')?.toggleAttribute("hidden", true);
+  } else if (state.role === "merchant_owner") {
+    $("subnav-account")?.querySelector('[data-merchant-sub="team"]')?.toggleAttribute("hidden", false);
+  }
+
+  if (activeHidden || !merchantMainTabAllowed(state.merchantMainTab || "overview")) {
+    setMerchantTab("overview");
+  } else if (!merchantSubTabAllowed(state.merchantPanel || "overview")) {
+    setMerchantTab(state.merchantMainTab || "overview");
+  }
 }
 
 function formatAndroidBuildStatus(status) {
@@ -1745,13 +2287,13 @@ function renderMerchantOrders() {
     rows
       .map((order) => {
         const created = order.created_at ? new Date(order.created_at).toLocaleString("ar-EG") : "-";
-        const statusBadge = `<span class="status-badge">${order.status}</span>`;
-        const payBadge = `<span class="status-badge ${order.payment_status === "paid" ? "ok" : "off"}">${order.payment_status || "-"}</span>`;
+        const statusBadgeHtml = statusBadge(order.status);
+        const payBadge = statusBadge(order.payment_status || "pending");
         return `<tr>
           <td><strong>${order.customer_name || "-"}</strong><br><small>${order.id}</small></td>
           <td>${money(order.total_cents)}</td>
           <td>${payBadge}</td>
-          <td>${statusBadge}</td>
+          <td>${statusBadgeHtml}</td>
           <td><small>${created}</small></td>
           <td>
             <div class="row-actions">
@@ -1764,8 +2306,17 @@ function renderMerchantOrders() {
           </td>
         </tr>`;
       })
-      .join("") || `<tr><td colspan="6">لا توجد طلبات مطابقة.</td></tr>`;
+      .join("") ||
+    (query || status
+      ? `<tr><td colspan="6">لا توجد طلبات مطابقة.</td></tr>`
+      : `<tr><td colspan="6">${emptyStateBlock({
+          title: "لا توجد طلبات بعد",
+          hint: "شارك رابط متجرك مع عملائك لبدء استقبال الطلبات.",
+          actionLabel: "عرض روابط المتجر",
+          actionId: "empty-goto-store-links",
+        })}</td></tr>`);
 
+  $("empty-goto-store-links")?.addEventListener("click", () => setMerchantTab("settings"));
   bindMerchantActions("orders");
 }
 
@@ -1789,7 +2340,16 @@ function renderMerchantCategories() {
           <td><span class="status-badge">${count}</span></td>
         </tr>`;
       })
-      .join("") || `<tr><td colspan="3">لا توجد تصنيفات مطابقة.</td></tr>`;
+      .join("") ||
+    (filter
+      ? `<tr><td colspan="3">لا توجد تصنيفات مطابقة.</td></tr>`
+      : `<tr><td colspan="3">${emptyStateBlock({
+          title: "لا توجد أصناف بعد",
+          hint: "أنشئ أول صنف لتنظيم منتجاتك في واجهة المتجر.",
+          actionLabel: "إضافة صنف",
+          actionId: "empty-add-category",
+        })}</td></tr>`);
+  $("empty-add-category")?.addEventListener("click", openCategoryModal);
 }
 
 function renderMerchantProducts() {
@@ -1809,14 +2369,14 @@ function renderMerchantProducts() {
     rows
       .map((item) => {
         const categoryName = categoryById.get(item.category_id) || "بدون تصنيف";
-        const statusBadge = `<span class="status-badge ${item.status === "published" ? "ok" : "off"}">${item.status}</span>`;
+        const statusBadgeHtml = statusBadge(item.status);
         return `<tr>
           <td><input type="checkbox" class="product-select" data-product-select="${item.id}"></td>
           <td><strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.title_ar}<br><small>${item.title_en || ""}</small></strong></td>
           <td>${money(item.price_cents)}${item.discount_percent ? ` <small class="discount-badge">خصم ${item.discount_percent}%</small>` : ""}</td>
           <td><small>${item.stock_quantity}</small></td>
           <td><small>${categoryName}</small></td>
-          <td>${statusBadge}</td>
+          <td>${statusBadgeHtml}</td>
           <td>
             <div class="row-actions">
               <button class="mini-button" data-product-status="${item.id}:${item.status === "published" ? "draft" : "published"}">${item.status === "published" ? "إخفاء" : "نشر"}</button>
@@ -1825,8 +2385,17 @@ function renderMerchantProducts() {
           </td>
         </tr>`;
       })
-      .join("") || `<tr><td colspan="7">لا توجد منتجات مطابقة.</td></tr>`;
+      .join("") ||
+    (query || categoryId || status
+      ? `<tr><td colspan="7">لا توجد منتجات مطابقة.</td></tr>`
+      : `<tr><td colspan="7">${emptyStateBlock({
+          title: "لا توجد منتجات بعد",
+          hint: "أضف أول منتج ليظهر في متجرك وتطبيق الأندرويد.",
+          actionLabel: "إضافة منتج",
+          actionId: "empty-add-product",
+        })}</td></tr>`);
 
+  $("empty-add-product")?.addEventListener("click", () => openProductWizard(1, { reset: true }));
   bindMerchantActions("products");
 }
 
@@ -2329,20 +2898,185 @@ async function loadBillingData() {
   renderBilling(store.store, invoices.invoices);
 }
 
+async function loadAccountingData() {
+  if (!state.token || ["platform_owner", "platform_admin"].includes(state.role)) return;
+  if (!state.merchantPlans?.length) await loadPlans().catch(() => undefined);
+  const data = await api("/api/merchant/accounting");
+  renderAccountingModule(data);
+}
+
+function renderAccountingPlanCards(plans) {
+  const grid = $("accounting-plans-grid");
+  if (!grid) return;
+  const activePlans = (plans || []).filter((p) => p.is_active !== false);
+  if (!activePlans.length) {
+    grid.innerHTML = `<div class="empty-state"><strong>لا توجد خطط</strong></div>`;
+    return;
+  }
+  grid.innerHTML = activePlans
+    .map(
+      (plan) => `<div class="plan-picker-card plan-picker-card--readonly" role="listitem">
+        <strong>${escapeHtmlText(plan.name)}</strong>
+        <div class="plan-price">${money(plan.price_cents)}</div>
+        <small>${plan.duration_months || 1} شهر</small>
+      </div>`,
+    )
+    .join("");
+}
+
+function renderAccountingModule(data) {
+  const link = data.link;
+  const form = $("accounting-link-form");
+  const statusEl = $("accounting-status");
+  const logEl = $("accounting-sync-log");
+  const cashLink = $("accounting-cash-link");
+  const discoverBox = $("accounting-discover-box");
+
+  if (state.merchantPlans?.length) renderAccountingPlanCards(state.merchantPlans);
+  else if (data.plans?.length) renderAccountingPlanCards(data.plans);
+
+  if (discoverBox) {
+    if (data.merchantOwnerEmail && !link?.cash_tenant_slug) {
+      discoverBox.hidden = false;
+      discoverBox.innerHTML = `<strong>ربط تلقائي</strong><p>لو حساب Easy Cash مسجّل بنفس إيميل صاحب المتجر (<strong>${escapeHtmlText(data.merchantOwnerEmail)}</strong>)، اضغط «ربط تلقائي» وسيتعرّف النظام على شركتك بدون إدخال slug يدوياً.</p>`;
+    } else {
+      discoverBox.hidden = true;
+      discoverBox.innerHTML = "";
+    }
+  }
+
+  if (cashLink && link?.cash_tenant_slug) {
+    const base = (link.cash_base_url || "https://cash.easytecheg.net").replace(/\/$/, "");
+    cashLink.href = `${base}/${link.cash_tenant_slug}/`;
+  }
+
+  if (form) {
+    form.enabled.checked = Boolean(link?.enabled);
+    form.cashTenantSlug.value = link?.cash_tenant_slug || "";
+    form.cashBaseUrl.value = link?.cash_base_url || "https://cash.easytecheg.net";
+    form.syncProductsToCash.checked = link?.sync_products_to_cash !== false;
+    form.syncProductsFromCash.checked = link?.sync_products_from_cash !== false;
+    form.syncOrdersToCash.checked = link?.sync_orders_to_cash !== false;
+  }
+
+  if (statusEl) {
+    const enabled = Boolean(link?.enabled);
+    statusEl.className = `subscription-status-card ${enabled ? "is-active" : link?.cash_tenant_slug ? "is-trial" : ""}`.trim();
+    const lastSync = link?.last_sync_at ? new Date(link.last_sync_at).toLocaleString("ar-EG") : "—";
+    const err = link?.last_sync_error ? `<p class="text-danger">${escapeHtmlText(link.last_sync_error)}</p>` : "";
+    statusEl.innerHTML = enabled
+      ? `<strong>الربط مفعّل</strong><p>شركة Cash: <strong>${escapeHtmlText(link.cash_tenant_slug || "—")}</strong> · آخر مزامنة: ${lastSync}</p>${err}`
+      : link?.cash_tenant_slug
+        ? `<strong>الربط جاهز — غير مفعّل</strong><p>فعّل المربع أعلاه لبدء المزامنة التلقائية.</p>`
+        : `<strong>لم يُضبط الربط بعد</strong><p>أدخل slug شركتك في Easy Cash (مثل philo) ثم احفظ.</p>`;
+    if (!data.integrationConfigured) {
+      statusEl.innerHTML += `<p class="text-warn"><small>تنبيه للمسؤول: SHOPE_INTEGRATION_SECRET غير مضبوط على خادم Easy Shope.</small></p>`;
+    }
+  }
+
+  if (logEl) {
+    const rows = data.syncLog || [];
+    logEl.innerHTML =
+      rows
+        .map(
+          (row) =>
+            `<li><div class="provider-line"><strong>${escapeHtmlText(row.entity_type || "")}</strong>${statusBadge(row.status === "ok" ? "paid" : "failed")}</div><small>${escapeHtmlText(row.direction || "")} · ${row.created_at ? new Date(row.created_at).toLocaleString("ar-EG") : ""}</small><p>${escapeHtmlText(row.message || "")}</p></li>`,
+        )
+        .join("") || "<li>لا يوجد سجل مزامنة بعد — بعد تفعيل الربط ستظهر العمليات هنا.</li>";
+  }
+}
+
+async function saveAccountingLink(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const body = {
+      enabled: form.enabled.checked,
+      cashTenantSlug: form.cashTenantSlug.value.trim(),
+      cashBaseUrl: form.cashBaseUrl.value.trim(),
+      syncProductsToCash: form.syncProductsToCash.checked,
+      syncProductsFromCash: form.syncProductsFromCash.checked,
+      syncOrdersToCash: form.syncOrdersToCash.checked,
+    };
+    await api("/api/merchant/accounting", { method: "PUT", body: JSON.stringify(body) });
+    showMessage("تم حفظ إعدادات الربط مع Easy Cash");
+    await loadAccountingData();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+}
+
+async function autoLinkAccounting() {
+  const form = $("accounting-link-form");
+  try {
+    $("accounting-status").innerHTML = "<strong>جارٍ البحث عن شركة Easy Cash بإيميل حسابك…</strong>";
+    const body = { cashBaseUrl: form?.cashBaseUrl?.value?.trim() || undefined, enable: form?.enabled?.checked !== false };
+    const data = await api("/api/merchant/accounting/auto-link", { method: "POST", body: JSON.stringify(body) });
+    showMessage(data.matchedByEmail ? `تم الربط تلقائياً — ${data.link?.cash_tenant_slug}` : "تم حفظ الربط");
+    await loadAccountingData();
+    if (data.link?.cash_tenant_slug) await testAccountingLink();
+  } catch (error) {
+    if (error.statusCode === 409 && error.payload?.matches?.length) {
+      const picks = error.payload.matches
+        .map((m) => `<button type="button" class="mini-button" data-pick-cash-slug="${escapeHtmlText(m.slug)}">${escapeHtmlText(m.name)} (${escapeHtmlText(m.slug)})</button>`)
+        .join(" ");
+      $("accounting-discover-box").hidden = false;
+      $("accounting-discover-box").innerHTML = `<strong>اختر الشركة</strong><p>وُجد أكثر من شركة بنفس الإيميل:</p><div class="inline-actions">${picks}</div>`;
+      $("accounting-discover-box").querySelectorAll("[data-pick-cash-slug]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          try {
+            const body = {
+              cashTenantSlug: btn.dataset.pickCashSlug,
+              cashBaseUrl: form?.cashBaseUrl?.value?.trim() || undefined,
+              enable: true,
+            };
+            await api("/api/merchant/accounting/auto-link", { method: "POST", body: JSON.stringify(body) });
+            showMessage(`تم الربط — ${btn.dataset.pickCashSlug}`);
+            await loadAccountingData();
+          } catch (pickErr) {
+            showMessage(pickErr.message, true);
+          }
+        });
+      });
+    }
+    showMessage(error.message, true);
+    await loadAccountingData();
+  }
+}
+
+async function testAccountingLink() {
+  try {
+    $("accounting-status").innerHTML = "<strong>جارٍ اختبار الاتصال…</strong>";
+    const data = await api("/api/merchant/accounting/test", { method: "POST", body: JSON.stringify({}) });
+    showMessage(`الاتصال ناجح — شركة Cash: ${data.tenantSlug || "OK"}`);
+    await loadAccountingData();
+  } catch (error) {
+    showMessage(error.message, true);
+    await loadAccountingData();
+  }
+}
+
 function renderBilling(store, invoices) {
-  const activeText = store.status === "active" ? "الخدمة مفعلة" : store.status === "trial" ? "فترة تجربة / بانتظار الاشتراك" : store.status;
+  const activeText = store.status === "active" ? "الخدمة مفعلة" : store.status === "trial" ? "فترة تجربة مجانية" : store.status;
   const expiry = store.subscription_expires_at ? new Date(store.subscription_expires_at) : null;
   const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
   const expiryText = expiry ? expiry.toLocaleDateString("ar-EG") : "غير محدد";
+  const statusCardClass =
+    store.status === "active" ? "is-active" : store.status === "trial" ? "is-trial" : daysLeft !== null && daysLeft < 0 ? "is-danger" : "";
   const expiryBadge =
     daysLeft === null
       ? ""
       : daysLeft < 0
         ? `<span class="status-badge off">منتهي</span>`
         : daysLeft <= 7
-          ? `<span class="status-badge off">ينتهي خلال ${daysLeft} يوم</span>`
+          ? `<span class="status-badge warn">ينتهي خلال ${daysLeft} يوم</span>`
           : `<span class="status-badge ok">متبقي ${daysLeft} يوم</span>`;
-  $("subscription-status").innerHTML = `<div class="provider-line"><strong>${activeText}</strong>${expiryBadge}</div><p>الخطة: ${store.plan_code} - ينتهي: ${expiryText}</p>`;
+  const statusEl = $("subscription-status");
+  if (statusEl) {
+    statusEl.className = `subscription-status-card ${statusCardClass}`.trim();
+    statusEl.innerHTML = `<div class="provider-line"><strong>${activeText}</strong>${expiryBadge}</div><p>الخطة الحالية: <strong>${store.plan_code || "—"}</strong> · ينتهي: ${expiryText}</p>`;
+  }
+  if (state.merchantPlans?.length) renderSubscriptionPlanCards(state.merchantPlans, store.plan_code);
   const paid = (invoices || []).filter((invoice) => invoice.status === "paid");
   const open = (invoices || []).filter((invoice) => invoice.status !== "paid");
 
@@ -2350,16 +3084,14 @@ function renderBilling(store, invoices) {
     paid
       .map(
         (invoice) =>
-          `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}<small>${invoice.provider || ""} ${invoice.provider_reference || ""}</small></strong><span class="status-badge ok">Paid</span></li>`,
+          `<li><div class="provider-line"><strong>${invoice.plan_name || invoice.plan_code}</strong>${statusBadge("paid")}</div><small>${money(invoice.amount_cents)} · ${invoice.provider || ""} ${invoice.provider_reference || ""}</small></li>`,
       )
       .join("") || "<li>لا توجد فواتير مدفوعة بعد.</li>";
 
   $("subscription-invoices-open").innerHTML =
     open
       .map(
-        (invoice) => `<li><strong>${invoice.plan_name || invoice.plan_code} - ${money(invoice.amount_cents)}<small>${invoice.provider || ""} ${invoice.provider_reference || ""}</small></strong><span>${invoice.status} ${
-          `<button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button>`
-        }</span></li>`,
+        (invoice) => `<li><div class="provider-line"><strong>${invoice.plan_name || invoice.plan_code}</strong>${statusBadge(invoice.status)}</div><small>${money(invoice.amount_cents)}</small><span><button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button></span></li>`,
       )
       .join("") || "<li>لا توجد فواتير غير مدفوعة.</li>";
   document.querySelectorAll("[data-pay-invoice]").forEach((button) => {
@@ -2552,10 +3284,13 @@ function renderAdminTenantsTable() {
 function renderAdminPlans(plans) {
   $("admin-plans").innerHTML = plans
     .map(
-      (plan) => `<div class="plan-card">
-        <div><strong>${plan.name}</strong><br><small>${plan.duration_months} شهر — ${plan.is_active ? "مفعّلة" : "معطّلة"}</small></div>
+      (plan) => `<div class="plan-card plan-card--admin">
+        <div class="plan-card-top">
+          <div><strong>${escapeHtmlText(plan.name)}</strong><br><small>${plan.duration_months} شهر · ${plan.is_active ? "مفعّلة" : "معطّلة"}</small></div>
+          <div class="plan-card-price">${money(plan.price_cents)}</div>
+        </div>
         <div class="row-actions">
-          <input type="text" value="${plan.name}" data-plan-name="${plan.code}" placeholder="اسم الخطة">
+          <input type="text" value="${escapeHtmlText(plan.name)}" data-plan-name="${plan.code}" placeholder="اسم الخطة">
           <input type="number" value="${(plan.price_cents / 100).toFixed(2)}" data-plan-price="${plan.code}">
           <label class="check"><input type="checkbox" data-plan-active="${plan.code}" ${plan.is_active ? "checked" : ""}> نشطة</label>
           <button type="button" data-plan-save="${plan.code}">حفظ</button>
@@ -2720,11 +3455,8 @@ async function loadAdmin() {
 
 function renderPlatformProviders(providers) {
   const paymob = providers.find((provider) => provider.provider === "paymob");
-  $("platform-paymob-status").innerHTML = paymob
-    ? `<strong>${paymob.is_enabled ? "Paymob مفعل" : "Paymob محفوظ وغير مفعل"}</strong><p>${paymob.mode} - card ${
-        paymob.public_config.cardIntegrationId || "غير محدد"
-      } - key ${paymob.public_config.publicKeyLast8 || ""}</p>`
-    : "<strong>Paymob غير مضاف</strong><p>أدخل مفاتيح حسابك حتى يدفع التجار اشتراكات المنصة لك.</p>";
+  renderPaymobStatusPanel("platform-paymob-status", paymob, { scope: "platform" });
+  fillPaymobCallbackUrls();
 }
 
 function bindAdminActions() {
@@ -2855,6 +3587,10 @@ document.addEventListener("DOMContentLoaded", () => {
   setOnboardingMode("register");
   void refreshLoginSerialDisplay();
   initPasswordToggles();
+  $("app-modal-close")?.addEventListener("click", closeAppModal);
+  $("app-modal")?.addEventListener("click", (e) => {
+    if (e.target === $("app-modal")) closeAppModal();
+  });
   setMerchantTab("overview");
   setAdminTab("overview");
   initDashboardMobileNav();
@@ -2882,7 +3618,22 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-merchant-jump]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
-      setMerchantTab(button.dataset.merchantJump);
+      const target = button.dataset.merchantJump;
+      if (target === "storefront") {
+        setView("storefront");
+        return;
+      }
+      if (target === "products") {
+        setMerchantTab("products");
+        openProductWizard(1, { reset: true });
+        return;
+      }
+      if (target === "categories") {
+        setMerchantTab("categories");
+        openCategoryModal();
+        return;
+      }
+      setMerchantTab(target);
     });
   });
   document.querySelectorAll("[data-merchant-tab]").forEach((button) => {
@@ -2891,12 +3642,38 @@ document.addEventListener("DOMContentLoaded", () => {
       setMerchantTab(button.dataset.merchantTab);
     });
   });
+  document.querySelectorAll("[data-merchant-sub]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      setMerchantTab(button.dataset.merchantSub);
+    });
+  });
   document.querySelectorAll("[data-admin-tab]").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
       setAdminTab(button.dataset.adminTab);
     });
   });
+  document.querySelectorAll("[data-admin-jump]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      setAdminTab(button.dataset.adminJump);
+    });
+  });
+  $("admin-refresh-overview")?.addEventListener("click", () => loadAdmin());
+  document.querySelectorAll("[data-copy-target]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const input = $(button.dataset.copyTarget);
+      if (!input?.value) return;
+      try {
+        await copyTextToClipboard(input.value);
+        showMessage("تم النسخ.");
+      } catch (error) {
+        showMessage(error.message, true);
+      }
+    });
+  });
+  fillPaymobCallbackUrls();
   $("admin-tenant-search")?.addEventListener("input", renderAdminTenantsTable);
   $("admin-tenant-status-filter")?.addEventListener("change", renderAdminTenantsTable);
   $("admin-order-status-filter")?.addEventListener("change", () => loadAdminOrders());
@@ -2905,13 +3682,13 @@ document.addEventListener("DOMContentLoaded", () => {
   $("admin-tenant-dialog-close")?.addEventListener("click", () => $("admin-tenant-dialog")?.close());
   // Billing lives inside merchant dashboard; no standalone payments view handlers.
   $("category-filter").addEventListener("input", renderMerchantCategories);
-  $("show-category-form").addEventListener("click", () => setCreationForm("category-form", true));
-  $("cancel-category-form").addEventListener("click", () => setCreationForm("category-form", false));
+  $("show-category-form").addEventListener("click", openCategoryModal);
+  $("cancel-category-form")?.addEventListener("click", () => setCreationForm("category-form", false));
   $("product-filter").addEventListener("input", renderMerchantProducts);
   $("product-filter-category").addEventListener("change", renderMerchantProducts);
   $("product-filter-status").addEventListener("change", renderMerchantProducts);
-  $("show-product-form").addEventListener("click", () => setCreationForm("product-form", true));
-  $("cancel-product-form").addEventListener("click", () => setCreationForm("product-form", false));
+  $("show-product-form").addEventListener("click", () => openProductWizard(1, { reset: true }));
+  $("cancel-product-form")?.addEventListener("click", () => setCreationForm("product-form", false));
   $("add-variant").addEventListener("click", () => addVariantRow());
   $("products-select-all")?.addEventListener("change", (event) => {
     const checked = Boolean(event.currentTarget.checked);
@@ -2953,6 +3730,9 @@ document.addEventListener("DOMContentLoaded", () => {
   $("test-platform-paymob").addEventListener("click", testPlatformPaymob);
   $("platform-trial-settings-form")?.addEventListener("submit", savePlatformTrialSettings);
   $("subscription-form").addEventListener("submit", createSubscriptionInvoice);
+  $("accounting-link-form")?.addEventListener("submit", saveAccountingLink);
+  $("accounting-auto-link-btn")?.addEventListener("click", autoLinkAccounting);
+  $("accounting-test-btn")?.addEventListener("click", testAccountingLink);
   $("storefront-form").addEventListener("submit", loadStorefront);
   $("storefront-query")?.addEventListener("input", () => {
     if (!isStoreClientMode()) return;

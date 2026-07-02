@@ -47,6 +47,7 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-Easy Shope <noreply@easyshope.local>}
       NOTIFY_EMAIL_ENABLED: ${NOTIFY_EMAIL_ENABLED:-true}
+      SHOPE_INTEGRATION_SECRET: ${SHOPE_INTEGRATION_SECRET:-dev-shope-cash-secret}
     depends_on:
       postgres:
         condition: service_healthy
