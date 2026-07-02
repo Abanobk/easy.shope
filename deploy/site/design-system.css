@@ -983,12 +983,63 @@ body[data-scope="admin"] .main {
 }
 
 body[data-scope="merchant"] .panel,
-body[data-scope="admin"] .panel,
-body[data-scope="merchant"] .merchant-side,
-body[data-scope="admin"] .admin-side {
+body[data-scope="admin"] .panel {
   background: var(--admin-surface);
   border-color: var(--admin-line);
   box-shadow: var(--shadow);
+}
+
+/* Sidebar stays dark — do NOT flatten to white */
+body[data-scope="merchant"] .merchant-side,
+body[data-scope="admin"] .admin-side {
+  background: var(--admin-sidebar) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12);
+}
+
+body[data-scope="merchant"] .merchant-brand-text .eyebrow,
+body[data-scope="admin"] .admin-side-head .eyebrow {
+  color: #94a3b8;
+}
+
+body[data-scope="merchant"] .merchant-brand-text strong,
+body[data-scope="admin"] .admin-side-head strong {
+  color: #f8fafc;
+}
+
+body[data-scope="merchant"] .merchant-brand-slug,
+body[data-scope="merchant"] .merchant-brand-serial {
+  color: #94a3b8 !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item,
+body[data-scope="admin"] .admin-side-item {
+  background: transparent;
+  border-color: transparent;
+  color: #e2e8f0;
+  border-radius: 14px;
+}
+
+body[data-scope="merchant"] .merchant-side-item strong,
+body[data-scope="admin"] .admin-side-item strong {
+  color: #f8fafc;
+}
+
+body[data-scope="merchant"] .merchant-side-item:hover,
+body[data-scope="admin"] .admin-side-item:hover {
+  background: var(--admin-sidebar-hover);
+}
+
+body[data-scope="merchant"] .merchant-side-item.active,
+body[data-scope="admin"] .admin-side-item.active {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+body[data-scope="merchant"] .merchant-side-item.active strong,
+body[data-scope="admin"] .admin-side-item.active strong {
+  color: #fff;
 }
 
 body[data-scope="merchant"] .panel p,
@@ -1000,6 +1051,17 @@ body[data-scope="admin"] .hint-inline,
 body[data-scope="merchant"] .store-links-lead,
 body[data-scope="admin"] .store-links-lead {
   color: var(--admin-muted);
+}
+
+/* Welcome banner text must stay white on purple gradient */
+body[data-scope="merchant"] .shop-welcome-banner,
+body[data-scope="merchant"] .shop-welcome-banner h2,
+body[data-scope="merchant"] .shop-welcome-banner p {
+  color: #fff !important;
+}
+
+body[data-scope="merchant"] .shop-welcome-date {
+  color: #fff;
 }
 
 body[data-scope="merchant"] label,
@@ -1019,23 +1081,18 @@ body[data-scope="admin"] label small {
 }
 
 body[data-scope="merchant"] .muted,
-body[data-scope="admin"] .muted,
-body[data-scope="merchant"] .merchant-side-item small,
-body[data-scope="admin"] .admin-side-item small {
+body[data-scope="admin"] .muted {
   color: var(--admin-muted);
 }
 
-body[data-scope="merchant"] .merchant-side-item,
-body[data-scope="admin"] .admin-side-item {
-  background: transparent;
-  border-color: transparent;
-  color: #cbd5e1;
-  border-radius: 14px;
+body[data-scope="merchant"] .merchant-side-item small,
+body[data-scope="admin"] .admin-side-item small {
+  color: #94a3b8;
 }
 
-body[data-scope="merchant"] .merchant-side,
-body[data-scope="admin"] .admin-side {
-  border-radius: 20px;
+body[data-scope="merchant"] .merchant-side-item.active small,
+body[data-scope="admin"] .admin-side-item.active small {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 body[data-scope="merchant"] .store-link-block,
@@ -1148,4 +1205,157 @@ body[data-scope="admin"] th,
 body[data-scope="merchant"] td,
 body[data-scope="admin"] td {
   color: var(--admin-text);
+}
+
+/* Phase 4: dashboard chrome — hide platform hero, compact header, readable alerts */
+body[data-scope="merchant"][data-view="catalog"] .main > .topbar > div:first-child,
+body[data-scope="admin"][data-view="admin"] .main > .topbar > div:first-child {
+  display: none;
+}
+
+body[data-scope="merchant"][data-view="catalog"] .main > .topbar,
+body[data-scope="admin"][data-view="admin"] .main > .topbar {
+  margin-bottom: 10px;
+  padding-bottom: 0;
+  justify-content: flex-end;
+}
+
+body[data-scope="merchant"][data-view="catalog"] .main > .topbar .system-status,
+body[data-scope="admin"][data-view="admin"] .main > .topbar .system-status {
+  display: none;
+}
+
+body[data-scope="merchant"] .user-pill,
+body[data-scope="admin"] .user-pill {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  color: var(--admin-text);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+body[data-scope="merchant"] .message,
+body[data-scope="admin"] .message {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  color: var(--admin-text);
+  font-weight: 600;
+}
+
+body[data-scope="merchant"] .message.ok,
+body[data-scope="admin"] .message.ok {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+body[data-scope="merchant"] .message.warn,
+body[data-scope="admin"] .message.warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+body[data-scope="merchant"] .message.error,
+body[data-scope="admin"] .message.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner,
+body[data-scope="admin"] .trial-subscription-banner {
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+  border: 1px solid #bfdbfe;
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .trial-subscription-banner strong,
+body[data-scope="admin"] .trial-subscription-banner strong {
+  color: #1e3a8a;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner span,
+body[data-scope="admin"] .trial-subscription-banner span {
+  color: #475569;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--warn,
+body[data-scope="admin"] .trial-subscription-banner--warn {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--warn strong,
+body[data-scope="admin"] .trial-subscription-banner--warn strong {
+  color: #92400e;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--danger,
+body[data-scope="admin"] .trial-subscription-banner--danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fca5a5;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--danger strong,
+body[data-scope="admin"] .trial-subscription-banner--danger strong {
+  color: #991b1b;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner .mini-cta,
+body[data-scope="admin"] .trial-subscription-banner .mini-cta {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep));
+  border: none;
+  color: #fff;
+}
+
+body[data-scope="merchant"] .page-head h2,
+body[data-scope="admin"] .page-head h2 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+body[data-scope="merchant"] .breadcrumb,
+body[data-scope="admin"] .breadcrumb {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+body[data-scope="merchant"] .metric,
+body[data-scope="admin"] .metric {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  box-shadow: var(--shadow);
+}
+
+body[data-scope="merchant"] .metric::before,
+body[data-scope="admin"] .metric::before {
+  display: none;
+}
+
+body[data-scope="merchant"] .metric > span:not(.metric-icon),
+body[data-scope="admin"] .metric > span:not(.metric-icon),
+body[data-scope="merchant"] .metric small,
+body[data-scope="admin"] .metric small {
+  color: #64748b;
+  font-weight: 700;
+}
+
+body[data-scope="merchant"] .metric strong,
+body[data-scope="admin"] .metric strong {
+  color: #0f172a;
+}
+
+body[data-scope="merchant"] .metric:hover,
+body[data-scope="admin"] .metric:hover {
+  transform: none;
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+body[data-scope="merchant"] .merchant-side,
+body[data-scope="admin"] .admin-side {
+  border-radius: 20px;
 }
