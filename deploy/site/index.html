@@ -21,8 +21,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=2026070214" />
-  <link rel="stylesheet" href="/design-system.css?v=2026070214" />
+  <link rel="stylesheet" href="/styles.css?v=2026070215" />
+  <link rel="stylesheet" href="/design-system.css?v=2026070215" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <script>
@@ -279,6 +279,7 @@
             </nav>
             <nav class="merchant-subnav" id="subnav-store" hidden aria-label="أقسام المتجر">
               <button type="button" class="merchant-subnav-item active" data-merchant-sub="settings">بيانات المتجر</button>
+              <button type="button" class="merchant-subnav-item" data-merchant-sub="checkout">الدفع والشحن</button>
               <button type="button" class="merchant-subnav-item" data-merchant-sub="themes">استوديو القوالب</button>
             </nav>
             <nav class="merchant-subnav" id="subnav-account" hidden aria-label="أقسام الحساب">
@@ -591,6 +592,7 @@
                         <th>الصنف</th>
                         <th>المعرف</th>
                         <th>عدد المنتجات</th>
+                        <th>إجراءات</th>
                       </tr>
                     </thead>
                     <tbody id="categories-table"></tbody>
@@ -727,6 +729,59 @@
                     <p class="muted"><small>رابط بديل (قديم): <span id="storefront-url">—</span></small></p>
                   </article>
               </div>
+            </article>
+
+            <article class="panel merchant-tab account-page" data-merchant-panel="checkout">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">المتجر <span>/</span> الدفع والشحن</div>
+                  <h2>الدفع، الشحن، والتسويق</h2>
+                  <p class="page-subtitle">فعّل طرق الدفع، أسعار الشحن حسب المحافظة، أكواد الخصم، وMeta Pixel / GTM.</p>
+                </div>
+              </div>
+              <div class="account-page-grid">
+                <section class="account-section-card">
+                  <h3 class="section-title section-title--lg">طرق الدفع للعملاء</h3>
+                  <form id="checkout-settings-form" class="form-stack team-form">
+                    <label class="check"><input type="checkbox" name="paymob" checked> بطاقة بنكية (Paymob)</label>
+                    <label class="check"><input type="checkbox" name="cod" checked> الدفع عند الاستلام (COD)</label>
+                    <label class="check"><input type="checkbox" name="fawry"> Fawry (طلب يدوي / تواصل)</label>
+                    <label>رسوم COD إضافية (جنيه)<input name="codFee" type="number" step="0.01" min="0" value="0"></label>
+                    <label>شحن مجاني من (جنيه)<input name="freeShippingMin" type="number" step="0.01" min="0" value="0" placeholder="0 = بدون حد"></label>
+                    <button type="submit">حفظ إعدادات الدفع</button>
+                  </form>
+                </section>
+                <section class="account-section-card">
+                  <h3 class="section-title section-title--lg">Meta Pixel و Google Tag Manager</h3>
+                  <form id="tracking-settings-form" class="form-stack team-form">
+                    <label>Meta Pixel ID<input name="metaPixelId" placeholder="مثال: 1234567890"></label>
+                    <label>GTM Container ID<input name="gtmId" placeholder="مثال: GTM-XXXXXX"></label>
+                    <button type="submit">حفظ أكواد التتبع</button>
+                  </form>
+                  <p class="hint-inline">تُحقَن تلقائياً في واجهة المتجر العامة عند التحميل.</p>
+                </section>
+              </div>
+              <section class="account-section-card" style="margin-top:20px">
+                <h3 class="section-title section-title--lg">أسعار الشحن حسب المحافظة</h3>
+                <div id="shipping-rates-table" class="table-wrap"></div>
+                <form id="shipping-rates-form" class="form-grid team-form" style="margin-top:14px">
+                  <button type="submit" class="span-2">حفظ أسعار الشحن</button>
+                </form>
+              </section>
+              <section class="account-section-card" style="margin-top:20px">
+                <h3 class="section-title section-title--lg">أكواد الخصم</h3>
+                <form id="coupon-form" class="form-grid team-form">
+                  <label>كود الخصم<input name="code" required placeholder="SUMMER20"></label>
+                  <label>نوع الخصم
+                    <select name="discountType"><option value="percent">نسبة %</option><option value="fixed">مبلغ ثابت</option></select>
+                  </label>
+                  <label>قيمة الخصم<input name="discountValue" type="number" min="1" required></label>
+                  <label>حد أدنى للطلب (جنيه)<input name="minOrder" type="number" step="0.01" min="0" value="0"></label>
+                  <label>حد أقصى للاستخدام (اختياري)<input name="maxUses" type="number" min="1" placeholder="بدون حد"></label>
+                  <button class="span-2">إضافة كود خصم</button>
+                </form>
+                <ul id="coupons-list" class="list staff-list"></ul>
+              </section>
             </article>
 
             <article class="panel merchant-tab" data-merchant-panel="themes">
@@ -1278,13 +1333,29 @@
               </div>
               <div id="product-detail" class="product-detail store-cart-only-detail">اختر منتجًا لعرض التفاصيل.</div>
               <ul id="cart-items" class="list"></ul>
-              <div class="status-line"><strong>الإجمالي</strong><span id="cart-total">0.00 EGP</span></div>
+              <div class="checkout-summary" id="checkout-summary">
+                <div class="status-line"><span>المجموع الفرعي</span><span id="checkout-subtotal">0.00 EGP</span></div>
+                <div class="status-line"><span>الخصم</span><span id="checkout-discount">0.00 EGP</span></div>
+                <div class="status-line"><span>الشحن</span><span id="checkout-shipping">0.00 EGP</span></div>
+                <div class="status-line"><span>رسوم COD</span><span id="checkout-cod-fee">0.00 EGP</span></div>
+                <div class="status-line checkout-total-row"><strong>الإجمالي</strong><strong id="cart-total">0.00 EGP</strong></div>
+              </div>
               <form id="order-form" class="form-stack">
                 <label>اسم العميل<input name="customerName" required></label>
                 <label>موبايل العميل<input name="customerPhone" required></label>
                 <label>البريد الإلكتروني<input name="customerEmail" type="email"></label>
+                <label>المحافظة
+                  <select name="governorate" id="checkout-governorate" required></select>
+                </label>
                 <label>عنوان الشحن<textarea name="shippingAddress"></textarea></label>
-                <button>إتمام الطلب والدفع</button>
+                <label>كود الخصم (اختياري)<input name="couponCode" id="checkout-coupon" placeholder="SUMMER20"></label>
+                <fieldset class="checkout-payment-methods" id="checkout-payment-methods">
+                  <legend>طريقة الدفع</legend>
+                  <label class="check"><input type="radio" name="paymentMethod" value="paymob" checked> بطاقة (Paymob)</label>
+                  <label class="check"><input type="radio" name="paymentMethod" value="cod"> الدفع عند الاستلام</label>
+                  <label class="check"><input type="radio" name="paymentMethod" value="fawry"> Fawry</label>
+                </fieldset>
+                <button>إتمام الطلب</button>
               </form>
               <div id="checkout-result" class="hint-box">نتيجة الطلب ستظهر هنا.</div>
                 </aside>

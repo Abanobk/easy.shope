@@ -72,6 +72,7 @@ const MERCHANT_TAB_ROUTES = {
   products: { main: "catalog", panel: "products" },
   categories: { main: "catalog", panel: "categories" },
   settings: { main: "store", panel: "settings" },
+  checkout: { main: "store", panel: "checkout" },
   themes: { main: "store", panel: "themes" },
   billing: { main: "account", panel: "billing" },
   accounting: { main: "account", panel: "accounting" },
@@ -439,7 +440,7 @@ function storefrontClientProductHtml(item) {
     <div class="store-client-product-body">
       <h3>${title}</h3>
       <div class="store-client-product-meta">${price}</div>
-      <button type="button" class="store-client-add-btn success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${item.price_cents}">أضف للسلة</button>
+      <button type="button" class="store-client-add-btn success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${effectivePriceCents(item)}">أضف للسلة</button>
     </div>
   </article>`;
 }
@@ -709,7 +710,7 @@ function storefrontProductHtml(item, layout) {
   const addLabel = layout === "amber" ? "اطلب الآن" : "أضف للسلة";
   const actions = `<div class="store-product-actions">
     <button type="button" data-view-product="${item.slug}">تفاصيل</button>
-    <button type="button" class="success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${item.price_cents}">${addLabel}</button>
+    <button type="button" class="success-button" data-add-cart="${item.id}" data-title="${title}" data-price="${effectivePriceCents(item)}">${addLabel}</button>
   </div>`;
 
   if (layout === "violet") {
@@ -1324,10 +1325,15 @@ async function login(event) {
   }
 }
 
-async function submitNewProduct(payload) {
-  showMessage("جارٍ حفظ المنتج...");
-  await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload), timeoutMs: 25000 });
-  showMessage("تم إنشاء المنتج.");
+async function submitNewProduct(payload, productId = null) {
+  showMessage(productId ? "جارٍ تحديث المنتج..." : "جارٍ حفظ المنتج...");
+  if (productId) {
+    await api(`/api/merchant/products/${productId}`, { method: "PATCH", body: JSON.stringify(payload), timeoutMs: 25000 });
+    showMessage("تم تحديث المنتج.");
+  } else {
+    await api("/api/merchant/products", { method: "POST", body: JSON.stringify(payload), timeoutMs: 25000 });
+    showMessage("تم إنشاء المنتج.");
+  }
 }
 
 async function createCategory(event) {
@@ -1398,7 +1404,39 @@ function openCategoryModal() {
   });
 }
 
-const productWizardState = { step: 1, data: {}, variantRows: [] };
+const productWizardState = { step: 1, data: {}, variantRows: [], editId: null };
+
+function effectivePriceCents(product) {
+  const base = Number(product?.price_cents ?? product?.priceCents ?? 0) || 0;
+  const pct = Math.min(100, Math.max(0, Number(product?.discount_percent ?? product?.discountPercent ?? 0) || 0));
+  if (!pct) return base;
+  return Math.max(0, Math.round(base * (1 - pct / 100)));
+}
+
+function parseStoreSettingsClient(raw) {
+  const defaults = {
+    paymentMethods: { paymob: true, cod: true, fawry: false },
+    codFeeCents: 0,
+    freeShippingMinCents: 0,
+    shippingRates: [],
+    metaPixelId: "",
+    gtmId: "",
+  };
+  if (!raw || typeof raw !== "object") return defaults;
+  const pm = raw.paymentMethods || {};
+  return {
+    paymentMethods: {
+      paymob: pm.paymob !== false,
+      cod: pm.cod !== false,
+      fawry: Boolean(pm.fawry),
+    },
+    codFeeCents: Math.max(0, Math.round(Number(raw.codFeeCents) || 0)),
+    freeShippingMinCents: Math.max(0, Math.round(Number(raw.freeShippingMinCents) || 0)),
+    shippingRates: Array.isArray(raw.shippingRates) ? raw.shippingRates : [],
+    metaPixelId: String(raw.metaPixelId || "").trim(),
+    gtmId: String(raw.gtmId || "").trim(),
+  };
+}
 
 function productWizardCategoryOptions(selected = "") {
   return (
@@ -1527,19 +1565,49 @@ function openProductWizard(step = 1, options = {}) {
   if (step === 1 && options.reset) {
     productWizardState.data = { status: "draft", discountPercent: "0", stockQuantity: "10" };
     productWizardState.variantRows = [];
+    productWizardState.editId = null;
+  }
+  if (options.product) {
+    const p = options.product;
+    productWizardState.editId = p.id;
+    productWizardState.data = {
+      titleAr: p.title_ar,
+      titleEn: p.title_en,
+      description: p.description || "",
+      categoryId: p.category_id || "",
+      price: (p.price_cents / 100).toFixed(2),
+      compareAtPrice: p.compare_at_price_cents ? (p.compare_at_price_cents / 100).toFixed(2) : "",
+      discountPercent: String(p.discount_percent || 0),
+      stockQuantity: String(p.stock_quantity ?? 0),
+      status: p.status || "draft",
+      videoUrl: p.video_url || "",
+    };
+    productWizardState.variantRows = Array.isArray(p.variants)
+      ? p.variants.map((v) => ({
+          type: v.type || "",
+          color: v.color || "",
+          extraPrice: v.extraPriceCents != null ? (v.extraPriceCents / 100).toFixed(2) : "",
+          stock: v.stockQuantity ?? "",
+        }))
+      : [];
   }
   productWizardState.step = step;
+  const isEdit = Boolean(productWizardState.editId);
   const foot =
     step > 1
-      ? `<button type="button" class="secondary" id="pw-back">رجوع</button><button type="button" id="pw-next">${step < 4 ? "التالي" : "إضافة المنتج"}</button>`
+      ? `<button type="button" class="secondary" id="pw-back">رجوع</button><button type="button" id="pw-next">${step < 4 ? "التالي" : isEdit ? "حفظ التعديلات" : "إضافة المنتج"}</button>`
       : `<button type="button" class="secondary" id="pw-cancel">إلغاء</button><button type="button" id="pw-next">التالي</button>`;
   openAppModal({
-    title: `إضافة منتج — الخطوة ${step} من 4`,
+    title: `${isEdit ? "تعديل منتج" : "إضافة منتج"} — الخطوة ${step} من 4`,
     bodyHtml: productWizardStepHtml(step),
     footHtml: foot,
   });
   $("pw-cancel")?.addEventListener("click", closeAppModal);
   bindProductWizardEvents(step);
+}
+
+function openProductEdit(product) {
+  openProductWizard(1, { product });
 }
 
 async function submitProductWizard() {
@@ -1586,13 +1654,15 @@ async function submitProductWizard() {
     if (!payload.categoryId) delete payload.categoryId;
     if (!payload.imageUrl) delete payload.imageUrl;
     if (!payload.videoUrl) delete payload.videoUrl;
-    await submitNewProduct(payload);
+    const editId = productWizardState.editId;
+    await submitNewProduct(payload, editId);
     $("product-filter").value = "";
     $("product-filter-category").value = "";
     $("product-filter-status").value = "";
     await loadMerchantData();
     closeAppModal();
     setMerchantTab("products");
+    productWizardState.editId = null;
   } catch (error) {
     showMessage(error.message, true);
   } finally {
@@ -1759,6 +1829,204 @@ function fillStoreSettings(store) {
   if ($("storefront-url")) $("storefront-url").textContent = hashUrl || "—";
   renderStoreLogoPreview(store.logo_url);
   renderMerchantBrand(store);
+  fillCheckoutSettings(store);
+}
+
+function fillCheckoutSettings(store) {
+  if (!store) return;
+  const settings = parseStoreSettingsClient(store.store_settings);
+  state.storeSettings = settings;
+  const payForm = $("checkout-settings-form");
+  if (payForm) {
+    payForm.paymob.checked = settings.paymentMethods.paymob;
+    payForm.cod.checked = settings.paymentMethods.cod;
+    payForm.fawry.checked = settings.paymentMethods.fawry;
+    if (payForm.codFee) payForm.codFee.value = (settings.codFeeCents / 100).toFixed(2);
+    if (payForm.freeShippingMin) payForm.freeShippingMin.value = settings.freeShippingMinCents ? (settings.freeShippingMinCents / 100).toFixed(2) : "0";
+  }
+  const trackForm = $("tracking-settings-form");
+  if (trackForm) {
+    trackForm.metaPixelId.value = settings.metaPixelId || "";
+    trackForm.gtmId.value = settings.gtmId || "";
+  }
+  renderShippingRatesEditor(settings.shippingRates);
+  void loadCouponsList();
+}
+
+function renderShippingRatesEditor(rates) {
+  const wrap = $("shipping-rates-table");
+  const form = $("shipping-rates-form");
+  if (!wrap || !form) return;
+  const list = rates?.length
+    ? rates
+    : [
+        { id: "cairo", nameAr: "القاهرة", nameEn: "Cairo", feeCents: 3500 },
+        { id: "giza", nameAr: "الجيزة", nameEn: "Giza", feeCents: 3500 },
+        { id: "alexandria", nameAr: "الإسكندرية", nameEn: "Alexandria", feeCents: 4500 },
+        { id: "other", nameAr: "محافظات أخرى", nameEn: "Other", feeCents: 6500 },
+      ];
+  wrap.innerHTML = `<table class="data-table"><thead><tr><th>المحافظة</th><th>الرسوم (جنيه)</th></tr></thead><tbody>${list
+    .map(
+      (r) => `<tr><td><strong>${r.nameAr}</strong><br><small>${r.id}</small></td><td><input type="number" step="0.01" min="0" data-shipping-id="${r.id}" data-shipping-ar="${r.nameAr}" data-shipping-en="${r.nameEn}" value="${(r.feeCents / 100).toFixed(2)}"></td></tr>`,
+    )
+    .join("")}</tbody></table>`;
+}
+
+async function saveCheckoutSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const payload = {
+    storeSettings: {
+      paymentMethods: {
+        paymob: form.paymob.checked,
+        cod: form.cod.checked,
+        fawry: form.fawry.checked,
+      },
+      codFeeCents: parseMoneyToCents(form.codFee.value || 0),
+      freeShippingMinCents: parseMoneyToCents(form.freeShippingMin.value || 0),
+    },
+  };
+  const data = await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify(payload) });
+  showMessage("تم حفظ إعدادات الدفع.");
+  fillCheckoutSettings(data.store);
+}
+
+async function saveShippingRates(event) {
+  event.preventDefault();
+  const rates = Array.from(document.querySelectorAll("[data-shipping-id]")).map((input) => ({
+    id: input.dataset.shippingId,
+    nameAr: input.dataset.shippingAr,
+    nameEn: input.dataset.shippingEn,
+    feeCents: parseMoneyToCents(input.value || 0),
+  }));
+  const data = await api("/api/merchant/store", { method: "PATCH", body: JSON.stringify({ storeSettings: { shippingRates: rates } }) });
+  showMessage("تم حفظ أسعار الشحن.");
+  fillCheckoutSettings(data.store);
+}
+
+async function saveTrackingSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = await api("/api/merchant/store", {
+    method: "PATCH",
+    body: JSON.stringify({ storeSettings: { metaPixelId: form.metaPixelId.value.trim(), gtmId: form.gtmId.value.trim() } }),
+  });
+  showMessage("تم حفظ أكواد التتبع.");
+  fillCheckoutSettings(data.store);
+}
+
+async function loadCouponsList() {
+  const list = $("coupons-list");
+  if (!list || !state.token) return;
+  try {
+    const data = await api("/api/merchant/coupons");
+    state.merchantCoupons = data.coupons || [];
+    list.innerHTML =
+      state.merchantCoupons
+        .map(
+          (c) => `<li><strong>${c.code}</strong><small>${c.discount_type === "percent" ? `${c.discount_value}%` : money(c.discount_value)} — استخدم ${c.used_count}${c.max_uses ? `/${c.max_uses}` : ""}</small><span class="row-actions"><button class="mini-button danger-button" data-coupon-delete="${c.id}">حذف</button></span></li>`,
+        )
+        .join("") || "<li>لا توجد أكواد خصم.</li>";
+    document.querySelectorAll("[data-coupon-delete]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("حذف كود الخصم؟")) return;
+        await api(`/api/merchant/coupons/${btn.dataset.couponDelete}`, { method: "DELETE", body: JSON.stringify({}) });
+        showMessage("تم حذف الكود.");
+        await loadCouponsList();
+      });
+    });
+  } catch {
+    list.innerHTML = "<li>تعذر تحميل أكواد الخصم.</li>";
+  }
+}
+
+async function createCoupon(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const payload = {
+    code: form.get("code"),
+    discountType: form.get("discountType"),
+    discountValue: form.get("discountType") === "percent" ? Number(form.get("discountValue")) : parseMoneyToCents(form.get("discountValue")),
+    minOrderCents: parseMoneyToCents(form.get("minOrder") || 0),
+    maxUses: form.get("maxUses") ? Number(form.get("maxUses")) : null,
+  };
+  await api("/api/merchant/coupons", { method: "POST", body: JSON.stringify(payload) });
+  showMessage("تم إنشاء كود الخصم.");
+  event.currentTarget.reset();
+  await loadCouponsList();
+}
+
+function injectStoreTracking(checkout) {
+  if (!checkout) return;
+  if (checkout.gtmId && !document.getElementById("es-gtm")) {
+    const gtm = document.createElement("script");
+    gtm.id = "es-gtm";
+    gtm.textContent = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${checkout.gtmId}');`;
+    document.head.appendChild(gtm);
+  }
+  if (checkout.metaPixelId && !document.getElementById("es-fbpixel")) {
+    const px = document.createElement("script");
+    px.id = "es-fbpixel";
+    px.textContent = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${checkout.metaPixelId}');fbq('track','PageView');`;
+    document.head.appendChild(px);
+  }
+}
+
+function renderCheckoutPaymentMethods(checkout) {
+  const fieldset = $("checkout-payment-methods");
+  if (!fieldset || !checkout?.paymentMethods) return;
+  const pm = checkout.paymentMethods;
+  fieldset.querySelectorAll("label").forEach((label) => {
+    const input = label.querySelector("input");
+    const method = input?.value;
+    label.hidden = !pm[method];
+  });
+  const firstVisible = fieldset.querySelector('label:not([hidden]) input');
+  if (firstVisible) firstVisible.checked = true;
+}
+
+function renderCheckoutGovernorates(checkout) {
+  const select = $("checkout-governorate");
+  if (!select) return;
+  const rates = checkout?.shippingRates?.length
+    ? checkout.shippingRates
+    : [
+        { id: "cairo", nameAr: "القاهرة" },
+        { id: "giza", nameAr: "الجيزة" },
+        { id: "alexandria", nameAr: "الإسكندرية" },
+        { id: "other", nameAr: "محافظات أخرى" },
+      ];
+  select.innerHTML = rates.map((r) => `<option value="${r.id}">${r.nameAr}</option>`).join("");
+}
+
+async function updateCheckoutQuote() {
+  const slug = $("tenant-slug")?.value?.trim();
+  if (!slug || !state.cart.length) return;
+  const form = $("order-form");
+  if (!form) return;
+  const fd = new FormData(form);
+  const payload = {
+    customerName: fd.get("customerName") || "Guest",
+    customerPhone: fd.get("customerPhone") || "01000000000",
+    customerEmail: fd.get("customerEmail") || undefined,
+    shippingAddress: fd.get("shippingAddress") || undefined,
+    governorate: fd.get("governorate") || undefined,
+    paymentMethod: fd.get("paymentMethod") || "paymob",
+    couponCode: fd.get("couponCode") || undefined,
+    items: state.cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+  };
+  try {
+    const data = await api(`/api/store/${slug}/checkout/quote`, { method: "POST", body: JSON.stringify(payload) });
+    const q = data.quote;
+    if ($("checkout-subtotal")) $("checkout-subtotal").textContent = money(q.subtotalCents);
+    if ($("checkout-discount")) $("checkout-discount").textContent = money(q.discountCents);
+    if ($("checkout-shipping")) $("checkout-shipping").textContent = money(q.shippingFeeCents);
+    if ($("checkout-cod-fee")) $("checkout-cod-fee").textContent = money(q.codFeeCents);
+    if ($("cart-total")) $("cart-total").textContent = money(q.totalCents);
+    if (data.couponError) showMessage(data.couponError, true);
+  } catch {
+    /* quote optional while typing */
+  }
 }
 
 function renderStoreLogoPreview(logoUrl) {
@@ -2341,18 +2609,47 @@ function renderMerchantCategories() {
           <td><strong>${item.image_url ? `<img class="list-thumb" src="${item.image_url}" alt="">` : ""}${item.name_ar}<br><small>${item.name_en}</small></strong></td>
           <td><small>${item.slug}</small></td>
           <td><span class="status-badge">${count}</span></td>
+          <td><div class="row-actions"><button class="mini-button" data-category-edit="${item.id}">تعديل</button><button class="mini-button danger-button" data-category-delete="${item.id}">حذف</button></div></td>
         </tr>`;
       })
       .join("") ||
     (filter
-      ? `<tr><td colspan="3">لا توجد تصنيفات مطابقة.</td></tr>`
-      : `<tr><td colspan="3">${emptyStateBlock({
+      ? `<tr><td colspan="4">لا توجد تصنيفات مطابقة.</td></tr>`
+      : `<tr><td colspan="4">${emptyStateBlock({
           title: "لا توجد أصناف بعد",
           hint: "أنشئ أول صنف لتنظيم منتجاتك في واجهة المتجر.",
           actionLabel: "إضافة صنف",
           actionId: "empty-add-category",
         })}</td></tr>`);
   $("empty-add-category")?.addEventListener("click", openCategoryModal);
+  document.querySelectorAll("[data-category-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const cat = state.merchantCategories.find((c) => c.id === button.dataset.categoryEdit);
+      if (!cat) return;
+      openAppModal({
+        title: "تعديل الصنف",
+        bodyHtml: `<form id="category-edit-form" class="form-stack"><label>اسم عربي<input name="nameAr" value="${cat.name_ar}" required></label><label>اسم إنجليزي<input name="nameEn" value="${cat.name_en}" required></label></form>`,
+        footHtml: `<button type="button" class="secondary" id="cat-edit-cancel">إلغاء</button><button type="button" id="cat-edit-save">حفظ</button>`,
+      });
+      $("cat-edit-cancel")?.addEventListener("click", closeAppModal);
+      $("cat-edit-save")?.addEventListener("click", async () => {
+        const form = $("category-edit-form");
+        const payload = Object.fromEntries(new FormData(form).entries());
+        await api(`/api/merchant/categories/${cat.id}`, { method: "PATCH", body: JSON.stringify(payload) });
+        showMessage("تم تحديث الصنف.");
+        closeAppModal();
+        await loadMerchantData();
+      });
+    });
+  });
+  document.querySelectorAll("[data-category-delete]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!confirm("حذف هذا الصنف؟")) return;
+      await api(`/api/merchant/categories/${button.dataset.categoryDelete}`, { method: "DELETE", body: JSON.stringify({}) });
+      showMessage("تم حذف الصنف.");
+      await loadMerchantData();
+    });
+  });
 }
 
 function renderMerchantProducts() {
@@ -2382,6 +2679,7 @@ function renderMerchantProducts() {
           <td>${statusBadgeHtml}</td>
           <td>
             <div class="row-actions">
+              <button class="mini-button" data-product-edit="${item.id}">تعديل</button>
               <button class="mini-button" data-product-status="${item.id}:${item.status === "published" ? "draft" : "published"}">${item.status === "published" ? "إخفاء" : "نشر"}</button>
               <button class="mini-button danger-button" data-product-delete="${item.id}">حذف</button>
             </div>
@@ -2544,6 +2842,12 @@ function bindMerchantActions(scope = "all") {
         if (state.tenantSlug) await loadStorefront();
       });
     });
+    document.querySelectorAll("[data-product-edit]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const product = state.merchantProducts.find((p) => p.id === button.dataset.productEdit);
+        if (product) openProductEdit(product);
+      });
+    });
   }
   if (scope === "products") return;
   document.querySelectorAll("[data-order-status]").forEach((button) => {
@@ -2654,6 +2958,10 @@ async function loadStorefront(event) {
   const store = await api(`/api/store/${slug}`);
   state.storeTenantId = store.store.id || "";
   state.merchantCategories = store.categories || [];
+  state.checkoutConfig = store.checkout || null;
+  injectStoreTracking(store.checkout);
+  renderCheckoutGovernorates(store.checkout);
+  renderCheckoutPaymentMethods(store.checkout);
   const theme = store.store.storefront_theme || "ocean";
   const layout = normalizeStorefrontLayout(theme);
   document.body.dataset.theme = theme;
@@ -2712,10 +3020,20 @@ async function placeOrder(event) {
   const slug = $("tenant-slug").value.trim();
   const items = state.cart.map((item) => ({ productId: item.productId, quantity: item.quantity }));
   if (!items.length) return showMessage("اختر منتجًا واحدًا على الأقل.", true);
-  const payload = { ...Object.fromEntries(form.entries()), items };
+  const payload = {
+    customerName: form.get("customerName"),
+    customerPhone: form.get("customerPhone"),
+    customerEmail: form.get("customerEmail") || undefined,
+    shippingAddress: form.get("shippingAddress") || undefined,
+    governorate: form.get("governorate") || undefined,
+    paymentMethod: form.get("paymentMethod") || "paymob",
+    couponCode: form.get("couponCode") || undefined,
+    items,
+  };
   const data = await api(`/api/store/${slug}/orders`, { method: "POST", body: JSON.stringify(payload) });
+  const payMsg = data.payment?.message || data.payment?.status || "";
   showMessage(`تم إنشاء الطلب: ${data.order.id}`);
-  $("checkout-result").innerHTML = `<strong>تم إنشاء الطلب بنجاح</strong><p>رقم الطلب: ${data.order.id}</p><p>حالة الدفع: ${data.payment.status}</p>${
+  $("checkout-result").innerHTML = `<strong>تم إنشاء الطلب بنجاح</strong><p>رقم الطلب: ${data.order.id}</p><p>حالة الدفع: ${data.payment.status}</p>${payMsg ? `<p>${payMsg}</p>` : ""}${
     data.payment.checkoutUrl ? `<p><a class="button" href="${data.payment.checkoutUrl}" target="_blank" rel="noopener">ادفع الآن عبر Paymob</a></p>` : ""
   }`;
   state.cart = [];
@@ -2867,14 +3185,16 @@ function addToCart(productId, title, priceCents) {
 
 function renderCart() {
   const totalQty = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalCents = state.cart.reduce((total, item) => total + item.priceCents * item.quantity, 0);
+  const subtotalCents = state.cart.reduce((total, item) => total + item.priceCents * item.quantity, 0);
   $("cart-items").innerHTML =
     state.cart
       .map(
         (item) => `<li><strong>${item.title} x ${item.quantity}</strong><span>${money(item.priceCents * item.quantity)} <button class="mini-button" data-remove-cart="${item.productId}">حذف</button></span></li>`,
       )
       .join("") || "<li>السلة فارغة.</li>";
-  $("cart-total").textContent = money(totalCents);
+  if ($("checkout-subtotal")) $("checkout-subtotal").textContent = money(subtotalCents);
+  if ($("cart-total")) $("cart-total").textContent = money(subtotalCents);
+  void updateCheckoutQuote();
   const fabCount = $("store-cart-fab-count");
   const toolbarCount = $("store-cart-toolbar-count");
   if (fabCount) {
@@ -3753,6 +4073,12 @@ document.addEventListener("DOMContentLoaded", () => {
   $("store-account-backdrop")?.addEventListener("click", () => setStoreAccountOpen(false));
   initStorefrontDelegation();
   $("order-form").addEventListener("submit", placeOrder);
+  $("checkout-settings-form")?.addEventListener("submit", saveCheckoutSettings);
+  $("shipping-rates-form")?.addEventListener("submit", saveShippingRates);
+  $("tracking-settings-form")?.addEventListener("submit", saveTrackingSettings);
+  $("coupon-form")?.addEventListener("submit", createCoupon);
+  $("order-form")?.addEventListener("change", () => void updateCheckoutQuote());
+  $("checkout-coupon")?.addEventListener("blur", () => void updateCheckoutQuote());
   $("customer-login-form")?.addEventListener("submit", loginCustomer);
   $("customer-register-form").addEventListener("submit", registerCustomer);
   $("customer-orders-button").addEventListener("click", loadCustomerOrders);

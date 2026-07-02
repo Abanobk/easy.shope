@@ -18,6 +18,8 @@ import {
   upsertAccountingLink,
 } from "./accounting-integration.js";
 import { emailNotificationsConfigured, notifyNewStoreOrder } from "./notifications.js";
+import { handleCreateStoreOrder, handleStoreCheckoutQuote } from "./create-store-order.js";
+import { parseStoreSettings, publicCheckoutConfig } from "./store-settings.js";
 
 const { Pool } = pg;
 
@@ -642,6 +644,28 @@ async function migrate() {
 
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS accounting_invoice_synced boolean NOT NULL DEFAULT false;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS accounting_invoice_ref text;
+    ALTER TABLE tenants ADD COLUMN IF NOT EXISTS store_settings jsonb NOT NULL DEFAULT '{}'::jsonb;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal_cents int;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_fee_cents int NOT NULL DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_cents int NOT NULL DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS governorate text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method text;
+
+    CREATE TABLE IF NOT EXISTS coupons (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      code text NOT NULL,
+      discount_type text NOT NULL,
+      discount_value int NOT NULL,
+      min_order_cents int NOT NULL DEFAULT 0,
+      max_uses int,
+      used_count int NOT NULL DEFAULT 0,
+      expires_at timestamptz,
+      is_active boolean NOT NULL DEFAULT true,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (tenant_id, code)
+    );
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS platform_settings (
@@ -1043,6 +1067,70 @@ app.get("/api/merchant/categories", async (request) => {
   const user = requireMerchantUser(request);
   const result = await pool.query(`SELECT * FROM categories WHERE tenant_id = $1 ORDER BY sort_order, created_at DESC`, [user.tenantId]);
   return { categories: result.rows };
+});
+
+app.patch("/api/merchant/categories/:categoryId", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const params = z.object({ categoryId: z.string().uuid() }).parse(request.params);
+  const body = z
+    .object({
+      nameAr: z.string().min(1).optional(),
+      nameEn: z.string().min(1).optional(),
+      parentId: z.string().uuid().nullable().optional(),
+      imageUrl: mediaUrlSchema.nullable().optional(),
+      sortOrder: z.number().int().optional(),
+    })
+    .parse(request.body);
+  const nextSlug = body.nameEn ? slugify(body.nameEn) : null;
+  if (body.nameEn && !nextSlug) throw httpError("Category English name must contain letters or numbers");
+  if (nextSlug) {
+    const existing = await pool.query(`SELECT id FROM categories WHERE tenant_id = $1 AND slug = $2 AND id <> $3`, [
+      user.tenantId,
+      nextSlug,
+      params.categoryId,
+    ]);
+    if (existing.rows[0]) throw httpError("Category already exists with this English name", 409);
+  }
+  const result = await pool.query(
+    `UPDATE categories
+     SET name_ar = coalesce($3, name_ar),
+         name_en = coalesce($4, name_en),
+         slug = coalesce($5, slug),
+         parent_id = CASE WHEN $6 THEN $7::uuid ELSE parent_id END,
+         image_url = CASE WHEN $8 THEN $9 ELSE image_url END,
+         sort_order = coalesce($10, sort_order)
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [
+      params.categoryId,
+      user.tenantId,
+      body.nameAr ?? null,
+      body.nameEn ?? null,
+      nextSlug,
+      body.parentId !== undefined,
+      body.parentId ?? null,
+      body.imageUrl !== undefined,
+      body.imageUrl ?? null,
+      body.sortOrder ?? null,
+    ],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Category not found" });
+  return { category: result.rows[0] };
+});
+
+app.delete("/api/merchant/categories/:categoryId", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const params = z.object({ categoryId: z.string().uuid() }).parse(request.params);
+  const linked = await pool.query(`SELECT count(*)::int AS c FROM products WHERE tenant_id = $1 AND category_id = $2`, [
+    user.tenantId,
+    params.categoryId,
+  ]);
+  if (linked.rows[0]?.c > 0) {
+    return reply.code(409).send({ message: "لا يمكن حذف صنف مرتبط بمنتجات. انقل المنتجات أولاً." });
+  }
+  const result = await pool.query(`DELETE FROM categories WHERE id = $1 AND tenant_id = $2 RETURNING id`, [params.categoryId, user.tenantId]);
+  if (!result.rows[0]) return reply.code(404).send({ message: "Category not found" });
+  return { ok: true };
 });
 
 app.post("/api/merchant/products", async (request, reply) => {
@@ -1523,8 +1611,46 @@ app.patch("/api/merchant/store", async (request) => {
       storefrontTheme: z.enum(["ocean", "violet", "emerald", "amber", "rose", "slate"]).optional(),
       brandColor: z.string().min(3).max(32).optional(),
       logoUrl: z.string().min(1).max(2_000_000).optional(),
+      storeSettings: z
+        .object({
+          paymentMethods: z
+            .object({
+              paymob: z.boolean().optional(),
+              cod: z.boolean().optional(),
+              fawry: z.boolean().optional(),
+            })
+            .optional(),
+          codFeeCents: z.number().int().nonnegative().optional(),
+          freeShippingMinCents: z.number().int().nonnegative().optional(),
+          shippingRates: z
+            .array(
+              z.object({
+                id: z.string().min(1),
+                nameAr: z.string().min(1),
+                nameEn: z.string().min(1),
+                feeCents: z.number().int().nonnegative(),
+              }),
+            )
+            .optional(),
+          metaPixelId: z.string().max(64).optional(),
+          gtmId: z.string().max(64).optional(),
+        })
+        .optional(),
     })
     .parse(request.body);
+  let mergedSettings: string | null = null;
+  if (body.storeSettings) {
+    const current = await pool.query(`SELECT store_settings FROM tenants WHERE id = $1`, [user.tenantId]);
+    const parsed = parseStoreSettings(current.rows[0]?.store_settings);
+    const patch = body.storeSettings;
+    const next = parseStoreSettings({
+      ...parsed,
+      ...patch,
+      paymentMethods: { ...parsed.paymentMethods, ...(patch.paymentMethods || {}) },
+      shippingRates: patch.shippingRates ?? parsed.shippingRates,
+    });
+    mergedSettings = JSON.stringify(next);
+  }
   const result = await pool.query(
     `UPDATE tenants
      SET name_ar = coalesce($2, name_ar),
@@ -1533,7 +1659,8 @@ app.patch("/api/merchant/store", async (request) => {
          checkout_provider = coalesce($5, checkout_provider),
          storefront_theme = coalesce($6, storefront_theme),
          brand_color = coalesce($7, brand_color),
-         logo_url = coalesce($8, logo_url)
+         logo_url = coalesce($8, logo_url),
+         store_settings = coalesce($9::jsonb, store_settings)
      WHERE id = $1
      RETURNING *`,
     [
@@ -1545,9 +1672,94 @@ app.patch("/api/merchant/store", async (request) => {
       body.storefrontTheme ?? null,
       body.brandColor ?? null,
       body.logoUrl ?? null,
+      mergedSettings,
     ],
   );
   return { store: result.rows[0] };
+});
+
+app.get("/api/merchant/coupons", async (request) => {
+  const user = requireMerchantUser(request);
+  const result = await pool.query(`SELECT * FROM coupons WHERE tenant_id = $1 ORDER BY created_at DESC`, [user.tenantId]);
+  return { coupons: result.rows };
+});
+
+app.post("/api/merchant/coupons", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const body = z
+    .object({
+      code: z.string().min(2).max(32),
+      discountType: z.enum(["percent", "fixed"]),
+      discountValue: z.number().int().positive(),
+      minOrderCents: z.number().int().nonnegative().default(0),
+      maxUses: z.number().int().positive().nullable().optional(),
+      expiresAt: z.string().datetime().nullable().optional(),
+      isActive: z.boolean().default(true),
+    })
+    .parse(request.body);
+  const code = body.code.trim().toUpperCase();
+  const result = await pool.query(
+    `INSERT INTO coupons (tenant_id, code, discount_type, discount_value, min_order_cents, max_uses, expires_at, is_active)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     RETURNING *`,
+    [
+      user.tenantId,
+      code,
+      body.discountType,
+      body.discountType === "percent" ? Math.min(100, body.discountValue) : body.discountValue,
+      body.minOrderCents,
+      body.maxUses ?? null,
+      body.expiresAt ?? null,
+      body.isActive,
+    ],
+  );
+  return reply.code(201).send({ coupon: result.rows[0] });
+});
+
+app.patch("/api/merchant/coupons/:couponId", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const params = z.object({ couponId: z.string().uuid() }).parse(request.params);
+  const body = z
+    .object({
+      discountType: z.enum(["percent", "fixed"]).optional(),
+      discountValue: z.number().int().positive().optional(),
+      minOrderCents: z.number().int().nonnegative().optional(),
+      maxUses: z.number().int().positive().nullable().optional(),
+      expiresAt: z.string().datetime().nullable().optional(),
+      isActive: z.boolean().optional(),
+    })
+    .parse(request.body);
+  const result = await pool.query(
+    `UPDATE coupons
+     SET discount_type = coalesce($3, discount_type),
+         discount_value = coalesce($4, discount_value),
+         min_order_cents = coalesce($5, min_order_cents),
+         max_uses = CASE WHEN $6::text IS NULL THEN max_uses ELSE $6::int END,
+         expires_at = CASE WHEN $7::text IS NULL THEN expires_at ELSE $7::timestamptz END,
+         is_active = coalesce($8, is_active)
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [
+      params.couponId,
+      user.tenantId,
+      body.discountType ?? null,
+      body.discountValue ?? null,
+      body.minOrderCents ?? null,
+      body.maxUses === undefined ? null : body.maxUses,
+      body.expiresAt === undefined ? null : body.expiresAt,
+      body.isActive ?? null,
+    ],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Coupon not found" });
+  return { coupon: result.rows[0] };
+});
+
+app.delete("/api/merchant/coupons/:couponId", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const params = z.object({ couponId: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`DELETE FROM coupons WHERE id = $1 AND tenant_id = $2 RETURNING id`, [params.couponId, user.tenantId]);
+  if (!result.rows[0]) return reply.code(404).send({ message: "Coupon not found" });
+  return { ok: true };
 });
 
 app.get("/api/merchant/android-builds", async (request) => {
@@ -1669,7 +1881,7 @@ app.get("/api/store/:tenantSlug", async (request, reply) => {
   await expireOverdueSubscriptions();
   const [tenant, categories, products] = await Promise.all([
     pool.query(
-      `SELECT id, name_ar, name_en, slug, country, status, plan_code, storefront_theme, brand_color, logo_url, serial_code
+      `SELECT id, name_ar, name_en, slug, country, status, plan_code, storefront_theme, brand_color, logo_url, serial_code, store_settings
        FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`,
       [
       params.tenantSlug,
@@ -1700,8 +1912,10 @@ app.get("/api/store/:tenantSlug", async (request, reply) => {
     ),
   ]);
   if (!tenant.rows[0]) return reply.code(404).send({ message: "Store not found or subscription inactive" });
+  const settings = parseStoreSettings(tenant.rows[0].store_settings);
   return {
     store: publicStoreRow(tenant.rows[0]),
+    checkout: publicCheckoutConfig(settings),
     categories: categories.rows.map(publicCategoryRow),
     featuredProducts: products.rows.map(publicProductRow),
   };
@@ -1817,157 +2031,28 @@ app.get("/api/customer/orders", async (request) => {
   return { orders: result.rows };
 });
 
+const storeOrderDeps = {
+  get pool() {
+    return pool;
+  },
+  expireOverdueSubscriptions,
+  httpError,
+  splitName,
+  assertPaymobPublicKey,
+  paymobCheckoutUrl,
+  decodeSecret,
+  absoluteUrl,
+  log: app.log,
+};
+
+app.post("/api/store/:tenantSlug/checkout/quote", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string() }).parse(request.params);
+  return handleStoreCheckoutQuote(storeOrderDeps, request, reply, params.tenantSlug, request.body);
+});
+
 app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
   const params = z.object({ tenantSlug: z.string() }).parse(request.params);
-  const body = z
-    .object({
-      customerName: z.string().min(2),
-      customerPhone: z.string().min(6),
-      customerEmail: z.string().email().optional(),
-      shippingAddress: z.string().optional(),
-      items: z.array(z.object({ productId: z.string().uuid(), quantity: z.number().int().positive() })).min(1),
-    })
-    .parse(request.body);
-
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await expireOverdueSubscriptions();
-    const tenantResult = await client.query(`SELECT * FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [params.tenantSlug]);
-    const tenant = tenantResult.rows[0];
-    if (!tenant) {
-      await client.query("ROLLBACK");
-      return reply.code(404).send({ message: "Store not found" });
-    }
-
-    const productIds = body.items.map((item) => item.productId);
-    const products = await client.query(`SELECT * FROM products WHERE tenant_id = $1 AND id = ANY($2::uuid[]) AND status = 'published' FOR UPDATE`, [
-      tenant.id,
-      productIds,
-    ]);
-    const byId = new Map(products.rows.map((product) => [product.id, product]));
-    let total = 0;
-    const itemRows = body.items.map((item) => {
-      const product = byId.get(item.productId);
-      if (!product) throw httpError(`Product not available: ${item.productId}`, 400);
-      if (product.stock_quantity < item.quantity) throw httpError(`${product.title_ar || product.title_en} has only ${product.stock_quantity} items in stock`, 400);
-      const lineTotal = product.price_cents * item.quantity;
-      total += lineTotal;
-      return { product, quantity: item.quantity, lineTotal };
-    });
-
-    const customer = await client.query(
-      `INSERT INTO customers (tenant_id, name, email, phone)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [tenant.id, body.customerName, body.customerEmail ?? null, body.customerPhone],
-    );
-    const order = await client.query(
-      `INSERT INTO orders (tenant_id, customer_id, total_cents, customer_name, customer_phone, customer_email, shipping_address)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
-       RETURNING *`,
-      [tenant.id, customer.rows[0].id, total, body.customerName, body.customerPhone, body.customerEmail ?? null, body.shippingAddress ?? null],
-    );
-    for (const item of itemRows) {
-      await client.query(
-        `INSERT INTO order_items (order_id, product_id, title, quantity, unit_price_cents, total_cents)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [order.rows[0].id, item.product.id, item.product.title_en, item.quantity, item.product.price_cents, item.lineTotal],
-      );
-    }
-    await reserveOrderStock(
-      client,
-      itemRows.map((item) => ({ productId: item.product.id as string, quantity: item.quantity })),
-    );
-    await client.query("COMMIT");
-
-    const notifyOrder = (checkoutUrl?: string | null) => {
-      void notifyNewStoreOrder(pool, {
-        tenantId: tenant.id as string,
-        orderId: order.rows[0].id as string,
-        totalCents: total,
-        customerName: body.customerName,
-        customerPhone: body.customerPhone,
-        customerEmail: body.customerEmail ?? null,
-        checkoutUrl: checkoutUrl ?? null,
-      }).catch((err) => app.log.error({ err }, "order notification failed"));
-    };
-
-    const preferred = String(tenant.checkout_provider || "paymob");
-    if (preferred !== "paymob") {
-      notifyOrder();
-      return reply
-        .code(201)
-        .send({ order: order.rows[0], payment: { status: "pending", provider: preferred, message: "Checkout provider is not integrated yet. Connect Paymob for live checkout." } });
-    }
-
-    const paymob = await pool.query(`SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'paymob' AND is_enabled = true`, [tenant.id]);
-    const credentials = paymob.rows[0];
-    if (!credentials) {
-      notifyOrder();
-      return reply.code(201).send({ order: order.rows[0], payment: { status: "pending", provider: "manual_until_paymob_connected" } });
-    }
-
-    const secret = decodeSecret<{ secretKey: string }>(credentials.encrypted_secret);
-    const publicConfig = credentials.public_config as { publicKey: string; cardIntegrationId: number; currency?: string };
-    assertPaymobPublicKey(publicConfig.publicKey);
-    const { firstName, lastName } = splitName(body.customerName);
-    const intentionResponse = await fetch("https://accept.paymob.com/v1/intention/", {
-      method: "POST",
-      headers: { Authorization: `Token ${secret.secretKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount: total,
-        currency: publicConfig.currency || "EGP",
-        payment_methods: [Number(publicConfig.cardIntegrationId)],
-        items: itemRows.map((item) => ({
-          name: item.product.title_en.slice(0, 50),
-          amount: item.lineTotal,
-          description: item.product.description || item.product.title_en,
-          quantity: item.quantity,
-        })),
-        billing_data: {
-          first_name: firstName,
-          last_name: lastName,
-          phone_number: body.customerPhone,
-          email: body.customerEmail || "customer@example.com",
-          country: "EG",
-          city: "Cairo",
-          street: body.shippingAddress || "NA",
-          building: "NA",
-          apartment: "NA",
-          floor: "NA",
-        },
-        special_reference: order.rows[0].id,
-        notification_url: absoluteUrl(request, "/api/webhooks/paymob"),
-        redirection_url: absoluteUrl(request, `/?order=${order.rows[0].id}`),
-        expiration: 3600,
-      }),
-    });
-    const intention = await intentionResponse.json().catch(() => ({}));
-    if (!intentionResponse.ok || !intention.client_secret) {
-      await restoreOrderStock(pool, order.rows[0].id as string);
-      await pool.query(`UPDATE orders SET payment_provider = 'paymob', payment_reference = $2, status = 'cancelled', payment_status = 'failed' WHERE id = $1`, [
-        order.rows[0].id,
-        intention.id ? String(intention.id) : null,
-      ]);
-      return reply.code(201).send({
-        order: { ...order.rows[0], status: "cancelled", payment_status: "failed" },
-        payment: { status: "failed", provider: "paymob", message: intention.message || "Paymob intention creation failed", details: intention },
-      });
-    }
-    const checkoutUrl = paymobCheckoutUrl(publicConfig.publicKey, intention.client_secret);
-    const updatedOrder = await pool.query(
-      `UPDATE orders SET payment_provider = 'paymob', payment_reference = $2, checkout_url = $3 WHERE id = $1 RETURNING *`,
-      [order.rows[0].id, String(intention.id || intention.intention_order_id || ""), checkoutUrl],
-    );
-    notifyOrder(checkoutUrl);
-    return reply.code(201).send({ order: updatedOrder.rows[0], payment: { status: "redirect_required", provider: "paymob", checkoutUrl } });
-  } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined);
-    throw error;
-  } finally {
-    client.release();
-  }
+  return handleCreateStoreOrder(storeOrderDeps, request, reply, params.tenantSlug, request.body);
 });
 
 app.post("/api/webhooks/paymob", async (request, reply) => {
