@@ -1,0 +1,970 @@
+/* ===== Phase 1: Admin design system (Easy Cash inspired) ===== */
+/* Loaded via @import in styles.css — merchant & admin light workspace */
+
+body[data-scope="merchant"],
+body[data-scope="admin"] {
+  /* Easy Shope commerce identity — polished like Easy Cash, distinct palette */
+  --admin-primary: #6366f1;
+  --admin-primary-deep: #4f46e5;
+  --admin-accent: #f97316;
+  --admin-primary-soft: #eef2ff;
+  --admin-sidebar: #1e1b4b;
+  --admin-sidebar-hover: #312e81;
+  --admin-workspace: #f1f5f9;
+  --admin-surface: #ffffff;
+  --admin-text: #0f172a;
+  --admin-muted: #64748b;
+  --admin-line: #e2e8f0;
+  --panel: var(--admin-surface);
+  --panel-strong: var(--admin-surface);
+  --text: var(--admin-text);
+  --muted: var(--admin-muted);
+  --line: var(--admin-line);
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --accent: var(--admin-primary);
+  background: var(--admin-workspace);
+  color: var(--admin-text);
+  font-family: "Cairo", "Segoe UI", system-ui, sans-serif;
+}
+
+body[data-scope="merchant"] .topbar,
+body[data-scope="admin"] .topbar {
+  background: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-line);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+body[data-scope="merchant"] .topbar h1,
+body[data-scope="admin"] .topbar h1,
+body[data-scope="merchant"] .page-head h2,
+body[data-scope="admin"] .page-head h2 {
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .message,
+body[data-scope="admin"] .message {
+  background: var(--admin-surface);
+  border-color: var(--admin-line);
+  color: var(--admin-text);
+}
+
+/* Sidebar — dark slate like Easy Cash */
+body[data-scope="merchant"] .merchant-side,
+body[data-scope="admin"] .admin-side {
+  background: var(--admin-sidebar);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12);
+}
+
+body[data-scope="merchant"] .merchant-side-item,
+body[data-scope="admin"] .admin-side-item {
+  background: transparent;
+  border-color: transparent;
+  color: #cbd5e1;
+}
+
+body[data-scope="merchant"] .merchant-side-item:hover,
+body[data-scope="admin"] .admin-side-item:hover {
+  background: var(--admin-sidebar-hover);
+  border-color: transparent;
+}
+
+body[data-scope="merchant"] .merchant-side-item.active,
+body[data-scope="admin"] .admin-side-item.active {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+body[data-scope="merchant"] .merchant-side-item.active small,
+body[data-scope="admin"] .admin-side-item.active small {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+body[data-scope="merchant"] .merchant-brand-text .eyebrow,
+body[data-scope="admin"] .admin-side-head .eyebrow {
+  color: #94a3b8;
+}
+
+body[data-scope="merchant"] .merchant-brand-text strong,
+body[data-scope="admin"] .admin-side-head strong {
+  color: #f8fafc;
+}
+
+/* Panels — white cards */
+body[data-scope="merchant"] .panel,
+body[data-scope="admin"] .panel {
+  background: var(--admin-surface);
+  border-color: var(--admin-line);
+  box-shadow: var(--shadow);
+}
+
+body[data-scope="merchant"] .page-subtitle,
+body[data-scope="admin"] .page-subtitle,
+body[data-scope="merchant"] .breadcrumb,
+body[data-scope="admin"] .breadcrumb {
+  color: var(--admin-muted);
+}
+
+/* KPI metrics — light cards */
+body[data-scope="merchant"] .metric,
+body[data-scope="admin"] .metric {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  box-shadow: var(--shadow);
+}
+
+body[data-scope="merchant"] .metric::before,
+body[data-scope="admin"] .metric::before {
+  display: none;
+}
+
+body[data-scope="merchant"] .metric:hover,
+body[data-scope="admin"] .metric:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.1);
+}
+
+body[data-scope="merchant"] .metric strong,
+body[data-scope="admin"] .metric strong {
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .metric small,
+body[data-scope="admin"] .metric small {
+  color: var(--admin-muted);
+}
+
+/* Tables — clean data-table */
+body[data-scope="merchant"] .table-wrap,
+body[data-scope="admin"] .table-wrap {
+  background: var(--admin-surface);
+  border-color: var(--admin-line);
+  box-shadow: var(--shadow);
+}
+
+body[data-scope="merchant"] th,
+body[data-scope="admin"] th {
+  background: #f8fafc;
+  color: var(--admin-muted);
+  font-weight: 700;
+  font-size: 12px;
+  border-bottom: 1px solid var(--admin-line);
+}
+
+body[data-scope="merchant"] td,
+body[data-scope="admin"] td {
+  color: var(--admin-text);
+  border-bottom: 1px solid var(--admin-line);
+}
+
+body[data-scope="merchant"] tbody tr:hover td,
+body[data-scope="admin"] tbody tr:hover td {
+  background: #f8fafc;
+}
+
+/* Lists */
+body[data-scope="merchant"] .list li,
+body[data-scope="admin"] .list li {
+  background: var(--admin-surface);
+  border-color: var(--admin-line);
+}
+
+/* Status badges — semantic soft pills (light mode) */
+body[data-scope="merchant"] .status-badge,
+body[data-scope="admin"] .status-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+body[data-scope="merchant"] .status-badge.ok,
+body[data-scope="admin"] .status-badge.ok {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+body[data-scope="merchant"] .status-badge.off,
+body[data-scope="admin"] .status-badge.off {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+body[data-scope="merchant"] .status-badge.warn,
+body[data-scope="admin"] .status-badge.warn {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+/* Inputs */
+body[data-scope="merchant"] input,
+body[data-scope="merchant"] select,
+body[data-scope="merchant"] textarea,
+body[data-scope="admin"] input,
+body[data-scope="admin"] select,
+body[data-scope="admin"] textarea {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] input:focus,
+body[data-scope="merchant"] select:focus,
+body[data-scope="merchant"] textarea:focus,
+body[data-scope="admin"] input:focus,
+body[data-scope="admin"] select:focus,
+body[data-scope="admin"] textarea:focus {
+  border-color: var(--admin-primary);
+  outline: 2px solid rgba(37, 99, 235, 0.15);
+  outline-offset: 0;
+}
+
+/* Primary buttons */
+body[data-scope="merchant"] button:not(.ghost):not(.secondary):not(.mini-button):not(.drawer-close):not(.merchant-menu-toggle):not(.password-toggle):not(.theme-tile-select):not(.theme-chip):not(.merchant-side-item):not(.admin-side-item),
+body[data-scope="admin"] button:not(.ghost):not(.secondary):not(.mini-button):not(.drawer-close):not(.merchant-menu-toggle):not(.password-toggle):not(.admin-side-item) {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep));
+  color: #fff;
+  border: none;
+}
+
+body[data-scope="merchant"] .hint-box,
+body[data-scope="admin"] .hint-box {
+  background: var(--admin-primary-soft);
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+body[data-scope="merchant"] .chart-card,
+body[data-scope="admin"] .chart-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+}
+
+body[data-scope="merchant"] .mini-cta,
+body[data-scope="admin"] .mini-cta {
+  border: 2px dashed var(--admin-line);
+  background: #fff;
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .mini-cta:hover,
+body[data-scope="admin"] .mini-cta:hover {
+  border-color: var(--admin-primary);
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary);
+}
+
+/* App modal */
+.app-modal {
+  border: none;
+  padding: 0;
+  max-width: min(520px, calc(100vw - 32px));
+  width: 100%;
+  background: transparent;
+}
+
+.app-modal::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.app-modal-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+
+.app-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--admin-line, #e2e8f0);
+}
+
+.app-modal-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.app-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-modal-body {
+  padding: 20px;
+  max-height: min(70vh, 520px);
+  overflow: auto;
+}
+
+.app-modal-foot {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.app-modal-foot button {
+  flex: 1;
+}
+
+.merchant-kpi-grid {
+  gap: 16px;
+}
+
+/* Phase 2: grouped sub-navigation */
+.merchant-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px 0;
+  margin: 0;
+}
+
+.merchant-subnav[hidden] {
+  display: none !important;
+}
+
+.merchant-subnav-item {
+  border: 1px solid var(--admin-line, #e2e8f0);
+  background: var(--admin-surface, #fff);
+  color: var(--admin-muted, #64748b);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.merchant-subnav-item:hover {
+  border-color: #cbd5e1;
+  color: var(--admin-text, #0f172a);
+}
+
+.merchant-subnav-item.active {
+  background: var(--admin-primary-soft, #eff6ff);
+  border-color: #93c5fd;
+  color: var(--admin-primary, #2563eb);
+}
+
+/* Theme studio stepper */
+.theme-studio-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0 4px;
+}
+
+.theme-studio-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.theme-studio-steps li span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.theme-studio-steps li.active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.theme-studio-steps li.active span {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* Empty states */
+.empty-state {
+  text-align: center;
+  padding: 36px 20px;
+}
+
+.empty-state-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  color: #64748b;
+  display: grid;
+  place-items: center;
+}
+
+.empty-state-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.empty-state strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+.empty-state p {
+  margin: 0 0 14px;
+  max-width: 360px;
+  margin-inline: auto;
+}
+
+/* Product wizard in modal */
+.wizard-steps-indicator {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.wizard-steps-indicator span {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.wizard-steps-indicator span.active {
+  background: #2563eb;
+}
+
+.wizard-steps-indicator span.done {
+  background: #93c5fd;
+}
+
+.wizard-lead {
+  margin: 0 0 14px;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+.wizard-form label,
+.app-modal-body label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.wizard-form input,
+.wizard-form textarea,
+.wizard-form select,
+.app-modal-body input,
+.app-modal-body textarea,
+.app-modal-body select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-family: inherit;
+}
+
+.merchant-settings-layout--identity {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .merchant-settings-layout--identity {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* —— Welcome banner (Easy Cash flow, Easy Shope e-commerce tone) —— */
+.shop-welcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 55%, #a855f7 100%);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.28);
+}
+
+.shop-welcome-banner h2 {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.shop-welcome-banner p {
+  margin: 0;
+  opacity: 0.92;
+  font-size: 0.92rem;
+}
+
+.shop-welcome-date {
+  min-width: 72px;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.shop-welcome-date strong {
+  display: block;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.shop-welcome-date small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+/* Sidebar icons */
+.merchant-side-item,
+.admin-side-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: start;
+}
+
+.merchant-side-icon,
+.admin-side-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: #c7d2fe;
+}
+
+.merchant-side-item.active .merchant-side-icon,
+.admin-side-item.active .admin-side-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.merchant-side-icon svg,
+.admin-side-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.merchant-side-item > span:last-child,
+.admin-side-item > span:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Quick action cards — dashed borders like Easy Cash */
+.quick-actions-grid--commerce {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px;
+  border-radius: 14px;
+  border: 2px dashed var(--qa-border, #e2e8f0);
+  background: #fff;
+  color: var(--admin-text);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+
+.quick-action-card:hover {
+  border-style: solid;
+  background: var(--qa-soft, #f8fafc);
+  transform: translateY(-1px);
+}
+
+.quick-action-card .qa-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--qa-soft, #f1f5f9);
+  color: var(--qa-color, var(--admin-primary));
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.quick-action-card .qa-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.qa--sky { --qa-color: #0ea5e9; --qa-soft: #e0f2fe; --qa-border: #7dd3fc; }
+.qa--violet { --qa-color: #8b5cf6; --qa-soft: #ede9fe; --qa-border: #c4b5fd; }
+.qa--emerald { --qa-color: #10b981; --qa-soft: #d1fae5; --qa-border: #6ee7b7; }
+.qa--amber { --qa-color: #f59e0b; --qa-soft: #fef3c7; --qa-border: #fcd34d; }
+.qa--rose { --qa-color: #f43f5e; --qa-soft: #ffe4e6; --qa-border: #fda4af; }
+.qa--indigo { --qa-color: #6366f1; --qa-soft: #eef2ff; --qa-border: #a5b4fc; }
+.qa--orange { --qa-color: #f97316; --qa-soft: #ffedd5; --qa-border: #fdba74; }
+.qa--teal { --qa-color: #14b8a6; --qa-soft: #ccfbf1; --qa-border: #5eead4; }
+
+/* Subscription & plans */
+.subscription-status-card {
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--admin-line);
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+
+.subscription-status-card.is-trial {
+  border-color: #fcd34d;
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+}
+
+.subscription-status-card.is-active {
+  border-color: #86efac;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+
+.subscription-status-card.is-danger {
+  border-color: #fca5a5;
+  background: linear-gradient(180deg, #fef2f2 0%, #fff 100%);
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.plan-picker-card {
+  border: 2px solid var(--admin-line);
+  border-radius: 16px;
+  padding: 18px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  text-align: start;
+  font-family: inherit;
+}
+
+.plan-picker-card:hover {
+  border-color: #a5b4fc;
+}
+
+.plan-picker-card.selected {
+  border-color: var(--admin-primary);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.18);
+  background: var(--admin-primary-soft);
+}
+
+.plan-picker-card strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+
+.plan-picker-card .plan-price {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--admin-primary-deep);
+  margin: 8px 0;
+}
+
+.plan-picker-card small {
+  color: var(--admin-muted);
+  line-height: 1.5;
+}
+
+/* Paymob panel — Easy Cash style */
+.paymob-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.paymob-status-card {
+  border-radius: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--admin-line);
+  background: #fff;
+}
+
+.paymob-status-card.is-ready {
+  border-color: #86efac;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+
+.paymob-status-card.is-pending {
+  border-color: #fcd34d;
+  background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+}
+
+.paymob-status-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.paymob-status-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.paymob-status-rows {
+  display: grid;
+  gap: 0;
+}
+
+.paymob-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.88rem;
+}
+
+.paymob-status-row:last-child {
+  border-bottom: none;
+}
+
+.paymob-status-row .ps-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-muted);
+}
+
+.paymob-status-row .ps-value {
+  font-weight: 700;
+  color: var(--admin-text);
+  font-family: ui-monospace, monospace;
+  font-size: 0.82rem;
+  direction: ltr;
+  text-align: left;
+}
+
+.paymob-methods-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  margin-top: 8px;
+}
+
+.paymob-methods-table th,
+.paymob-methods-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: start;
+}
+
+.paymob-methods-table th {
+  color: var(--admin-muted);
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.copy-field {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.copy-field input {
+  flex: 1;
+  font-size: 0.82rem;
+  direction: ltr;
+  text-align: left;
+}
+
+.copy-field button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.admin-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.admin-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--admin-line);
+  background: #fff;
+  color: var(--admin-text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.admin-quick-btn:hover {
+  background: var(--admin-primary-soft);
+  border-color: #a5b4fc;
+  color: var(--admin-primary-deep);
+}
+
+.admin-quick-btn svg {
+  width: 16px;
+  height: 16px;
+  color: var(--admin-primary);
+}
+
+.plan-card--admin {
+  border: 1px solid var(--admin-line);
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+  display: grid;
+  gap: 12px;
+}
+
+.plan-card--admin .plan-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.plan-card--admin .plan-card-price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--admin-primary-deep);
+}
+
+body[data-scope="admin"] .admin-section-card {
+  background: var(--admin-surface);
+  border-color: var(--admin-line);
+  box-shadow: var(--shadow);
+}
+
+/* Accounting module (Easy Cash integration) */
+.accounting-module-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .accounting-module-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.accounting-offer-card {
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid #c7d2fe;
+  background: linear-gradient(145deg, #eef2ff 0%, #fff 55%, #faf5ff 100%);
+  position: relative;
+}
+
+.accounting-offer-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #6366f1;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.accounting-feature-list {
+  margin: 16px 0;
+  padding-right: 18px;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.accounting-plans-grid .plan-picker-card--readonly {
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+.accounting-sync-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.accounting-sync-log li p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.text-danger { color: #dc2626; }
+.text-warn { color: #b45309; }
+
+.accounting-discover-box .inline-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+body[data-scope="admin"] .admin-section-card .seg-item {
+  color: var(--admin-muted);
+}
