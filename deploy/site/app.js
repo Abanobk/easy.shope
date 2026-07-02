@@ -18,23 +18,56 @@ const state = {
   adminTenants: [],
   adminPlans: [],
   merchantPlans: [],
-  /** صلاحيات المستخدم الحالي (للموظف) */
+  /** صلاحيات المستخدم الحالي */
   permissions: [],
+  effectivePermissions: {},
+  permissionsBypass: false,
+  staffRole: null,
   merchantMainTab: "overview",
   merchantPanel: "overview",
 };
 
-/// مفاتيح الصلاحيات الممنوحة للموظفين + تسمياتها العربية.
-const STAFF_PERMISSIONS = [
-  { key: "orders", label: "الطلبات", hint: "عرض وإدارة الطلبات" },
-  { key: "products", label: "المنتجات", hint: "إضافة وتعديل المنتجات" },
-  { key: "categories", label: "الأصناف", hint: "تنظيم الأقسام" },
-  { key: "settings", label: "إعدادات المتجر", hint: "البيانات والهوية" },
-  { key: "providers", label: "إعدادات الدفع", hint: "Paymob و Easy Cash" },
-  { key: "billing", label: "اشتراك المنصة", hint: "الفواتير والخطة" },
-  { key: "accounting", label: "المحاسبة", hint: "ربط Easy Cash" },
-  { key: "android", label: "تطبيق أندرويد", hint: "بناء APK" },
-];
+/// وحدات الصلاحيات (تُحمّل من API أيضاً)
+const PERMISSION_ACTION_LABELS = { view: "عرض", create: "إضافة", edit: "تعديل", delete: "حذف" };
+
+function can(module, action = "view") {
+  if (state.permissionsBypass || state.role === "merchant_owner") return true;
+  const row = state.effectivePermissions?.[module];
+  if (!row) return false;
+  return Boolean(row[action]);
+}
+
+function merchantMainTabAllowed(mainTab) {
+  if (state.role === "merchant_owner" || state.permissionsBypass) return true;
+  if (mainTab === "overview") return can("dashboard", "view");
+  if (mainTab === "catalog") return can("products", "view") || can("categories", "view");
+  if (mainTab === "orders") return can("orders", "view");
+  if (mainTab === "store") return can("settings", "view") || can("themes", "view") || can("checkout", "view");
+  if (mainTab === "account") {
+    return can("providers", "view") || can("billing", "view") || can("accounting", "view") || can("android", "view");
+  }
+  return false;
+}
+
+function merchantSubTabAllowed(subTab) {
+  if (state.role === "merchant_owner" || state.permissionsBypass) {
+    if (subTab === "team") return state.role === "merchant_owner";
+    return true;
+  }
+  if (subTab === "team") return false;
+  if (subTab === "products") return can("products", "view");
+  if (subTab === "categories") return can("categories", "view");
+  if (subTab === "orders") return can("orders", "view");
+  if (subTab === "settings") return can("settings", "view");
+  if (subTab === "themes") return can("themes", "view");
+  if (subTab === "checkout") return can("checkout", "view");
+  if (subTab === "providers") return can("providers", "view");
+  if (subTab === "billing") return can("billing", "view");
+  if (subTab === "accounting") return can("accounting", "view");
+  if (subTab === "android") return can("android", "view");
+  if (subTab === "overview") return can("dashboard", "view");
+  return false;
+}
 
 const STOREFRONT_THEME_LABELS = {
   ocean: "Ocean — أزياء كلاسيكية (شبكة + شريط سفلي)",
@@ -289,30 +322,6 @@ function updateMerchantSubnavs(mainTab) {
   $("subnav-catalog")?.toggleAttribute("hidden", mainTab !== "catalog");
   $("subnav-store")?.toggleAttribute("hidden", mainTab !== "store");
   $("subnav-account")?.toggleAttribute("hidden", mainTab !== "account");
-}
-
-function merchantMainTabAllowed(mainTab) {
-  const isStaff = state.role === "merchant_staff";
-  if (!isStaff) return true;
-  if (mainTab === "overview") return true;
-  if (mainTab === "catalog") return state.permissions.includes("products") || state.permissions.includes("categories");
-  if (mainTab === "orders") return state.permissions.includes("orders");
-  if (mainTab === "store") return state.permissions.includes("settings");
-  if (mainTab === "account") return state.permissions.some((p) => ["billing", "accounting", "providers", "android"].includes(p));
-  return false;
-}
-
-function merchantSubTabAllowed(subTab) {
-  const isStaff = state.role === "merchant_staff";
-  if (!isStaff) {
-    if (subTab === "team") return state.role === "merchant_owner";
-    return true;
-  }
-  if (subTab === "team") return false;
-  if (subTab === "products") return state.permissions.includes("products");
-  if (subTab === "categories") return state.permissions.includes("categories");
-  if (subTab === "settings" || subTab === "themes") return state.permissions.includes("settings");
-  return state.permissions.includes(subTab);
 }
 
 function firstAllowedMerchantPanel(mainTab) {
@@ -886,6 +895,9 @@ function clearAuthState() {
   state.token = "";
   state.role = "";
   state.permissions = [];
+  state.effectivePermissions = {};
+  state.permissionsBypass = false;
+  state.staffRole = null;
   state.tenantSlug = "";
   localStorage.removeItem("easyShopeToken");
   localStorage.removeItem("easyShopeTenantSlug");
@@ -1210,6 +1222,9 @@ async function refreshMe() {
   if (!state.token) {
     state.role = "";
     state.permissions = [];
+    state.effectivePermissions = {};
+    state.permissionsBypass = false;
+    state.staffRole = null;
     $("current-user").textContent = "guest";
     updateNavigation();
     return;
@@ -1217,6 +1232,9 @@ async function refreshMe() {
   const me = await api("/api/me");
   state.role = me.role;
   state.permissions = Array.isArray(me.permissions) ? me.permissions : [];
+  state.effectivePermissions = me.effectivePermissions || {};
+  state.permissionsBypass = Boolean(me.permissionsBypass);
+  state.staffRole = me.staffRole || null;
   state.tenantSlug = me.slug || state.tenantSlug;
   localStorage.setItem("easyShopeRole", state.role);
   localStorage.setItem("easyShopeTenantSlug", state.tenantSlug);
@@ -1224,6 +1242,7 @@ async function refreshMe() {
   $("tenant-slug").value = state.tenantSlug || "";
   if ($("overview-slug")) $("overview-slug").textContent = state.tenantSlug || "غير محدد";
   updateNavigation();
+  applyMerchantPermissions();
 }
 
 async function registerMerchant(event) {
@@ -1315,6 +1334,9 @@ async function login(event) {
     const data = await api("/api/auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(form.entries())) });
     state.token = data.token;
     state.role = data.user.role;
+    state.effectivePermissions = data.effectivePermissions || {};
+    state.permissionsBypass = Boolean(data.user?.permissionsBypass);
+    state.staffRole = data.user?.staffRole || null;
     localStorage.setItem("easyShopeToken", state.token);
     localStorage.setItem("easyShopeRole", state.role);
     if (data.storeSerial) {
@@ -1809,11 +1831,8 @@ async function createStaff(event) {
   try {
     button.disabled = true;
     button.textContent = "جارٍ إضافة الموظف...";
-    const formEl = event.currentTarget;
-    const form = new FormData(formEl);
+    const form = new FormData(event.currentTarget);
     const payload = Object.fromEntries(form.entries());
-    delete payload.permissions;
-    payload.permissions = Array.from(formEl.querySelectorAll('input[name="permissions"]:checked')).map((el) => el.value);
     await api("/api/merchant/staff", { method: "POST", body: JSON.stringify(payload) });
     showMessage("تم إضافة الموظف.");
     event.currentTarget.reset();
@@ -2524,7 +2543,7 @@ function renderAndroidIntegrationBanner() {
     el.className = "hint-box android-integration-banner android-integration--blocked";
     el.innerHTML = `<strong>ضبط خادم الـ API غير مكتمل</strong><p class="muted" style="margin:8px 0 0">ينقص في ملف <code>.env</code> على خادم النشر: ${parts.join(" — ")}. بعد الحفظ أعد تشغيل حاوية الـ API. للقائمة الكاملة (أسرار GitHub ومستودع Flutter) راجع الصندوق التالي.</p>`;
   }
-  if (btn && state.role === "merchant_owner") {
+  if (btn && can("android", "create")) {
     btn.disabled = false;
     btn.classList.toggle("android-build-button--blocked", !ready);
     btn.title = ready
@@ -2536,7 +2555,10 @@ function renderAndroidIntegrationBanner() {
 function renderMerchantAndroidBuilds() {
   const ul = $("merchant-android-builds");
   const btn = $("merchant-android-build-request");
-  if (btn) btn.hidden = state.role !== "merchant_owner";
+  if (btn) {
+    btn.hidden = !can("android", "create");
+    btn.disabled = !can("android", "create");
+  }
   renderAndroidIntegrationBanner();
   if (!ul) return;
   const rows = state.merchantAndroidBuilds || [];
@@ -2831,110 +2853,174 @@ async function loadStaff() {
   if (!staffList) return;
   if (state.role !== "merchant_owner") {
     staffList.innerHTML = "<li>إدارة الموظفين متاحة لصاحب المتجر فقط.</li>";
-    $("staff-form")?.querySelectorAll("input, button").forEach((element) => {
+    $("staff-form")?.querySelectorAll("input, button, select").forEach((element) => {
       element.disabled = true;
     });
     return;
   }
-  $("staff-form")?.querySelectorAll("input, button").forEach((element) => {
+  $("staff-form")?.querySelectorAll("input, button, select").forEach((element) => {
     element.disabled = false;
   });
-  renderCreatePermissions();
   const data = await api("/api/merchant/staff");
+  state.staffRoles = data.roles || [];
+  state.permissionModules = data.modules || [];
+  fillStaffRoleSelects(data.roles || []);
+  const linkBox = $("staff-login-link");
+  if (linkBox && data.staffLoginUrl) {
+    linkBox.hidden = false;
+    linkBox.innerHTML = `<strong>رابط دخول الموظفين</strong><p class="store-link-url">${data.staffLoginUrl}</p><button type="button" class="secondary" id="copy-staff-login-url">نسخ الرابط</button>`;
+    $("copy-staff-login-url")?.addEventListener("click", () => {
+      navigator.clipboard?.writeText(data.staffLoginUrl);
+      showMessage("تم نسخ رابط الدخول.");
+    });
+  }
   const filter = ($("staff-filter")?.value || "").trim().toLowerCase();
   const rows = (data.staff || []).filter((m) => {
     if (!filter) return true;
-    return `${m.name} ${m.email}`.toLowerCase().includes(filter);
+    return `${m.name} ${m.email} ${m.job_title || ""}`.toLowerCase().includes(filter);
   });
   staffList.innerHTML =
-    rows
-      .map((member) => renderStaffRow(member))
-      .join("") || "<li>لا يوجد موظفون مطابقون.</li>";
+    rows.map((member) => renderStaffRow(member, data.roles || [])).join("") || "<li>لا يوجد موظفون مطابقون.</li>";
+  fillOverrideUserSelect(data.staff || []);
   bindStaffActions();
+  void loadRoleMatrix();
 }
 
-function permissionLabel(key) {
-  return STAFF_PERMISSIONS.find((p) => p.key === key)?.label || key;
+function staffRoleLabel(roleId, roles = state.staffRoles || []) {
+  return roles.find((r) => r.id === roleId)?.labelAr || roleId || "—";
 }
 
-function renderCreatePermissions() {
-  const container = $("staff-create-permissions");
-  if (!container || container.dataset.ready === "1") return;
-  container.innerHTML = STAFF_PERMISSIONS.map(
-    (perm) => `<label class="perm-check">
-        <input type="checkbox" name="permissions" value="${perm.key}">
-        <span><strong>${perm.label}</strong><small>${perm.hint}</small></span>
-      </label>`,
-  ).join("");
-  container.dataset.ready = "1";
+function fillStaffRoleSelects(roles) {
+  const html = roles.map((r) => `<option value="${r.id}">${r.labelAr}</option>`).join("");
+  $("staff-role-select") && ($("staff-role-select").innerHTML = html);
+  $("role-matrix-select") && ($("role-matrix-select").innerHTML = html);
 }
 
-function renderStaffRow(member) {
-  const perms = Array.isArray(member.permissions) ? member.permissions : [];
-  const badges = perms.length
-    ? perms.map((key) => `<span class="perm-badge">${permissionLabel(key)}</span>`).join("")
-    : `<span class="perm-badge perm-badge--none">بدون صلاحيات</span>`;
-  const checkboxes = STAFF_PERMISSIONS.map(
-    (perm) => `<label class="perm-check">
-        <input type="checkbox" value="${perm.key}" ${perms.includes(perm.key) ? "checked" : ""}>
-        <span><strong>${perm.label}</strong><small>${perm.hint}</small></span>
-      </label>`,
-  ).join("");
+function fillOverrideUserSelect(staff) {
+  const sel = $("override-user-select");
+  if (!sel) return;
+  sel.innerHTML = staff.map((m) => `<option value="${m.id}">${m.name} (${staffRoleLabel(m.staff_role)})</option>`).join("") || `<option value="">لا يوجد موظفون</option>`;
+}
+
+function renderPermissionMatrix(container, permissions, prefix = "perm") {
+  if (!container) return;
+  const modules = state.permissionModules?.length
+    ? state.permissionModules
+    : [
+        { id: "orders", labelAr: "الطلبات", group: "المبيعات" },
+        { id: "products", labelAr: "المنتجات", group: "الكتالوج" },
+      ];
+  const groups = [...new Set(modules.map((m) => m.group))];
+  container.innerHTML = groups
+    .map((group) => {
+      const mods = modules.filter((m) => m.group === group);
+      return `<div class="perm-matrix-group"><strong>${group}</strong><table class="data-table perm-matrix-table"><thead><tr><th>القسم</th>${Object.entries(PERMISSION_ACTION_LABELS)
+        .map(([k, v]) => `<th>${v}</th>`)
+        .join("")}</tr></thead><tbody>${mods
+        .map((mod) => {
+          const row = permissions?.[mod.id] || {};
+          return `<tr><td>${mod.labelAr}</td>${["view", "create", "edit", "delete"]
+            .map(
+              (action) =>
+                `<td><input type="checkbox" data-${prefix}-module="${mod.id}" data-${prefix}-action="${action}"${row[action] ? " checked" : ""}></td>`,
+            )
+            .join("")}</tr>`;
+        })
+        .join("")}</tbody></table></div>`;
+    })
+    .join("");
+}
+
+function readMatrixFromDom(container, prefix) {
+  const out = {};
+  container?.querySelectorAll(`input[data-${prefix}-module]`).forEach((input) => {
+    const mod = input.getAttribute(`data-${prefix}-module`);
+    const action = input.getAttribute(`data-${prefix}-action`);
+    if (!mod || !action) return;
+    out[mod] = out[mod] || { view: false, create: false, edit: false, delete: false };
+    out[mod][action] = input.checked;
+  });
+  return out;
+}
+
+async function loadRoleMatrix() {
+  const role = $("role-matrix-select")?.value || "viewer";
+  if (!role || state.role !== "merchant_owner") return;
+  try {
+    const data = await api("/api/merchant/permissions/roles");
+    state.permissionModules = data.modules || state.permissionModules;
+    const entry = (data.matrix || []).find((r) => r.role === role);
+    state.roleMatrixDraft = entry?.permissions || {};
+    renderPermissionMatrix($("role-permissions-matrix"), state.roleMatrixDraft, "role");
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+}
+
+async function loadUserOverrides() {
+  const userId = $("override-user-select")?.value;
+  if (!userId) return;
+  try {
+    const data = await api(`/api/merchant/permissions/users/${userId}/overrides`);
+    state.permissionModules = data.modules || state.permissionModules;
+    const merged = { ...(data.rolePermissions || {}) };
+    (data.overrides || []).forEach((row) => {
+      merged[row.module] = {
+        view: row.can_view ?? merged[row.module]?.view ?? false,
+        create: row.can_create ?? merged[row.module]?.create ?? false,
+        edit: row.can_edit ?? merged[row.module]?.edit ?? false,
+        delete: row.can_delete ?? merged[row.module]?.delete ?? false,
+      };
+    });
+    state.overrideDraft = merged;
+    renderPermissionMatrix($("user-overrides-matrix"), merged, "user");
+  } catch (error) {
+    showMessage(error.message, true);
+  }
+}
+
+function setTeamTab(tab) {
+  document.querySelectorAll("[data-team-tab]").forEach((btn) => btn.classList.toggle("active", btn.dataset.teamTab === tab));
+  $("team-panel-users")?.toggleAttribute("hidden", tab !== "users");
+  $("team-panel-roles")?.toggleAttribute("hidden", tab !== "roles");
+  $("team-panel-overrides")?.toggleAttribute("hidden", tab !== "overrides");
+  if (tab === "roles") void loadRoleMatrix();
+  if (tab === "overrides") void loadUserOverrides();
+}
+
+function renderStaffRow(member, roles = []) {
+  const roleLabel = staffRoleLabel(member.staff_role, roles);
   return `<li class="staff-row" data-staff-id="${member.id}">
       <div class="provider-line">
-        <strong>${member.name}<br><small>${member.email}${member.phone ? ` • ${member.phone}` : ""}</small></strong>
+        <strong>${escapeHtmlText(member.name)}<br><small>${escapeHtmlText(member.email)}${member.phone ? ` • ${escapeHtmlText(member.phone)}` : ""}</small></strong>
         <span class="status-badge ${member.status === "active" ? "ok" : "off"}">${member.status === "active" ? "نشط" : "معطّل"}</span>
       </div>
-      <div class="perm-badges">${badges}</div>
+      <div class="perm-badges"><span class="perm-badge">${escapeHtmlText(roleLabel)}</span>${member.job_title ? `<span class="perm-badge">${escapeHtmlText(member.job_title)}</span>` : ""}</div>
       <span class="row-actions">
-        <button class="mini-button" data-staff-edit="${member.id}">تعديل الصلاحيات</button>
+        <button class="mini-button" data-staff-reset="${member.id}">إعادة كلمة المرور</button>
         <button class="mini-button" data-staff-status="${member.id}:${member.status === "active" ? "disabled" : "active"}">${member.status === "active" ? "تعطيل" : "تفعيل"}</button>
         <button class="mini-button danger-button" data-staff-delete="${member.id}">حذف</button>
       </span>
-      <div class="perm-editor" data-staff-editor="${member.id}" hidden>
-        <div class="perm-grid">${checkboxes}</div>
-        <div class="perm-editor-actions">
-          <button class="mini-button primary-button" data-staff-save="${member.id}">حفظ الصلاحيات</button>
-          <button class="mini-button" data-staff-cancel="${member.id}">إلغاء</button>
-        </div>
-      </div>
     </li>`;
 }
 
 function bindStaffActions() {
-  document.querySelectorAll("[data-staff-edit]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const editor = document.querySelector(`[data-staff-editor="${button.dataset.staffEdit}"]`);
-      if (editor) editor.hidden = !editor.hidden;
-    });
-  });
-  document.querySelectorAll("[data-staff-cancel]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const editor = document.querySelector(`[data-staff-editor="${button.dataset.staffCancel}"]`);
-      if (editor) editor.hidden = true;
-    });
-  });
-  document.querySelectorAll("[data-staff-save]").forEach((button) => {
+  document.querySelectorAll("[data-staff-reset]").forEach((button) => {
     button.addEventListener("click", async () => {
-      const staffId = button.dataset.staffSave;
-      const editor = document.querySelector(`[data-staff-editor="${staffId}"]`);
-      const permissions = Array.from(editor?.querySelectorAll('input[type="checkbox"]:checked') || []).map((el) => el.value);
-      try {
-        button.disabled = true;
-        await api(`/api/merchant/staff/${staffId}`, { method: "PATCH", body: JSON.stringify({ permissions }) });
-        showMessage("تم تحديث صلاحيات الموظف.");
-        await loadStaff();
-      } catch (error) {
-        showMessage(error.message, true);
-        button.disabled = false;
-      }
+      const pwd = prompt("كلمة المرور الجديدة (8 أحرف على الأقل):");
+      if (!pwd || pwd.length < 8) return showMessage("كلمة المرور قصيرة.", true);
+      await api(`/api/merchant/staff/${button.dataset.staffReset}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({ newPassword: pwd }),
+      });
+      showMessage("تم تحديث كلمة مرور الموظف.");
     });
   });
   document.querySelectorAll("[data-staff-status]").forEach((button) => {
     button.addEventListener("click", async () => {
       const [staffId, status] = button.dataset.staffStatus.split(":");
       await api(`/api/merchant/staff/${staffId}`, { method: "PATCH", body: JSON.stringify({ status }) });
-      showMessage(`تم تحديث حالة الموظف.`);
+      showMessage("تم تحديث حالة الموظف.");
       await loadStaff();
     });
   });
@@ -4343,6 +4429,32 @@ document.addEventListener("DOMContentLoaded", () => {
   $("customer-register-form").addEventListener("submit", registerCustomer);
   $("customer-orders-button").addEventListener("click", loadCustomerOrders);
   $("staff-filter")?.addEventListener("input", loadStaff);
+  document.querySelectorAll("[data-team-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => setTeamTab(btn.dataset.teamTab));
+  });
+  $("role-matrix-select")?.addEventListener("change", () => void loadRoleMatrix());
+  $("role-matrix-save")?.addEventListener("click", async () => {
+    const role = $("role-matrix-select")?.value;
+    if (!role) return;
+    const permissions = readMatrixFromDom($("role-permissions-matrix"), "role");
+    await api(`/api/merchant/permissions/roles/${role}`, { method: "PUT", body: JSON.stringify({ permissions }) });
+    showMessage("تم حفظ صلاحيات الدور.");
+  });
+  $("override-user-select")?.addEventListener("change", () => void loadUserOverrides());
+  $("override-save")?.addEventListener("click", async () => {
+    const userId = $("override-user-select")?.value;
+    if (!userId) return;
+    const permissions = readMatrixFromDom($("user-overrides-matrix"), "user");
+    await api(`/api/merchant/permissions/users/${userId}/overrides`, { method: "PUT", body: JSON.stringify({ permissions }) });
+    showMessage("تم حفظ تخصيص الموظف.");
+  });
+  $("override-clear")?.addEventListener("click", async () => {
+    const userId = $("override-user-select")?.value;
+    if (!userId || !confirm("إزالة التخصيص والعودة لصلاحيات الدور؟")) return;
+    await api(`/api/merchant/permissions/users/${userId}/overrides`, { method: "DELETE", body: JSON.stringify({}) });
+    showMessage("تمت إعادة الصلاحيات للدور الافتراضي.");
+    await loadUserOverrides();
+  });
   $("save-checkout-provider")?.addEventListener("click", saveCheckoutProvider);
   document.querySelectorAll(".theme-tile-select[data-storefront-theme]").forEach((button) => {
     button.addEventListener("click", () => {

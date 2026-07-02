@@ -7550,3 +7550,55 @@ body.merchant-workspace .billing-page .billing-form button[type="submit"] {
   font-weight: 800;
   color: #334155;
 }
+
+.team-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 20px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0;
+}
+
+.team-tab {
+  border: none;
+  background: transparent;
+  padding: 10px 16px;
+  font-weight: 700;
+  color: #64748b;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.team-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.team-tab-panel[hidden] {
+  display: none !important;
+}
+
+.role-permissions-matrix {
+  margin-top: 16px;
+  display: grid;
+  gap: 18px;
+}
+
+.perm-matrix-group strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f172a;
+}
+
+.perm-matrix-table th,
+.perm-matrix-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.perm-matrix-table td:first-child,
+.perm-matrix-table th:first-child {
+  text-align: right;
+  min-width: 140px;
+}

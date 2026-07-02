@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=2026070215" />
+  <link rel="stylesheet" href="/styles.css?v=2026070217" />
   <link rel="stylesheet" href="/design-system.css?v=2026070215" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
@@ -1257,41 +1257,73 @@
             <article class="panel merchant-tab account-page" data-merchant-panel="team">
               <div class="page-head">
                 <div>
-                  <div class="breadcrumb">الحساب <span>/</span> الفريق</div>
-                  <h2>الفريق والصلاحيات</h2>
-                  <p class="page-subtitle">أضف موظفين، حدّد صلاحيات كل موظف، وفعّل أو عطّل الحسابات.</p>
+                  <div class="breadcrumb">الحساب <span>/</span> الفريق والصلاحيات</div>
+                  <h2>المستخدمون والصلاحيات</h2>
+                  <p class="page-subtitle">نفس نموذج Easy Cash — أدوار جاهزة، مصفوفة صلاحيات، وتخصيص لكل موظف.</p>
                 </div>
               </div>
-              <div class="account-page-grid">
+              <div class="team-tabs" role="tablist" aria-label="إدارة الفريق">
+                <button type="button" class="team-tab active" data-team-tab="users">المستخدمون</button>
+                <button type="button" class="team-tab" data-team-tab="roles">صلاحيات الأدوار</button>
+                <button type="button" class="team-tab" data-team-tab="overrides">تخصيص موظف</button>
+              </div>
+              <div id="team-panel-users" class="team-tab-panel">
+                <div class="account-page-grid">
+                  <section class="account-section-card">
+                    <h3 class="section-title section-title--lg">موظفو المتجر</h3>
+                    <div id="staff-login-link" class="hint-box team-hint" hidden></div>
+                    <div class="section-tools">
+                      <input id="staff-filter" placeholder="ابحث باسم الموظف أو البريد">
+                    </div>
+                    <form id="staff-form" class="form-grid team-form">
+                      <label>اسم الموظف<input name="name" required></label>
+                      <label>البريد<input name="email" type="email" required></label>
+                      <label>موبايل<input name="phone"></label>
+                      <label>المسمى الوظيفي<input name="jobTitle" placeholder="اختياري"></label>
+                      <label>الدور
+                        <select name="staffRole" id="staff-role-select" required></select>
+                      </label>
+                      <label>كلمة مرور مؤقتة<input name="password" type="password" minlength="8" required></label>
+                      <button class="span-2">إضافة موظف</button>
+                    </form>
+                    <ul id="staff-list" class="list staff-list"></ul>
+                  </section>
+                  <section class="account-section-card">
+                    <h3 class="section-title section-title--lg">تغيير كلمة المرور</h3>
+                    <form id="password-form" class="form-stack team-form">
+                      <label>كلمة المرور الحالية<input name="currentPassword" type="password" required></label>
+                      <label>كلمة المرور الجديدة<input name="newPassword" type="password" minlength="8" required></label>
+                      <button>تحديث كلمة المرور</button>
+                    </form>
+                    <div class="hint-box team-hint">
+                      <strong>ملاحظة</strong>
+                      <p>صاحب المتجر فقط يضيف الموظفين ويعدّل الأدوار. الموظف يسجّل الدخول من نفس صفحة تسجيل الدخول ويرى فقط ما تسمح به صلاحياته.</p>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div id="team-panel-roles" class="team-tab-panel" hidden>
                 <section class="account-section-card">
-                  <h3 class="section-title section-title--lg">موظفو المتجر</h3>
                   <div class="section-tools">
-                    <input id="staff-filter" placeholder="ابحث باسم الموظف أو البريد">
+                    <label>الدور
+                      <select id="role-matrix-select"></select>
+                    </label>
+                    <button type="button" class="secondary" id="role-matrix-save">حفظ صلاحيات الدور</button>
                   </div>
-                  <form id="staff-form" class="form-grid team-form">
-                    <label>اسم الموظف<input name="name" required></label>
-                    <label>البريد<input name="email" type="email" required></label>
-                    <label>موبايل<input name="phone"></label>
-                    <label>كلمة مرور مؤقتة<input name="password" type="password" minlength="8" required></label>
-                    <fieldset class="perm-fieldset span-2">
-                      <legend>صلاحيات الموظف</legend>
-                      <div class="perm-grid" id="staff-create-permissions"></div>
-                    </fieldset>
-                    <button class="span-2">إضافة موظف</button>
-                  </form>
-                  <ul id="staff-list" class="list staff-list"></ul>
+                  <div id="role-permissions-matrix" class="role-permissions-matrix"></div>
                 </section>
+              </div>
+              <div id="team-panel-overrides" class="team-tab-panel" hidden>
                 <section class="account-section-card">
-                  <h3 class="section-title section-title--lg">تغيير كلمة المرور</h3>
-                  <form id="password-form" class="form-stack team-form">
-                    <label>كلمة المرور الحالية<input name="currentPassword" type="password" required></label>
-                    <label>كلمة المرور الجديدة<input name="newPassword" type="password" minlength="8" required></label>
-                    <button>تحديث كلمة المرور</button>
-                  </form>
-                  <div class="hint-box team-hint">
-                    <strong>ملاحظة</strong>
-                    <p>صاحب المتجر فقط يضيف الموظفين. الموظف يدخل من نفس شاشة تسجيل الدخول ويشاهد بيانات نفس المتجر.</p>
+                  <div class="section-tools">
+                    <label>الموظف
+                      <select id="override-user-select"></select>
+                    </label>
+                    <button type="button" class="secondary" id="override-save">حفظ التخصيص</button>
+                    <button type="button" class="ghost" id="override-clear">إعادة للدور الافتراضي</button>
                   </div>
+                  <p class="muted">التخصيص يُطبَّق فوق صلاحيات الدور — مثل Easy Cash.</p>
+                  <div id="user-overrides-matrix" class="role-permissions-matrix"></div>
                 </section>
               </div>
             </article>
@@ -1716,6 +1748,6 @@
       <footer id="app-modal-foot" class="app-modal-foot" hidden></footer>
     </div>
   </dialog>
-  <script src="/app.js?v=2026070216"></script>
+  <script src="/app.js?v=2026070217"></script>
 </body>
 </html>

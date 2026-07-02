@@ -20,6 +20,23 @@ import {
 import { emailNotificationsConfigured, notifyNewStoreOrder, notifyOrderStatusChange } from "./notifications.js";
 import { handleCreateStoreOrder, handleStoreCheckoutQuote } from "./create-store-order.js";
 import { carrierTrackingUrl, parseStoreSettings, publicCheckoutConfig } from "./store-settings.js";
+import {
+  PERMISSION_ACTIONS,
+  PERMISSION_MODULES,
+  STAFF_ROLES,
+  type PermissionModule,
+  type StaffRole,
+} from "./permissions.js";
+import {
+  effectivePermissionsToPayload,
+  clearUserPermissionOverrides,
+  ensureTenantRoleDefaults,
+  getRolePermissionsForTenant,
+  saveRolePermissions,
+  saveUserPermissionOverrides,
+} from "./permissions-service.js";
+import { loadPermissionProfile, requirePerm } from "./merchant-auth.js";
+import { enforceMerchantRoutePermission } from "./merchant-route-permissions.js";
 
 const { Pool } = pg;
 
@@ -75,8 +92,8 @@ type AuthUser = {
 
 type TenantAuthUser = AuthUser & { tenantId: string };
 
-const pool = new Pool({ connectionString: env.databaseUrl });
 const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
+const pool = new Pool({ connectionString: env.databaseUrl });
 
 if (env.nodeEnv === "production" && [env.jwtSecret, env.encryptionKey, env.platformOwnerPassword].some((value) => isPlaceholderSecret(value))) {
   app.log.warn("Production is using placeholder secrets. Update .env before handling real customers or payments.");
@@ -167,17 +184,23 @@ function requireMerchantUser(request: Parameters<typeof getAuth>[0]): TenantAuth
   return user;
 }
 
-/// Granular permissions that the merchant owner can grant to staff accounts.
-const STAFF_PERMISSION_KEYS = ["orders", "products", "categories", "settings", "providers", "billing", "android"] as const;
+app.addHook("preHandler", async (request) => {
+  await enforceMerchantRoutePermission(pool, request, requireMerchantUser, requireMerchantOwner);
+});
 
-function sanitizeStaffPermissions(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
-  const allowed = new Set<string>(STAFF_PERMISSION_KEYS);
-  const out = new Set<string>();
-  for (const item of input) {
-    if (typeof item === "string" && allowed.has(item)) out.add(item);
+function parsePermissionsBody(body: unknown): Record<PermissionModule, { view: boolean; create: boolean; edit: boolean; delete: boolean }> {
+  const payload = (body && typeof body === "object" ? body : {}) as Record<string, { view?: boolean; create?: boolean; edit?: boolean; delete?: boolean }>;
+  const out = {} as Record<PermissionModule, { view: boolean; create: boolean; edit: boolean; delete: boolean }>;
+  for (const mod of PERMISSION_MODULES) {
+    const row = payload[mod.id] || {};
+    out[mod.id] = {
+      view: Boolean(row.view),
+      create: Boolean(row.create),
+      edit: Boolean(row.edit),
+      delete: Boolean(row.delete),
+    };
   }
-  return Array.from(out);
+  return out;
 }
 
 function slugify(value: string) {
@@ -684,6 +707,34 @@ async function migrate() {
       created_at timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS idx_product_reviews_product_status ON product_reviews (product_id, status);
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_role text;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS job_title text;
+
+    CREATE TABLE IF NOT EXISTS tenant_role_permissions (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      role text NOT NULL,
+      module text NOT NULL,
+      can_view boolean NOT NULL DEFAULT false,
+      can_create boolean NOT NULL DEFAULT false,
+      can_edit boolean NOT NULL DEFAULT false,
+      can_delete boolean NOT NULL DEFAULT false,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (tenant_id, role, module)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_permission_overrides (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      module text NOT NULL,
+      can_view boolean,
+      can_create boolean,
+      can_edit boolean,
+      can_delete boolean,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (user_id, module)
+    );
   `);
   await pool.query(`
     UPDATE orders SET tracking_token = gen_random_uuid() WHERE tracking_token IS NULL
@@ -951,9 +1002,19 @@ app.post("/api/auth/login", async (request, reply) => {
   }
   const token = signToken({ userId: user.id, tenantId: user.tenant_id, role: user.role });
   const storeSerial = await ensureTenantSerialCode(user.tenant_id);
+  const profile = await loadPermissionProfile(pool, user.id, user.tenant_id, user.role);
   return {
     token,
-    user: { id: user.id, tenantId: user.tenant_id, name: user.name, email: user.email, role: user.role },
+    user: {
+      id: user.id,
+      tenantId: user.tenant_id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      staffRole: profile.staffRole,
+      permissionsBypass: profile.bypass,
+    },
+    effectivePermissions: effectivePermissionsToPayload(profile.effectivePermissions),
     storeSerial,
   };
 });
@@ -961,13 +1022,22 @@ app.post("/api/auth/login", async (request, reply) => {
 app.get("/api/me", async (request) => {
   const user = requireAuth(request);
   const result = await pool.query(
-    `SELECT users.id, users.name, users.email, users.role, users.status, users.permissions, users.tenant_id,
+    `SELECT users.id, users.name, users.email, users.role, users.status, users.permissions, users.staff_role, users.job_title, users.tenant_id,
             tenants.name_en AS store_name, tenants.slug, tenants.serial_code AS store_serial
      FROM users LEFT JOIN tenants ON tenants.id = users.tenant_id
      WHERE users.id = $1`,
     [user.userId],
   );
-  return result.rows[0];
+  const row = result.rows[0];
+  if (!row) throw httpError("User not found", 404);
+  const profile = await loadPermissionProfile(pool, user.userId, row.tenant_id as string | null, row.role as string);
+  return {
+    ...row,
+    permissions: profile.legacyPermissions,
+    effectivePermissions: effectivePermissionsToPayload(profile.effectivePermissions),
+    permissionsBypass: profile.bypass,
+    staffRole: profile.staffRole,
+  };
 });
 
 app.post("/api/auth/change-password", async (request, reply) => {
@@ -985,14 +1055,22 @@ app.post("/api/auth/change-password", async (request, reply) => {
 
 app.get("/api/merchant/staff", async (request) => {
   const user = requireMerchantOwner(request);
+  await ensureTenantRoleDefaults(pool, user.tenantId);
   const result = await pool.query(
-    `SELECT id, name, email, phone, role, status, permissions, created_at
+    `SELECT id, name, email, phone, role, status, permissions, staff_role, job_title, created_at
      FROM users
      WHERE tenant_id = $1 AND role = 'merchant_staff'
      ORDER BY created_at DESC`,
     [user.tenantId],
   );
-  return { staff: result.rows, availablePermissions: STAFF_PERMISSION_KEYS };
+  const tenantRow = await pool.query(`SELECT slug FROM tenants WHERE id = $1`, [user.tenantId]);
+  return {
+    staff: result.rows,
+    roles: STAFF_ROLES,
+    modules: PERMISSION_MODULES,
+    actions: PERMISSION_ACTIONS,
+    staffLoginUrl: tenantRow.rows[0]?.slug ? `${absoluteUrl(request, "/")}?store=${tenantRow.rows[0].slug}` : null,
+  };
 });
 
 app.post("/api/merchant/staff", async (request, reply) => {
@@ -1003,18 +1081,19 @@ app.post("/api/merchant/staff", async (request, reply) => {
       email: z.string().email(),
       phone: z.string().optional(),
       password: z.string().min(8),
-      permissions: z.array(z.string()).optional(),
+      staffRole: z.enum(["store_manager", "sales", "fulfillment", "marketing", "viewer"]).default("viewer"),
+      jobTitle: z.string().max(120).optional(),
     })
     .parse(request.body);
   const existing = await pool.query(`SELECT id FROM users WHERE email = $1`, [body.email.toLowerCase()]);
   if (existing.rows[0]) return reply.code(409).send({ message: "هذا البريد مستخدم بالفعل." });
   const passwordHash = await bcrypt.hash(body.password, 12);
-  const permissions = sanitizeStaffPermissions(body.permissions);
+  await ensureTenantRoleDefaults(pool, user.tenantId);
   const result = await pool.query(
-    `INSERT INTO users (tenant_id, name, email, phone, password_hash, role, status, permissions)
-     VALUES ($1, $2, $3, $4, $5, 'merchant_staff', 'active', $6::jsonb)
-     RETURNING id, name, email, phone, role, status, permissions, created_at`,
-    [user.tenantId, body.name, body.email.toLowerCase(), body.phone ?? null, passwordHash, JSON.stringify(permissions)],
+    `INSERT INTO users (tenant_id, name, email, phone, password_hash, role, status, permissions, staff_role, job_title)
+     VALUES ($1, $2, $3, $4, $5, 'merchant_staff', 'active', '[]'::jsonb, $6, $7)
+     RETURNING id, name, email, phone, role, status, permissions, staff_role, job_title, created_at`,
+    [user.tenantId, body.name, body.email.toLowerCase(), body.phone ?? null, passwordHash, body.staffRole, body.jobTitle ?? null],
   );
   return reply.code(201).send({ staff: result.rows[0] });
 });
@@ -1027,19 +1106,20 @@ app.patch("/api/merchant/staff/:staffId", async (request, reply) => {
       name: z.string().min(2).optional(),
       phone: z.string().nullable().optional(),
       status: z.enum(["active", "disabled"]).optional(),
-      permissions: z.array(z.string()).optional(),
+      staffRole: z.enum(["store_manager", "sales", "fulfillment", "marketing", "viewer"]).optional(),
+      jobTitle: z.string().max(120).nullable().optional(),
     })
     .parse(request.body);
-  const hasPermissions = Object.prototype.hasOwnProperty.call(body, "permissions");
-  const permissions = hasPermissions ? sanitizeStaffPermissions(body.permissions) : [];
   const result = await pool.query(
     `UPDATE users
      SET name = coalesce($3, name),
          phone = CASE WHEN $4::boolean THEN $5::text ELSE phone END,
          status = coalesce($6, status),
-         permissions = CASE WHEN $7::boolean THEN $8::jsonb ELSE permissions END
+         staff_role = coalesce($7, staff_role),
+         job_title = CASE WHEN $8::boolean THEN $9::text ELSE job_title END,
+         permissions = '[]'::jsonb
      WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff'
-     RETURNING id, name, email, phone, role, status, permissions, created_at`,
+     RETURNING id, name, email, phone, role, status, permissions, staff_role, job_title, created_at`,
     [
       params.staffId,
       user.tenantId,
@@ -1047,12 +1127,104 @@ app.patch("/api/merchant/staff/:staffId", async (request, reply) => {
       Object.prototype.hasOwnProperty.call(body, "phone"),
       body.phone ?? null,
       body.status ?? null,
-      hasPermissions,
-      JSON.stringify(permissions),
+      body.staffRole ?? null,
+      Object.prototype.hasOwnProperty.call(body, "jobTitle"),
+      body.jobTitle ?? null,
     ],
   );
   if (!result.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
+  if (body.staffRole) await clearUserPermissionOverrides(pool, params.staffId);
   return { staff: result.rows[0] };
+});
+
+app.post("/api/merchant/staff/:staffId/reset-password", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const params = z.object({ staffId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ newPassword: z.string().min(8) }).parse(request.body);
+  const target = await pool.query(`SELECT id FROM users WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff'`, [
+    params.staffId,
+    user.tenantId,
+  ]);
+  if (!target.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
+  const passwordHash = await bcrypt.hash(body.newPassword, 12);
+  await pool.query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [params.staffId, passwordHash]);
+  return { ok: true };
+});
+
+app.get("/api/merchant/permissions/my", async (request) => {
+  const user = requireMerchantUser(request);
+  const profile = await loadPermissionProfile(pool, user.userId, user.tenantId, user.role);
+  return {
+    role: user.role,
+    staffRole: profile.staffRole,
+    bypass: profile.bypass,
+    permissions: effectivePermissionsToPayload(profile.effectivePermissions),
+    modules: PERMISSION_MODULES,
+    actions: PERMISSION_ACTIONS,
+  };
+});
+
+app.get("/api/merchant/permissions/roles", async (request) => {
+  const user = requireMerchantOwner(request);
+  await ensureTenantRoleDefaults(pool, user.tenantId);
+  const roles: StaffRole[] = ["store_manager", "sales", "fulfillment", "marketing", "viewer"];
+  const entries = await Promise.all(
+    roles.map(async (role) => ({
+      role,
+      permissions: effectivePermissionsToPayload(await getRolePermissionsForTenant(pool, user.tenantId, role)),
+    })),
+  );
+  return { modules: PERMISSION_MODULES, actions: PERMISSION_ACTIONS, roles: STAFF_ROLES, matrix: entries };
+});
+
+app.put("/api/merchant/permissions/roles/:role", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const params = z.object({ role: z.enum(["store_manager", "sales", "fulfillment", "marketing", "viewer"]) }).parse(request.params);
+  const body = z.object({ permissions: z.record(z.string(), z.object({ view: z.boolean(), create: z.boolean(), edit: z.boolean(), delete: z.boolean() })) }).parse(request.body);
+  const parsed = parsePermissionsBody(body.permissions);
+  await saveRolePermissions(pool, user.tenantId, params.role, parsed);
+  return reply.send({ ok: true, role: params.role, permissions: effectivePermissionsToPayload(parsed) });
+});
+
+app.get("/api/merchant/permissions/users/:userId/overrides", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const params = z.object({ userId: z.string().uuid() }).parse(request.params);
+  const staff = await pool.query(`SELECT id, name, staff_role FROM users WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff'`, [
+    params.userId,
+    user.tenantId,
+  ]);
+  if (!staff.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
+  const rolePerms = await getRolePermissionsForTenant(pool, user.tenantId, (staff.rows[0].staff_role || "viewer") as StaffRole);
+  const overrides = await pool.query(`SELECT module, can_view, can_create, can_edit, can_delete FROM user_permission_overrides WHERE user_id = $1`, [
+    params.userId,
+  ]);
+  return {
+    user: staff.rows[0],
+    rolePermissions: effectivePermissionsToPayload(rolePerms),
+    overrides: overrides.rows,
+    modules: PERMISSION_MODULES,
+    actions: PERMISSION_ACTIONS,
+  };
+});
+
+app.put("/api/merchant/permissions/users/:userId/overrides", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const params = z.object({ userId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ permissions: z.record(z.string(), z.object({ view: z.boolean(), create: z.boolean(), edit: z.boolean(), delete: z.boolean() })) }).parse(request.body);
+  const staff = await pool.query(`SELECT id FROM users WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff'`, [params.userId, user.tenantId]);
+  if (!staff.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
+  const parsed = parsePermissionsBody(body.permissions);
+  await saveUserPermissionOverrides(pool, params.userId, parsed);
+  return reply.send({ ok: true });
+});
+
+app.delete("/api/merchant/permissions/users/:userId/overrides", async (request, reply) => {
+  const user = requireMerchantOwner(request);
+  const params = z.object({ userId: z.string().uuid() }).parse(request.params);
+  const staff = await pool.query(`SELECT id FROM users WHERE id = $1 AND tenant_id = $2 AND role = 'merchant_staff'`, [params.userId, user.tenantId]);
+  if (!staff.rows[0]) return reply.code(404).send({ message: "Staff user not found" });
+  await clearUserPermissionOverrides(pool, params.userId);
+  return reply.code(204).send();
 });
 
 app.delete("/api/merchant/staff/:staffId", async (request, reply) => {
@@ -1927,9 +2099,6 @@ app.post("/api/merchant/android-build", async (request, reply) => {
       storefrontTheme: z.enum(STOREFRONT_THEME_CODES).optional(),
     })
     .parse(request.body ?? {});
-  if (user.role !== "merchant_owner") {
-    return reply.code(403).send({ message: "هذا الإجراء متاح لصاحب المتجر فقط." });
-  }
   if (!env.githubActionsDispatchToken.trim() || !env.githubRepository.trim()) {
     return reply.code(503).send({
       code: "android_build_not_configured",
@@ -2897,6 +3066,11 @@ app.patch("/api/admin/subscription-invoices/:invoiceId/status", async (request) 
 });
 
 await migrate();
+
+const tenantRows = await pool.query(`SELECT id FROM tenants`);
+for (const row of tenantRows.rows) {
+  await ensureTenantRoleDefaults(pool, row.id as string);
+}
 
 app.listen({ port: env.port, host: "0.0.0.0" }).catch((error) => {
   app.log.error(error);
