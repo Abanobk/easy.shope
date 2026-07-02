@@ -968,3 +968,184 @@ body[data-scope="admin"] .admin-section-card {
 body[data-scope="admin"] .admin-section-card .seg-item {
   color: var(--admin-muted);
 }
+
+/* Phase 3: stop dark-theme leakage from styles.css on merchant/admin workspace */
+body[data-scope="merchant"],
+body[data-scope="admin"] {
+  color-scheme: light;
+  background: var(--admin-workspace) !important;
+  background-image: none !important;
+}
+
+body[data-scope="merchant"] .main,
+body[data-scope="admin"] .main {
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .panel,
+body[data-scope="admin"] .panel,
+body[data-scope="merchant"] .merchant-side,
+body[data-scope="admin"] .admin-side {
+  background: var(--admin-surface);
+  border-color: var(--admin-line);
+  box-shadow: var(--shadow);
+}
+
+body[data-scope="merchant"] .panel p,
+body[data-scope="admin"] .panel p,
+body[data-scope="merchant"] .page-subtitle,
+body[data-scope="admin"] .page-subtitle,
+body[data-scope="merchant"] .hint-inline,
+body[data-scope="admin"] .hint-inline,
+body[data-scope="merchant"] .store-links-lead,
+body[data-scope="admin"] .store-links-lead {
+  color: var(--admin-muted);
+}
+
+body[data-scope="merchant"] label,
+body[data-scope="admin"] label {
+  color: var(--admin-text);
+  font-weight: 700;
+}
+
+body[data-scope="merchant"] label small,
+body[data-scope="admin"] label small {
+  display: block;
+  margin-top: 2px;
+  color: var(--admin-muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+body[data-scope="merchant"] .muted,
+body[data-scope="admin"] .muted,
+body[data-scope="merchant"] .merchant-side-item small,
+body[data-scope="admin"] .admin-side-item small {
+  color: var(--admin-muted);
+}
+
+body[data-scope="merchant"] .merchant-side-item,
+body[data-scope="admin"] .admin-side-item {
+  background: transparent;
+  border-color: transparent;
+  color: #cbd5e1;
+  border-radius: 14px;
+}
+
+body[data-scope="merchant"] .merchant-side,
+body[data-scope="admin"] .admin-side {
+  border-radius: 20px;
+}
+
+body[data-scope="merchant"] .store-link-block,
+body[data-scope="admin"] .store-link-block,
+body[data-scope="merchant"] .store-logo-preview-wrap,
+body[data-scope="admin"] .store-logo-preview-wrap {
+  background: #f8fafc;
+  border-color: var(--admin-line);
+}
+
+body[data-scope="merchant"] .store-link-url,
+body[data-scope="admin"] .store-link-url {
+  color: var(--admin-primary-deep);
+}
+
+body[data-scope="merchant"] button.secondary,
+body[data-scope="merchant"] .secondary,
+body[data-scope="admin"] button.secondary,
+body[data-scope="admin"] .secondary {
+  color: var(--admin-text);
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  box-shadow: none;
+}
+
+body[data-scope="merchant"] button.secondary:hover,
+body[data-scope="admin"] button.secondary:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+body[data-scope="merchant"] button.ghost,
+body[data-scope="admin"] button.ghost {
+  color: var(--admin-muted);
+  background: transparent;
+  border: 1px solid var(--admin-line);
+}
+
+body[data-scope="merchant"] .billing-card,
+body[data-scope="admin"] .billing-card {
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border: 1px solid var(--admin-line);
+}
+
+body[data-scope="merchant"] .invoice-list li,
+body[data-scope="admin"] .invoice-list li {
+  background: #f8fafc;
+  border: 1px solid var(--admin-line);
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .section-title,
+body[data-scope="admin"] .section-title {
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .eyebrow,
+body[data-scope="admin"] .eyebrow {
+  color: var(--admin-primary);
+}
+
+body[data-scope="merchant"] .breadcrumb,
+body[data-scope="admin"] .breadcrumb {
+  color: var(--admin-muted);
+}
+
+body[data-scope="merchant"] .breadcrumb span,
+body[data-scope="admin"] .breadcrumb span {
+  color: #cbd5e1;
+}
+
+body[data-scope="merchant"] .merchant-menu-toggle,
+body[data-scope="admin"] .admin-menu-toggle,
+body[data-scope="merchant"] .drawer-close,
+body[data-scope="admin"] .drawer-close {
+  background: #fff;
+  border-color: var(--admin-line);
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .merchant-brand-logo-wrap,
+body[data-scope="admin"] .admin-brand-logo-wrap {
+  background: #f1f5f9;
+  border-color: var(--admin-line);
+}
+
+body[data-scope="merchant"] .list li,
+body[data-scope="admin"] .list li {
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .check,
+body[data-scope="admin"] .check {
+  color: var(--admin-text);
+  font-weight: 600;
+}
+
+body[data-scope="merchant"] .hint-box strong,
+body[data-scope="admin"] .hint-box strong {
+  color: #1e40af;
+}
+
+body[data-scope="merchant"] .hint-box p,
+body[data-scope="admin"] .hint-box p {
+  color: #1e3a8a;
+}
+
+body[data-scope="merchant"] th,
+body[data-scope="admin"] th,
+body[data-scope="merchant"] td,
+body[data-scope="admin"] td {
+  color: var(--admin-text);
+}

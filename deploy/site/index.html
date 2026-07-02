@@ -21,8 +21,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=2026070202" />
-  <link rel="stylesheet" href="/design-system.css?v=2026070202" />
+  <link rel="stylesheet" href="/styles.css?v=2026070203" />
+  <link rel="stylesheet" href="/design-system.css?v=2026070203" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -127,7 +127,7 @@
               </li>
               <li>
                 <span class="auth-feature-icon" aria-hidden="true">💳</span>
-                <span><strong>دفع إلكتروني</strong><small>ربط Paymob و EasyCash جاهز للتشغيل.</small></span>
+                <span><strong>دفع إلكتروني</strong><small>ربط Paymob و Easy Cash جاهز للتشغيل.</small></span>
               </li>
               <li>
                 <span class="auth-feature-icon" aria-hidden="true">📱</span>
@@ -166,7 +166,7 @@
                 </span>
               </label>
               <label>اسم المتجر عربي<input name="storeNameAr" required></label>
-              <label>Store name English<input name="storeNameEn" required></label>
+              <label>اسم المتجر إنجليزي<input name="storeNameEn" required placeholder="My Store"></label>
               <label class="span-2">البلد<input name="country" value="Egypt" required></label>
               <button class="span-2 auth-submit">إنشاء المتجر ولوحة التحكم
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 5l-1.4 1.4L18.2 11H3v2h15.2l-4.6 4.6L15 19l7-7-7-7Z"/></svg>
@@ -431,7 +431,7 @@
             <article class="panel merchant-tab" data-merchant-panel="accounting">
               <div class="panel-heading">
                 <span class="eyebrow">Easy Cash</span>
-                <h2>مديول المحاسبة والربط التلقائي</h2>
+                <h2>وحدة المحاسبة والربط التلقائي</h2>
                 <p class="page-subtitle">اربط متجرك بنظام Easy Cash — المنتجات والمخزون والفواتير تتزامن تلقائياً بين النظامين.</p>
               </div>
               <div class="accounting-module-layout">
@@ -448,16 +448,16 @@
                   <p class="hint-inline">الاشتراك في Easy Cash من <a id="accounting-cash-link" href="https://cash.easytecheg.net" target="_blank" rel="noopener">cash.easytecheg.net</a> — نفس أسعار المنصة.</p>
                 </div>
                 <div>
-                  <div id="accounting-status" class="subscription-status-card">فعّل الربط بإدخال slug شركتك في Easy Cash.</div>
+                  <div id="accounting-status" class="subscription-status-card">فعّل الربط بإدخال معرف شركتك في Easy Cash.</div>
                   <div id="accounting-discover-box" class="hint-box accounting-discover-box" hidden></div>
                   <form id="accounting-link-form" class="billing-form accounting-link-form">
                     <label class="check"><input name="enabled" type="checkbox"> تفعيل الربط التلقائي</label>
-                    <label>Slug شركة Easy Cash<small>مثل philo من الرابط cash.easytecheg.net/philo</small><input name="cashTenantSlug" placeholder="philo" autocomplete="off"></label>
+                    <label>معرف شركة Easy Cash<small>مثل philo من الرابط cash.easytecheg.net/philo</small><input name="cashTenantSlug" placeholder="philo" autocomplete="off"></label>
                     <label>رابط Easy Cash<input name="cashBaseUrl" value="https://cash.easytecheg.net"></label>
                     <div class="accounting-sync-toggles">
-                      <label class="check"><input name="syncProductsToCash" type="checkbox" checked> منتجات Shope → Cash</label>
-                      <label class="check"><input name="syncProductsFromCash" type="checkbox" checked> أصناف Cash → Shope</label>
-                      <label class="check"><input name="syncOrdersToCash" type="checkbox" checked> طلبات مدفوعة → فواتير Cash</label>
+                      <label class="check"><input name="syncProductsToCash" type="checkbox" checked> منتجات المتجر → المحاسبة</label>
+                      <label class="check"><input name="syncProductsFromCash" type="checkbox" checked> أصناف المحاسبة → المتجر</label>
+                      <label class="check"><input name="syncOrdersToCash" type="checkbox" checked> طلبات مدفوعة → فواتير المحاسبة</label>
                     </div>
                     <div class="inline-actions">
                       <button type="button" class="secondary" id="accounting-auto-link-btn">ربط تلقائي بإيميل حسابك</button>
@@ -475,32 +475,32 @@
               <div class="grid two">
                 <article class="panel">
                   <div class="panel-heading">
-                    <span class="eyebrow">EasyCash</span>
+                    <span class="eyebrow">Easy Cash</span>
                     <h2>إعدادات دفع المتجر</h2>
                   </div>
                   <form id="easycash-form" class="form-stack">
                     <label>الوضع<select name="mode"><option value="test">تجريبي</option><option value="live">مباشر</option></select></label>
-                    <label>Merchant ID<input name="merchantId" required></label>
-                    <label>API Key<input name="apiKey" required></label>
-                    <label>Secret<input name="secret" required></label>
+                    <label>معرف التاجر<input name="merchantId" required></label>
+                    <label>مفتاح API<input name="apiKey" required></label>
+                    <label>المفتاح السري<input name="secret" required></label>
                     <label class="check"><input name="enabled" type="checkbox"> تفعيل</label>
                     <button>حفظ إعدادات الدفع</button>
                   </form>
                   <ul id="payment-providers" class="list"></ul>
                   <div class="hint-box">
-                    <strong>Checkout provider</strong>
-                    <p>اختر طريقة الدفع الافتراضية التي ستظهر لعملائك أثناء الدفع.</p>
+                    <strong>بوابة الدفع الافتراضية</strong>
+                    <p>اختر طريقة الدفع الافتراضية التي ستظهر لعملائك أثناء إتمام الشراء.</p>
                     <label>الافتراضي
                       <select id="checkout-provider" name="checkoutProvider">
                         <option value="paymob">Paymob</option>
-                        <option value="easycash">EasyCash (قيد الدمج)</option>
+                        <option value="easycash">Easy Cash (قيد الدمج)</option>
                       </select>
                     </label>
                     <button type="button" class="secondary" id="save-checkout-provider">حفظ الافتراضي</button>
                   </div>
                   <div class="hint-box">
                     <strong>مهم</strong>
-                    <p>فعّل بوابة الدفع التي تريد استخدامها في Checkout. عند وجود أكثر من بوابة، ستعرف من هنا أيهما مفعّل وأيهما غير مفعّل.</p>
+                    <p>فعّل بوابة الدفع التي تريد استخدامها عند الشراء. عند وجود أكثر من بوابة، ستعرف من هنا أيهما مفعّل وأيهما غير مفعّل.</p>
                   </div>
                 </article>
                 <article class="panel">
@@ -530,13 +530,13 @@
                   </div>
                   <form id="paymob-form" class="form-grid">
                     <label>الوضع<select name="mode"><option value="test">تجريبي</option><option value="live">مباشر</option></select></label>
-                    <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
-                    <label class="span-2">Public Key<input name="publicKey" placeholder="pk_..."></label>
-                    <label class="span-2">Secret Key<input name="secretKey" placeholder="sk_..."></label>
+                    <label>العملة<input name="currency" value="EGP" maxlength="3" required></label>
+                    <label class="span-2">المفتاح العام<input name="publicKey" placeholder="pk_..."></label>
+                    <label class="span-2">المفتاح السري<input name="secretKey" placeholder="sk_..."></label>
                     <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري الآن، مطلوب للتحقق الكامل من webhook"></label>
-                    <label>Card Integration ID<input name="cardIntegrationId" type="number"></label>
-                    <label>Wallet Integration ID اختياري<input name="walletIntegrationId" type="number"></label>
-                    <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob على Checkout المتجر</label>
+                    <label>معرف تكامل البطاقة<input name="cardIntegrationId" type="number"></label>
+                    <label>معرف تكامل المحفظة (اختياري)<input name="walletIntegrationId" type="number"></label>
+                    <label class="check span-2"><input name="enabled" type="checkbox"> تفعيل Paymob عند شراء العملاء</label>
                     <button>حفظ Paymob</button>
                     <button type="button" class="secondary" id="test-paymob">اختبار الاتصال</button>
                   </form>
@@ -562,7 +562,7 @@
                     <thead>
                       <tr>
                         <th>الصنف</th>
-                        <th>Slug</th>
+                        <th>المعرف</th>
                         <th>عدد المنتجات</th>
                       </tr>
                     </thead>
@@ -576,7 +576,7 @@
                   <button type="button" class="ghost" id="cancel-category-form">رجوع لقائمة الأصناف</button>
                 </div>
                 <label>اسم التصنيف عربي<input name="nameAr" required></label>
-                <label>Category English<input name="nameEn" required></label>
+                <label>اسم التصنيف إنجليزي<input name="nameEn" required placeholder="Category"></label>
                 <label class="span-2">صورة التصنيف من الجهاز<input name="imageFile" type="file" accept="image/*"></label>
                 <button class="span-2" data-submit-category>إضافة تصنيف</button>
               </form>
@@ -626,7 +626,7 @@
                   <button type="button" class="ghost" id="cancel-product-form">رجوع لقائمة المنتجات</button>
                 </div>
                 <label>اسم المنتج عربي<input name="titleAr" required></label>
-                <label>Product English<input name="titleEn" required></label>
+                <label>اسم المنتج إنجليزي<input name="titleEn" required placeholder="Product"></label>
                 <label class="span-2">التصنيف<select id="product-category" name="categoryId"><option value="">بدون تصنيف</option></select></label>
                 <label class="span-2">الوصف<textarea name="description"></textarea></label>
                 <label>السعر<input name="price" type="number" step="0.01" required></label>
@@ -636,7 +636,7 @@
                 <label class="span-2">صور المنتج من الجهاز<input name="imageFiles" type="file" accept="image/*" multiple></label>
                 <label>رابط فيديو اختياري<input name="videoUrl" type="url" placeholder="https://..."></label>
                 <label>رفع فيديو اختياري<input name="videoFile" type="file" accept="video/*"></label>
-                <label class="span-2">الحالة<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+                <label class="span-2">الحالة<select name="status"><option value="draft">مسودة</option><option value="published">منشور</option></select></label>
                 <div class="span-2 variant-builder">
                   <div class="panel-heading">
                     <span class="eyebrow">Options</span>
@@ -1190,7 +1190,7 @@
                 <div class="store-hero-merchant-block storefront-hero-text">
                   <span class="eyebrow storefront-hero-eyebrow">Public storefront</span>
                   <h2 id="storefront-title">متجر عام جاهز للبيع</h2>
-                  <p id="storefront-subtitle">حمّل متجرًا بالـ slug، اعرض المنتجات، أضف للسلة، وأنشئ Checkout كامل.</p>
+                  <p id="storefront-subtitle">حمّل متجرًا بمعرفه، اعرض المنتجات، أضف للسلة، وأنشئ طلب شراء كامل.</p>
                 </div>
                 <div class="store-hero-client-block" id="store-hero-client-block" hidden>
                   <div class="store-hero-client-top">
@@ -1499,10 +1499,10 @@
                 </label>
               </div>
               <form id="platform-paymob-form" class="form-grid">
-                <label>الوضع<select name="mode"><option value="test">Test</option><option value="live">Live</option></select></label>
-                <label>Currency<input name="currency" value="EGP" maxlength="3" required></label>
-                <label class="span-2">Public Key<input name="publicKey" placeholder="pk_..."></label>
-                <label class="span-2">Secret Key<input name="secretKey" placeholder="sk_..."></label>
+                <label>الوضع<select name="mode"><option value="test">تجريبي</option><option value="live">مباشر</option></select></label>
+                <label>العملة<input name="currency" value="EGP" maxlength="3" required></label>
+                <label class="span-2">المفتاح العام<input name="publicKey" placeholder="pk_..."></label>
+                <label class="span-2">المفتاح السري<input name="secretKey" placeholder="sk_..."></label>
                 <label class="span-2">HMAC Secret<input name="hmacSecret" placeholder="اختياري"></label>
                 <label>Card Integration ID<input name="cardIntegrationId" type="number"></label>
                 <label>Wallet Integration ID<input name="walletIntegrationId" type="number"></label>
@@ -1561,6 +1561,6 @@
       <footer id="app-modal-foot" class="app-modal-foot" hidden></footer>
     </div>
   </dialog>
-  <script src="/app.js?v=2026070202"></script>
+  <script src="/app.js?v=2026070203"></script>
 </body>
 </html>

@@ -30,7 +30,7 @@ const STAFF_PERMISSIONS = [
   { key: "products", label: "المنتجات", hint: "إضافة وتعديل المنتجات" },
   { key: "categories", label: "الأصناف", hint: "تنظيم الأقسام" },
   { key: "settings", label: "إعدادات المتجر", hint: "البيانات والهوية" },
-  { key: "providers", label: "إعدادات الدفع", hint: "Paymob و EasyCash" },
+  { key: "providers", label: "إعدادات الدفع", hint: "Paymob و Easy Cash" },
   { key: "billing", label: "اشتراك المنصة", hint: "الفواتير والخطة" },
   { key: "accounting", label: "المحاسبة", hint: "ربط Easy Cash" },
   { key: "android", label: "تطبيق أندرويد", hint: "بناء APK" },
@@ -177,7 +177,7 @@ function renderPaymobStatusPanel(containerId, paymob, { scope = "platform" } = {
       ? "أكمل رقم تكامل البطاقة وفعّل Paymob، ثم اختبر الاتصال."
       : scope === "platform"
         ? "اربط حساب Paymob لتفعيل الدفع المباشر عند اختيار التاجر لخطة مدفوعة."
-        : "اربط حساب Paymob لاستقبال مدفوعات عملاء متجرك في Checkout.";
+        : "اربط حساب Paymob لاستقبال مدفوعات عملاء متجرك عند الشراء.";
 
   el.innerHTML = `<div class="paymob-status-card ${cardClass}">
     <div class="paymob-status-head">
@@ -1225,7 +1225,7 @@ async function registerMerchant(event) {
       updateLoginSerialDisplay(data.tenant.serial_code);
     }
     const serialLine = data.tenant?.serial_code ? `<p>رقم المتجر التسلسلي: <strong>${data.tenant.serial_code}</strong></p>` : "";
-    $("register-result").innerHTML = `<strong>تم إنشاء المتجر</strong><p>Store slug: ${data.tenant.slug}</p>${serialLine}<p>تم تسجيل الدخول كتاجر.</p>`;
+    $("register-result").innerHTML = `<strong>تم إنشاء المتجر</strong><p>معرف المتجر: ${data.tenant.slug}</p>${serialLine}<p>تم تسجيل الدخول كتاجر.</p>`;
     showMessage("تم تسجيل التاجر وإنشاء المتجر.");
     await bootstrap();
     setView(defaultViewForScope());
@@ -2623,7 +2623,7 @@ async function loadStorefront(event) {
   event?.preventDefault();
   const slug = $("tenant-slug").value.trim();
   if (!slug) {
-    $("storefront-products").innerHTML = "<p>بعد تسجيل التاجر سيظهر slug المتجر هنا تلقائيًا.</p>";
+    $("storefront-products").innerHTML = "<p>بعد تسجيل التاجر سيظهر معرف المتجر هنا تلقائيًا.</p>";
     const bar = $("storefront-chrome-bar");
     const rail = $("storefront-category-rail");
     const bottom = $("storefront-bottom-nav");
@@ -2938,7 +2938,7 @@ function renderAccountingModule(data) {
   if (discoverBox) {
     if (data.merchantOwnerEmail && !link?.cash_tenant_slug) {
       discoverBox.hidden = false;
-      discoverBox.innerHTML = `<strong>ربط تلقائي</strong><p>لو حساب Easy Cash مسجّل بنفس إيميل صاحب المتجر (<strong>${escapeHtmlText(data.merchantOwnerEmail)}</strong>)، اضغط «ربط تلقائي» وسيتعرّف النظام على شركتك بدون إدخال slug يدوياً.</p>`;
+      discoverBox.innerHTML = `<strong>ربط تلقائي</strong><p>لو حساب Easy Cash مسجّل بنفس إيميل صاحب المتجر (<strong>${escapeHtmlText(data.merchantOwnerEmail)}</strong>)، اضغط «ربط تلقائي» وسيتعرّف النظام على شركتك بدون إدخال المعرف يدوياً.</p>`;
     } else {
       discoverBox.hidden = true;
       discoverBox.innerHTML = "";
@@ -2965,10 +2965,10 @@ function renderAccountingModule(data) {
     const lastSync = link?.last_sync_at ? new Date(link.last_sync_at).toLocaleString("ar-EG") : "—";
     const err = link?.last_sync_error ? `<p class="text-danger">${escapeHtmlText(link.last_sync_error)}</p>` : "";
     statusEl.innerHTML = enabled
-      ? `<strong>الربط مفعّل</strong><p>شركة Cash: <strong>${escapeHtmlText(link.cash_tenant_slug || "—")}</strong> · آخر مزامنة: ${lastSync}</p>${err}`
+      ? `<strong>الربط مفعّل</strong><p>شركة المحاسبة: <strong>${escapeHtmlText(link.cash_tenant_slug || "—")}</strong> · آخر مزامنة: ${lastSync}</p>${err}`
       : link?.cash_tenant_slug
         ? `<strong>الربط جاهز — غير مفعّل</strong><p>فعّل المربع أعلاه لبدء المزامنة التلقائية.</p>`
-        : `<strong>لم يُضبط الربط بعد</strong><p>أدخل slug شركتك في Easy Cash (مثل philo) ثم احفظ.</p>`;
+        : `<strong>لم يُضبط الربط بعد</strong><p>أدخل معرف شركتك في Easy Cash (مثل philo) ثم احفظ.</p>`;
     if (!data.integrationConfigured) {
       statusEl.innerHTML += `<p class="text-warn"><small>تنبيه للمسؤول: SHOPE_INTEGRATION_SECRET غير مضبوط على خادم Easy Shope.</small></p>`;
     }
@@ -3048,7 +3048,7 @@ async function testAccountingLink() {
   try {
     $("accounting-status").innerHTML = "<strong>جارٍ اختبار الاتصال…</strong>";
     const data = await api("/api/merchant/accounting/test", { method: "POST", body: JSON.stringify({}) });
-    showMessage(`الاتصال ناجح — شركة Cash: ${data.tenantSlug || "OK"}`);
+    showMessage(`الاتصال ناجح — معرف الشركة: ${data.tenantSlug || "OK"}`);
     await loadAccountingData();
   } catch (error) {
     showMessage(error.message, true);
@@ -3394,7 +3394,7 @@ async function openAdminTenantDetail(tenantId) {
     if (title) title.textContent = t.name_ar || t.name_en || t.slug;
     const storeUrl = `${window.location.origin}/store/${t.slug}`;
     body.innerHTML = `<div class="dialog-grid">
-      <div><strong>Slug</strong><p>${t.slug}</p></div>
+      <div><strong>المعرف</strong><p>${t.slug}</p></div>
       <div><strong>رقم تسلسلي</strong><p>${t.serial_code || "—"}</p></div>
       <div><strong>الحالة</strong><p>${adminStatusBadge(t.status)} ${t.plan_code}</p></div>
       <div><strong>المالك</strong><p>${t.owner_name || "—"}<br>${t.owner_email || ""}<br>${t.owner_phone || ""}</p></div>
