@@ -79,7 +79,7 @@ body[data-scope="admin"] .admin-side-item.active {
 
 body[data-scope="merchant"] .merchant-side-item.active small,
 body[data-scope="admin"] .admin-side-item.active small {
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff;
 }
 
 body[data-scope="merchant"] .merchant-brand-text .eyebrow,
@@ -1021,8 +1021,10 @@ body[data-scope="admin"] .admin-side-item {
 }
 
 body[data-scope="merchant"] .merchant-side-item strong,
-body[data-scope="admin"] .admin-side-item strong {
-  color: #f8fafc;
+body[data-scope="admin"] .admin-side-item strong,
+body[data-scope="merchant"] .merchant-side-item small,
+body[data-scope="admin"] .admin-side-item small {
+  color: #e2e8f0;
 }
 
 body[data-scope="merchant"] .merchant-side-item:hover,
@@ -1038,7 +1040,9 @@ body[data-scope="admin"] .admin-side-item.active {
 }
 
 body[data-scope="merchant"] .merchant-side-item.active strong,
-body[data-scope="admin"] .admin-side-item.active strong {
+body[data-scope="merchant"] .merchant-side-item.active small,
+body[data-scope="admin"] .admin-side-item.active strong,
+body[data-scope="admin"] .admin-side-item.active small {
   color: #fff;
 }
 
@@ -1087,12 +1091,12 @@ body[data-scope="admin"] .muted {
 
 body[data-scope="merchant"] .merchant-side-item small,
 body[data-scope="admin"] .admin-side-item small {
-  color: #94a3b8;
+  color: #e2e8f0;
 }
 
 body[data-scope="merchant"] .merchant-side-item.active small,
 body[data-scope="admin"] .admin-side-item.active small {
-  color: rgba(255, 255, 255, 0.88);
+  color: #fff;
 }
 
 body[data-scope="merchant"] .store-link-block,
@@ -1370,16 +1374,20 @@ body[data-scope="admin"] .admin-side-item {
 }
 
 body[data-scope="merchant"] .merchant-side-item strong,
+body[data-scope="admin"] .admin-side-item strong,
+body[data-scope="merchant"] .merchant-side-item small,
+body[data-scope="admin"] .admin-side-item small {
+  color: #e2e8f0 !important;
+  font-weight: 700;
+}
+
+body[data-scope="merchant"] .merchant-side-item strong,
 body[data-scope="admin"] .admin-side-item strong {
-  color: #f8fafc !important;
-  font-weight: 800;
   font-size: 0.95rem;
 }
 
 body[data-scope="merchant"] .merchant-side-item small,
 body[data-scope="admin"] .admin-side-item small {
-  color: #c7d2fe !important;
-  font-weight: 600;
   font-size: 0.78rem;
   line-height: 1.45;
 }

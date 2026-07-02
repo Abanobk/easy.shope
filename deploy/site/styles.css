@@ -7044,15 +7044,12 @@ body.admin-workspace .admin-side-item {
 body[data-scope="merchant"] .merchant-side-item strong,
 body.merchant-workspace .merchant-side-item strong,
 body[data-scope="admin"] .admin-side-item strong,
-body.admin-workspace .admin-side-item strong {
-  color: #f8fafc !important;
-}
-
+body.admin-workspace .admin-side-item strong,
 body[data-scope="merchant"] .merchant-side-item small,
 body.merchant-workspace .merchant-side-item small,
 body[data-scope="admin"] .admin-side-item small,
 body.admin-workspace .admin-side-item small {
-  color: #c7d2fe !important;
+  color: #e2e8f0 !important;
 }
 
 body[data-scope="merchant"] .merchant-side-item:hover,
@@ -7060,6 +7057,17 @@ body.merchant-workspace .merchant-side-item:hover,
 body[data-scope="admin"] .admin-side-item:hover,
 body.admin-workspace .admin-side-item:hover {
   background: #312e81 !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item:hover strong,
+body.merchant-workspace .merchant-side-item:hover strong,
+body[data-scope="merchant"] .merchant-side-item:hover small,
+body.merchant-workspace .merchant-side-item:hover small,
+body[data-scope="admin"] .admin-side-item:hover strong,
+body.admin-workspace .admin-side-item:hover strong,
+body[data-scope="admin"] .admin-side-item:hover small,
+body.admin-workspace .admin-side-item:hover small {
+  color: #e2e8f0 !important;
 }
 
 body[data-scope="merchant"] .merchant-side-item.active,
