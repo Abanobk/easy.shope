@@ -71,6 +71,8 @@ type AuthUser = {
   role: "platform_owner" | "platform_admin" | "merchant_owner" | "merchant_staff" | "customer";
 };
 
+type TenantAuthUser = AuthUser & { tenantId: string };
+
 const pool = new Pool({ connectionString: env.databaseUrl });
 const app = Fastify({ logger: true, bodyLimit: 15 * 1024 * 1024 });
 
@@ -137,17 +139,17 @@ function requirePlatformOwner(request: Parameters<typeof getAuth>[0]) {
   return user;
 }
 
-function requireTenantUser(request: Parameters<typeof getAuth>[0]) {
+function requireTenantUser(request: Parameters<typeof getAuth>[0]): TenantAuthUser {
   const user = requireAuth(request);
   if (!user.tenantId) {
     const error = new Error("Tenant required");
     (error as Error & { statusCode: number }).statusCode = 403;
     throw error;
   }
-  return user;
+  return { ...user, tenantId: user.tenantId };
 }
 
-function requireMerchantOwner(request: Parameters<typeof getAuth>[0]) {
+function requireMerchantOwner(request: Parameters<typeof getAuth>[0]): TenantAuthUser {
   const user = requireTenantUser(request);
   if (user.role !== "merchant_owner") {
     throw httpError("Only the merchant owner can manage staff", 403);
@@ -155,7 +157,7 @@ function requireMerchantOwner(request: Parameters<typeof getAuth>[0]) {
   return user;
 }
 
-function requireMerchantUser(request: Parameters<typeof getAuth>[0]) {
+function requireMerchantUser(request: Parameters<typeof getAuth>[0]): TenantAuthUser {
   const user = requireTenantUser(request);
   if (!["merchant_owner", "merchant_staff"].includes(user.role)) {
     throw httpError("Merchant account required", 403);
