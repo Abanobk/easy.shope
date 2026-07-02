@@ -6956,3 +6956,232 @@ body.mobile-store-client .whatsapp-support-fab {
     display: flex;
   }
 }
+
+/* ===== Merchant/Admin workspace — source-of-truth overrides (end of cascade) ===== */
+body[data-scope="merchant"],
+body.merchant-workspace,
+body[data-scope="admin"],
+body.admin-workspace {
+  color-scheme: light;
+  --admin-primary: #6366f1;
+  --admin-primary-deep: #4f46e5;
+  --admin-sidebar: #1e1b4b;
+  --admin-sidebar-hover: #312e81;
+  --admin-workspace: #f1f5f9;
+  --admin-surface: #ffffff;
+  --admin-text: #0f172a;
+  --admin-muted: #64748b;
+  --admin-line: #e2e8f0;
+  --muted: #64748b;
+  --text: #0f172a;
+  --line: #e2e8f0;
+  background: #f1f5f9 !important;
+  background-image: none !important;
+  color: #0f172a;
+}
+
+body[data-scope="merchant"] .main,
+body.merchant-workspace .main,
+body[data-scope="admin"] .main,
+body.admin-workspace .main {
+  color: #0f172a;
+}
+
+body[data-scope="merchant"][data-view="catalog"] .main > .topbar > div:first-child,
+body.merchant-workspace[data-view="catalog"] .main > .topbar > div:first-child,
+body[data-scope="admin"][data-view="admin"] .main > .topbar > div:first-child,
+body.admin-workspace[data-view="admin"] .main > .topbar > div:first-child {
+  display: none !important;
+}
+
+body[data-scope="merchant"][data-view="catalog"] .main > .topbar,
+body.merchant-workspace[data-view="catalog"] .main > .topbar,
+body[data-scope="admin"][data-view="admin"] .main > .topbar,
+body.admin-workspace[data-view="admin"] .main > .topbar {
+  justify-content: flex-end !important;
+  margin-bottom: 10px;
+}
+
+body[data-scope="merchant"] .merchant-side,
+body.merchant-workspace .merchant-side,
+body[data-scope="admin"] .admin-side,
+body.admin-workspace .admin-side {
+  background: #1e1b4b !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.15) !important;
+}
+
+body[data-scope="merchant"] .merchant-brand-text .eyebrow,
+body.merchant-workspace .merchant-brand-text .eyebrow,
+body[data-scope="admin"] .admin-side-head .eyebrow,
+body.admin-workspace .admin-side-head .eyebrow {
+  color: #94a3b8 !important;
+}
+
+body[data-scope="merchant"] .merchant-brand-text strong,
+body.merchant-workspace .merchant-brand-text strong,
+body[data-scope="admin"] .admin-side-head strong,
+body.admin-workspace .admin-side-head strong {
+  color: #f8fafc !important;
+}
+
+body[data-scope="merchant"] .merchant-brand-slug,
+body.merchant-workspace .merchant-brand-slug,
+body[data-scope="merchant"] .merchant-brand-serial,
+body.merchant-workspace .merchant-brand-serial {
+  color: #94a3b8 !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item,
+body.merchant-workspace .merchant-side-item,
+body[data-scope="admin"] .admin-side-item,
+body.admin-workspace .admin-side-item {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item strong,
+body.merchant-workspace .merchant-side-item strong,
+body[data-scope="admin"] .admin-side-item strong,
+body.admin-workspace .admin-side-item strong {
+  color: #f8fafc !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item small,
+body.merchant-workspace .merchant-side-item small,
+body[data-scope="admin"] .admin-side-item small,
+body.admin-workspace .admin-side-item small {
+  color: #c7d2fe !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item:hover,
+body.merchant-workspace .merchant-side-item:hover,
+body[data-scope="admin"] .admin-side-item:hover,
+body.admin-workspace .admin-side-item:hover {
+  background: #312e81 !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item.active,
+body.merchant-workspace .merchant-side-item.active,
+body[data-scope="admin"] .admin-side-item.active,
+body.admin-workspace .admin-side-item.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item.active strong,
+body[data-scope="merchant"] .merchant-side-item.active small,
+body.merchant-workspace .merchant-side-item.active strong,
+body.merchant-workspace .merchant-side-item.active small,
+body[data-scope="admin"] .admin-side-item.active strong,
+body[data-scope="admin"] .admin-side-item.active small,
+body.admin-workspace .admin-side-item.active strong,
+body.admin-workspace .admin-side-item.active small {
+  color: #fff !important;
+}
+
+body[data-scope="merchant"] .merchant-side-icon,
+body.merchant-workspace .merchant-side-icon,
+body[data-scope="admin"] .admin-side-icon,
+body.admin-workspace .admin-side-icon {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c7d2fe;
+}
+
+body[data-scope="merchant"] .merchant-side-item.active .merchant-side-icon,
+body.merchant-workspace .merchant-side-item.active .merchant-side-icon,
+body[data-scope="admin"] .admin-side-item.active .admin-side-icon,
+body.admin-workspace .admin-side-item.active .admin-side-icon {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+body[data-scope="merchant"] .message,
+body.merchant-workspace .message,
+body[data-scope="admin"] .message,
+body.admin-workspace .message {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner,
+body.merchant-workspace .trial-subscription-banner,
+body[data-scope="admin"] .trial-subscription-banner,
+body.admin-workspace .trial-subscription-banner {
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%) !important;
+  border: 1px solid #bfdbfe !important;
+  color: #1e293b !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner strong,
+body.merchant-workspace .trial-subscription-banner strong,
+body[data-scope="admin"] .trial-subscription-banner strong,
+body.admin-workspace .trial-subscription-banner strong {
+  color: #1e3a8a !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner span,
+body.merchant-workspace .trial-subscription-banner span,
+body[data-scope="admin"] .trial-subscription-banner span,
+body.admin-workspace .trial-subscription-banner span {
+  color: #475569 !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--warn,
+body.merchant-workspace .trial-subscription-banner--warn,
+body[data-scope="admin"] .trial-subscription-banner--warn,
+body.admin-workspace .trial-subscription-banner--warn {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border-color: #fcd34d !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--warn strong,
+body.merchant-workspace .trial-subscription-banner--warn strong,
+body[data-scope="admin"] .trial-subscription-banner--warn strong,
+body.admin-workspace .trial-subscription-banner--warn strong {
+  color: #92400e !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--warn span,
+body.merchant-workspace .trial-subscription-banner--warn span,
+body[data-scope="admin"] .trial-subscription-banner--warn span,
+body.admin-workspace .trial-subscription-banner--warn span {
+  color: #78350f !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--danger,
+body.merchant-workspace .trial-subscription-banner--danger,
+body[data-scope="admin"] .trial-subscription-banner--danger,
+body.admin-workspace .trial-subscription-banner--danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+  border-color: #fca5a5 !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner--danger strong,
+body.merchant-workspace .trial-subscription-banner--danger strong,
+body[data-scope="admin"] .trial-subscription-banner--danger strong,
+body.admin-workspace .trial-subscription-banner--danger strong {
+  color: #991b1b !important;
+}
+
+body[data-scope="merchant"] .trial-subscription-banner .mini-cta,
+body.merchant-workspace .trial-subscription-banner .mini-cta,
+body[data-scope="admin"] .trial-subscription-banner .mini-cta,
+body.admin-workspace .trial-subscription-banner .mini-cta {
+  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+body[data-scope="merchant"] .shop-welcome-banner,
+body.merchant-workspace .shop-welcome-banner,
+body[data-scope="merchant"] .shop-welcome-banner h2,
+body.merchant-workspace .shop-welcome-banner h2,
+body[data-scope="merchant"] .shop-welcome-banner p,
+body.merchant-workspace .shop-welcome-banner p {
+  color: #fff !important;
+}

@@ -1014,6 +1014,7 @@ function updateNavigation() {
   const scope = currentScope();
   if (isStoreClientMode()) {
     document.body.dataset.scope = "customer";
+    document.body.classList.remove("merchant-workspace", "admin-workspace");
     document.querySelectorAll(".nav-item").forEach((button) => {
       button.hidden = true;
     });
@@ -1023,6 +1024,8 @@ function updateNavigation() {
     return;
   }
   document.body.dataset.scope = scope;
+  document.body.classList.toggle("merchant-workspace", scope === "merchant");
+  document.body.classList.toggle("admin-workspace", scope === "admin");
   document.querySelectorAll(".nav-item").forEach((button) => {
     const scopes = (button.dataset.scope || "public").split(",");
     button.hidden = !scopes.includes(scope);

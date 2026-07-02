@@ -21,10 +21,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=2026070205" />
-  <link rel="stylesheet" href="/design-system.css?v=2026070205" />
+  <link rel="stylesheet" href="/styles.css?v=2026070212" />
+  <link rel="stylesheet" href="/design-system.css?v=2026070212" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
+  <script>
+    (function () {
+      try {
+        var role = localStorage.getItem("easyShopeRole") || "";
+        if (role === "merchant_owner" || role === "merchant_staff") {
+          document.body.dataset.scope = "merchant";
+          document.body.dataset.view = "catalog";
+          document.body.classList.add("merchant-workspace");
+        } else if (role === "platform_owner" || role === "platform_admin") {
+          document.body.dataset.scope = "admin";
+          document.body.dataset.view = "admin";
+          document.body.classList.add("admin-workspace");
+        }
+      } catch (e) {}
+    })();
+  </script>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
