@@ -21,8 +21,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=2026070213" />
-  <link rel="stylesheet" href="/design-system.css?v=2026070213" />
+  <link rel="stylesheet" href="/styles.css?v=2026070214" />
+  <link rel="stylesheet" href="/design-system.css?v=2026070214" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <script>
@@ -410,7 +410,7 @@
               </dialog>
             </article>
 
-            <article class="panel merchant-tab billing-page" data-merchant-panel="billing">
+            <article class="panel merchant-tab billing-page account-page" data-merchant-panel="billing">
               <div class="page-head">
                 <div>
                   <div class="breadcrumb">الحساب <span>/</span> اشتراك المنصة</div>
@@ -446,11 +446,13 @@
               </div>
             </article>
 
-            <article class="panel merchant-tab" data-merchant-panel="accounting">
-              <div class="panel-heading">
-                <span class="eyebrow">Easy Cash</span>
-                <h2>وحدة المحاسبة والربط التلقائي</h2>
-                <p class="page-subtitle">اربط متجرك بنظام Easy Cash — المنتجات والمخزون والفواتير تتزامن تلقائياً بين النظامين.</p>
+            <article class="panel merchant-tab account-page" data-merchant-panel="accounting">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">الحساب <span>/</span> المحاسبة</div>
+                  <h2>وحدة المحاسبة والربط التلقائي</h2>
+                  <p class="page-subtitle">اربط متجرك بنظام Easy Cash — المنتجات والمخزون والفواتير تتزامن تلقائياً بين النظامين.</p>
+                </div>
               </div>
               <div class="accounting-module-layout">
                 <div class="accounting-offer-card">
@@ -489,12 +491,19 @@
               </div>
             </article>
 
-            <article class="panel merchant-tab" data-merchant-panel="providers">
-              <div class="grid two">
-                <article class="panel">
+            <article class="panel merchant-tab account-page" data-merchant-panel="providers">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">الحساب <span>/</span> إعدادات الدفع</div>
+                  <h2>إعدادات دفع المتجر</h2>
+                  <p class="page-subtitle">اربط بوابات الدفع، فعّل الطريقة الافتراضية، وتابع حالة Paymob.</p>
+                </div>
+              </div>
+              <div class="account-page-grid">
+                <section class="account-section-card">
                   <div class="panel-heading">
                     <span class="eyebrow">Easy Cash</span>
-                    <h2>إعدادات دفع المتجر</h2>
+                    <h3>بوابة Easy Cash</h3>
                   </div>
                   <form id="easycash-form" class="form-stack">
                     <label>الوضع<select name="mode"><option value="test">تجريبي</option><option value="live">مباشر</option></select></label>
@@ -520,11 +529,11 @@
                     <strong>مهم</strong>
                     <p>فعّل بوابة الدفع التي تريد استخدامها عند الشراء. عند وجود أكثر من بوابة، ستعرف من هنا أيهما مفعّل وأيهما غير مفعّل.</p>
                   </div>
-                </article>
-                <article class="panel">
+                </section>
+                <section class="account-section-card">
                   <div class="panel-heading">
                     <span class="eyebrow">Paymob Accept</span>
-                    <h2>ربط Paymob للتاجر</h2>
+                    <h3>ربط Paymob للتاجر</h3>
                   </div>
                   <div id="merchant-paymob-status" class="paymob-panel"></div>
                   <div class="hint-box">
@@ -558,7 +567,7 @@
                     <button>حفظ Paymob</button>
                     <button type="button" class="secondary" id="test-paymob">اختبار الاتصال</button>
                   </form>
-                </article>
+                </section>
               </div>
             </article>
 
@@ -1155,21 +1164,21 @@
               <ul id="merchant-android-builds" class="list"></ul>
             </article>
 
-            <article class="panel merchant-tab" data-merchant-panel="team">
+            <article class="panel merchant-tab account-page" data-merchant-panel="team">
               <div class="page-head">
                 <div>
-                  <div class="breadcrumb">لوحة المتجر <span>/</span> الفريق</div>
+                  <div class="breadcrumb">الحساب <span>/</span> الفريق</div>
                   <h2>الفريق والصلاحيات</h2>
-                  <p class="page-subtitle">أضف موظفين، حدّد صلاحيات كل موظف، وفعّل/عطّل الحسابات.</p>
+                  <p class="page-subtitle">أضف موظفين، حدّد صلاحيات كل موظف، وفعّل أو عطّل الحسابات.</p>
                 </div>
               </div>
-              <div class="grid two">
-                <div>
-                  <h3>موظفو المتجر</h3>
+              <div class="account-page-grid">
+                <section class="account-section-card">
+                  <h3 class="section-title section-title--lg">موظفو المتجر</h3>
                   <div class="section-tools">
                     <input id="staff-filter" placeholder="ابحث باسم الموظف أو البريد">
                   </div>
-                  <form id="staff-form" class="form-grid">
+                  <form id="staff-form" class="form-grid team-form">
                     <label>اسم الموظف<input name="name" required></label>
                     <label>البريد<input name="email" type="email" required></label>
                     <label>موبايل<input name="phone"></label>
@@ -1180,17 +1189,20 @@
                     </fieldset>
                     <button class="span-2">إضافة موظف</button>
                   </form>
-                  <ul id="staff-list" class="list"></ul>
-                </div>
-                <div>
-                  <h3>تغيير كلمة المرور</h3>
-                  <form id="password-form" class="form-stack">
+                  <ul id="staff-list" class="list staff-list"></ul>
+                </section>
+                <section class="account-section-card">
+                  <h3 class="section-title section-title--lg">تغيير كلمة المرور</h3>
+                  <form id="password-form" class="form-stack team-form">
                     <label>كلمة المرور الحالية<input name="currentPassword" type="password" required></label>
                     <label>كلمة المرور الجديدة<input name="newPassword" type="password" minlength="8" required></label>
                     <button>تحديث كلمة المرور</button>
                   </form>
-                  <div class="hint-box">صاحب المتجر فقط يضيف الموظفين. الموظف يدخل بنفس شاشة تسجيل الدخول ويشاهد بيانات نفس المتجر.</div>
-                </div>
+                  <div class="hint-box team-hint">
+                    <strong>ملاحظة</strong>
+                    <p>صاحب المتجر فقط يضيف الموظفين. الموظف يدخل من نفس شاشة تسجيل الدخول ويشاهد بيانات نفس المتجر.</p>
+                  </div>
+                </section>
               </div>
             </article>
           </div>

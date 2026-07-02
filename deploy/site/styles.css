@@ -7193,3 +7193,321 @@ body[data-scope="merchant"] .shop-welcome-banner p,
 body.merchant-workspace .shop-welcome-banner p {
   color: #fff !important;
 }
+
+/* ===== Account pages — billing, team, providers ===== */
+body[data-scope="merchant"] .merchant-subnav,
+body.merchant-workspace .merchant-subnav,
+body[data-scope="admin"] .merchant-subnav,
+body.admin-workspace .merchant-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 16px;
+  margin: 0 0 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+body[data-scope="merchant"] button.merchant-subnav-item,
+body.merchant-workspace button.merchant-subnav-item,
+body[data-scope="admin"] button.merchant-subnav-item,
+body.admin-workspace button.merchant-subnav-item {
+  background: #fff !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 999px !important;
+  padding: 8px 16px !important;
+  font-weight: 700 !important;
+  font-size: 0.86rem !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+body[data-scope="merchant"] button.merchant-subnav-item:hover,
+body.merchant-workspace button.merchant-subnav-item:hover,
+body[data-scope="admin"] button.merchant-subnav-item:hover,
+body.admin-workspace button.merchant-subnav-item:hover {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+body[data-scope="merchant"] button.merchant-subnav-item.active,
+body.merchant-workspace button.merchant-subnav-item.active,
+body[data-scope="admin"] button.merchant-subnav-item.active,
+body.admin-workspace button.merchant-subnav-item.active {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #a5b4fc !important;
+}
+
+body[data-scope="merchant"] button.plan-picker-card,
+body.merchant-workspace button.plan-picker-card,
+body[data-scope="admin"] button.plan-picker-card,
+body.admin-workspace button.plan-picker-card {
+  display: block;
+  width: 100%;
+  text-align: start;
+  background: #fff !important;
+  color: #0f172a !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 18px !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+body[data-scope="merchant"] button.plan-picker-card:hover,
+body.merchant-workspace button.plan-picker-card:hover,
+body[data-scope="admin"] button.plan-picker-card:hover,
+body.admin-workspace button.plan-picker-card:hover {
+  border-color: #a5b4fc !important;
+  background: #fafbff !important;
+}
+
+body[data-scope="merchant"] button.plan-picker-card.selected,
+body.merchant-workspace button.plan-picker-card.selected,
+body[data-scope="admin"] button.plan-picker-card.selected,
+body.admin-workspace button.plan-picker-card.selected {
+  border-color: #6366f1 !important;
+  background: #eef2ff !important;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.14) !important;
+}
+
+body[data-scope="merchant"] button.plan-picker-card strong,
+body.merchant-workspace button.plan-picker-card strong,
+body[data-scope="admin"] button.plan-picker-card strong,
+body.admin-workspace button.plan-picker-card strong {
+  color: #0f172a !important;
+  font-size: 1.05rem;
+}
+
+body[data-scope="merchant"] button.plan-picker-card .plan-price,
+body.merchant-workspace button.plan-picker-card .plan-price,
+body[data-scope="admin"] button.plan-picker-card .plan-price,
+body.admin-workspace button.plan-picker-card .plan-price {
+  color: #4338ca !important;
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 8px 0;
+}
+
+body[data-scope="merchant"] button.plan-picker-card small,
+body.merchant-workspace button.plan-picker-card small,
+body[data-scope="admin"] button.plan-picker-card small,
+body.admin-workspace button.plan-picker-card small {
+  color: #64748b !important;
+  line-height: 1.5;
+}
+
+body[data-scope="merchant"] .plan-picker-card--readonly,
+body.merchant-workspace .plan-picker-card--readonly {
+  cursor: default;
+  background: #f8fafc !important;
+}
+
+body[data-scope="merchant"] .account-page-grid,
+body.merchant-workspace .account-page-grid,
+body[data-scope="admin"] .account-page-grid,
+body.admin-workspace .account-page-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  body[data-scope="merchant"] .account-page-grid,
+  body.merchant-workspace .account-page-grid,
+  body[data-scope="admin"] .account-page-grid,
+  body.admin-workspace .account-page-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+body[data-scope="merchant"] .account-section-card,
+body.merchant-workspace .account-section-card,
+body[data-scope="admin"] .account-section-card,
+body.admin-workspace .account-section-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+body[data-scope="merchant"] .account-page .section-title,
+body.merchant-workspace .account-page .section-title,
+body[data-scope="merchant"] .billing-page .section-title,
+body.merchant-workspace .billing-page .section-title {
+  color: #334155 !important;
+  font-weight: 800;
+}
+
+body[data-scope="merchant"] .account-page label,
+body.merchant-workspace .account-page label,
+body[data-scope="merchant"] .billing-page label,
+body.merchant-workspace .billing-page label {
+  color: #334155 !important;
+  font-weight: 700;
+}
+
+body[data-scope="merchant"] .account-page input,
+body.merchant-workspace .account-page input,
+body[data-scope="merchant"] .account-page select,
+body.merchant-workspace .account-page select,
+body[data-scope="merchant"] .account-page textarea,
+body.merchant-workspace .account-page textarea,
+body[data-scope="merchant"] .billing-page input,
+body.merchant-workspace .billing-page input,
+body[data-scope="merchant"] .billing-page select,
+body.merchant-workspace .billing-page select,
+body[data-scope="merchant"] .billing-page textarea,
+body.merchant-workspace .billing-page textarea {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body[data-scope="merchant"] .account-page input:focus,
+body.merchant-workspace .account-page input:focus,
+body[data-scope="merchant"] .account-page select:focus,
+body.merchant-workspace .account-page select:focus,
+body[data-scope="merchant"] .billing-page input:focus,
+body.merchant-workspace .billing-page input:focus,
+body[data-scope="merchant"] .billing-page select:focus,
+body.merchant-workspace .billing-page select:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+}
+
+body[data-scope="merchant"] .perm-fieldset,
+body.merchant-workspace .perm-fieldset {
+  border-color: #e2e8f0 !important;
+  background: #f8fafc;
+}
+
+body[data-scope="merchant"] .perm-fieldset legend,
+body.merchant-workspace .perm-fieldset legend {
+  color: #64748b !important;
+}
+
+body[data-scope="merchant"] .perm-check,
+body.merchant-workspace .perm-check {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a;
+}
+
+body[data-scope="merchant"] .perm-check:hover,
+body.merchant-workspace .perm-check:hover {
+  border-color: #a5b4fc !important;
+  background: #fafbff !important;
+}
+
+body[data-scope="merchant"] .perm-check strong,
+body.merchant-workspace .perm-check strong {
+  color: #0f172a !important;
+}
+
+body[data-scope="merchant"] .perm-check small,
+body.merchant-workspace .perm-check small {
+  color: #64748b !important;
+}
+
+body[data-scope="merchant"] .staff-list li,
+body.merchant-workspace .staff-list li {
+  display: grid !important;
+  gap: 10px;
+  align-items: start;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  color: #0f172a;
+}
+
+body[data-scope="merchant"] .staff-list li strong,
+body.merchant-workspace .staff-list li strong {
+  color: #0f172a !important;
+}
+
+body[data-scope="merchant"] .staff-list li strong small,
+body.merchant-workspace .staff-list li strong small {
+  color: #64748b !important;
+  font-weight: 600;
+}
+
+body[data-scope="merchant"] .staff-list .perm-badge,
+body.merchant-workspace .staff-list .perm-badge {
+  color: #4338ca !important;
+  background: #eef2ff !important;
+  border-color: #c7d2fe !important;
+}
+
+body[data-scope="merchant"] .staff-list .perm-badge--none,
+body.merchant-workspace .staff-list .perm-badge--none {
+  color: #64748b !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+body[data-scope="merchant"] .staff-list .status-badge,
+body.merchant-workspace .staff-list .status-badge {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+body[data-scope="merchant"] .staff-list .status-badge.ok,
+body.merchant-workspace .staff-list .status-badge.ok {
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+  border-color: #bbf7d0 !important;
+}
+
+body[data-scope="merchant"] .staff-list .status-badge.off,
+body.merchant-workspace .staff-list .status-badge.off {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border-color: #fecaca !important;
+}
+
+body[data-scope="merchant"] .staff-list .row-actions,
+body.merchant-workspace .staff-list .row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body[data-scope="merchant"] .perm-editor,
+body.merchant-workspace .perm-editor {
+  border-top-color: #e2e8f0 !important;
+}
+
+body[data-scope="merchant"] .account-page .callback-box,
+body.merchant-workspace .account-page .callback-box {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+body[data-scope="merchant"] .account-page .callback-box small,
+body.merchant-workspace .account-page .callback-box small {
+  color: #64748b !important;
+}
+
+body[data-scope="merchant"] .account-page .callback-box input[readonly],
+body.merchant-workspace .account-page .callback-box input[readonly] {
+  color: #4338ca !important;
+  background: #fff !important;
+}
+
+body[data-scope="merchant"] .account-page .team-hint,
+body.merchant-workspace .account-page .team-hint {
+  margin-top: 16px;
+}
+
+body[data-scope="merchant"] .billing-page .billing-form button[type="submit"],
+body.merchant-workspace .billing-page .billing-form button[type="submit"] {
+  width: 100%;
+}

@@ -227,8 +227,8 @@ body[data-scope="admin"] textarea:focus {
 }
 
 /* Primary buttons */
-body[data-scope="merchant"] button:not(.ghost):not(.secondary):not(.mini-button):not(.drawer-close):not(.merchant-menu-toggle):not(.password-toggle):not(.theme-tile-select):not(.theme-chip):not(.merchant-side-item):not(.admin-side-item),
-body[data-scope="admin"] button:not(.ghost):not(.secondary):not(.mini-button):not(.drawer-close):not(.merchant-menu-toggle):not(.password-toggle):not(.admin-side-item) {
+body[data-scope="merchant"] button:not(.ghost):not(.secondary):not(.mini-button):not(.drawer-close):not(.merchant-menu-toggle):not(.password-toggle):not(.theme-tile-select):not(.theme-chip):not(.merchant-side-item):not(.admin-side-item):not(.plan-picker-card):not(.merchant-subnav-item):not(.quick-action-card):not(.admin-quick-btn),
+body[data-scope="admin"] button:not(.ghost):not(.secondary):not(.mini-button):not(.drawer-close):not(.merchant-menu-toggle):not(.password-toggle):not(.admin-side-item):not(.plan-picker-card):not(.merchant-subnav-item):not(.quick-action-card):not(.admin-quick-btn) {
   background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep));
   color: #fff;
   border: none;
