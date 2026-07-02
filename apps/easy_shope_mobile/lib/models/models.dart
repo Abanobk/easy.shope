@@ -114,11 +114,12 @@ class CartLine {
 }
 
 class OrderResult {
-  OrderResult({required this.orderId, required this.paymentStatus, this.checkoutUrl});
+  OrderResult({required this.orderId, required this.paymentStatus, this.checkoutUrl, this.trackingUrl});
 
   final String orderId;
   final String paymentStatus;
   final String? checkoutUrl;
+  final String? trackingUrl;
 
   factory OrderResult.fromJson(Map<String, dynamic> json) {
     final order = json['order'] as Map<String, dynamic>? ?? {};
@@ -127,6 +128,7 @@ class OrderResult {
       orderId: order['id'] as String? ?? '',
       paymentStatus: payment['status'] as String? ?? 'pending',
       checkoutUrl: payment['checkoutUrl'] as String?,
+      trackingUrl: json['trackingUrl'] as String?,
     );
   }
 }

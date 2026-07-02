@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../state/store_session.dart';
@@ -111,6 +112,9 @@ class _CartScreenState extends State<CartScreen> {
   final _phone = TextEditingController();
   final _email = TextEditingController();
   final _address = TextEditingController();
+  final _coupon = TextEditingController();
+  String _governorate = 'cairo';
+  String _paymentMethod = 'paymob';
   bool _submitting = false;
   String? _result;
 
@@ -120,6 +124,7 @@ class _CartScreenState extends State<CartScreen> {
     _phone.dispose();
     _email.dispose();
     _address.dispose();
+    _coupon.dispose();
     super.dispose();
   }
 
@@ -138,8 +143,19 @@ class _CartScreenState extends State<CartScreen> {
         phone: _phone.text.trim(),
         email: _email.text.trim(),
         address: _address.text.trim(),
+        governorate: _governorate,
+        couponCode: _coupon.text.trim(),
+        paymentMethod: _paymentMethod,
       );
-      setState(() => _result = 'تم إنشاء الطلب ${order.orderId} — ${order.paymentStatus}');
+      if (order.checkoutUrl != null && order.checkoutUrl!.isNotEmpty) {
+        final uri = Uri.parse(order.checkoutUrl!);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+      setState(() {
+        _result = 'تم إنشاء الطلب ${order.orderId} — ${order.paymentStatus}${order.trackingUrl != null ? '\n${order.trackingUrl}' : ''}';
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
@@ -244,6 +260,31 @@ class _CartScreenState extends State<CartScreen> {
           TextField(controller: _email, decoration: const InputDecoration(labelText: 'البريد الإلكتروني'), keyboardType: TextInputType.emailAddress),
           const SizedBox(height: 10),
           TextField(controller: _address, decoration: const InputDecoration(labelText: 'عنوان الشحن'), maxLines: 2),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: _governorate,
+            decoration: const InputDecoration(labelText: 'المحافظة'),
+            items: const [
+              DropdownMenuItem(value: 'cairo', child: Text('القاهرة')),
+              DropdownMenuItem(value: 'giza', child: Text('الجيزة')),
+              DropdownMenuItem(value: 'alexandria', child: Text('الإسكندرية')),
+              DropdownMenuItem(value: 'other', child: Text('محافظات أخرى')),
+            ],
+            onChanged: (v) => setState(() => _governorate = v ?? 'cairo'),
+          ),
+          const SizedBox(height: 10),
+          TextField(controller: _coupon, decoration: const InputDecoration(labelText: 'كود الخصم (اختياري)')),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: _paymentMethod,
+            decoration: const InputDecoration(labelText: 'طريقة الدفع'),
+            items: const [
+              DropdownMenuItem(value: 'paymob', child: Text('بطاقة (Paymob)')),
+              DropdownMenuItem(value: 'cod', child: Text('الدفع عند الاستلام')),
+              DropdownMenuItem(value: 'fawry', child: Text('Fawry')),
+            ],
+            onChanged: (v) => setState(() => _paymentMethod = v ?? 'paymob'),
+          ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: session.cart.isEmpty || _submitting ? null : () => _checkout(session),

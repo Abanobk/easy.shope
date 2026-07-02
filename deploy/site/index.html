@@ -746,6 +746,7 @@
                     <label class="check"><input type="checkbox" name="paymob" checked> بطاقة بنكية (Paymob)</label>
                     <label class="check"><input type="checkbox" name="cod" checked> الدفع عند الاستلام (COD)</label>
                     <label class="check"><input type="checkbox" name="fawry"> Fawry (طلب يدوي / تواصل)</label>
+                    <label class="check"><input type="checkbox" name="easycash"> Easy Cash</label>
                     <label>رسوم COD إضافية (جنيه)<input name="codFee" type="number" step="0.01" min="0" value="0"></label>
                     <label>شحن مجاني من (جنيه)<input name="freeShippingMin" type="number" step="0.01" min="0" value="0" placeholder="0 = بدون حد"></label>
                     <button type="submit">حفظ إعدادات الدفع</button>
@@ -781,6 +782,40 @@
                   <button class="span-2">إضافة كود خصم</button>
                 </form>
                 <ul id="coupons-list" class="list staff-list"></ul>
+              </section>
+              <div class="account-page-grid" style="margin-top:20px">
+                <section class="account-section-card">
+                  <h3 class="section-title section-title--lg">إشعارات واتساب</h3>
+                  <form id="notify-settings-form" class="form-stack team-form">
+                    <label>رقم واتساب التاجر (بدون +)<input name="merchantWhatsAppPhone" placeholder="2010xxxxxxxx"></label>
+                    <label class="check"><input type="checkbox" name="notifyWhatsAppOnNewOrder" checked> إرسال رابط واتساب عند طلب جديد</label>
+                    <label class="check"><input type="checkbox" name="notifyEmailOnStatusChange" checked> إيميل للعميل عند تحديث حالة الطلب</label>
+                    <label>شركة الشحن الافتراضية
+                      <select name="defaultCarrier">
+                        <option value="manual">يدوي</option>
+                        <option value="bosta">Bosta</option>
+                        <option value="aramex">Aramex</option>
+                      </select>
+                    </label>
+                    <button type="submit">حفظ الإشعارات</button>
+                  </form>
+                </section>
+                <section class="account-section-card">
+                  <h3 class="section-title section-title--lg">الدومين المخصص</h3>
+                  <form id="domain-settings-form" class="form-stack team-form">
+                    <label>الدومين<input name="customDomain" placeholder="shop.example.com"></label>
+                    <p class="hint-inline">أضف CNAME يشير إلى <code id="platform-cname-host">shope.easytecheg.net</code></p>
+                    <button type="submit">حفظ الدومين</button>
+                  </form>
+                </section>
+              </div>
+              <section class="account-section-card" style="margin-top:20px">
+                <h3 class="section-title section-title--lg">تقييمات المنتجات</h3>
+                <form id="reviews-settings-form" class="form-stack team-form">
+                  <label class="check"><input type="checkbox" name="reviewsEnabled" checked> السماح للعملاء بإرسال تقييمات</label>
+                  <button type="submit">حفظ</button>
+                </form>
+                <ul id="merchant-reviews-list" class="list staff-list"></ul>
               </section>
             </article>
 
@@ -1354,10 +1389,20 @@
                   <label class="check"><input type="radio" name="paymentMethod" value="paymob" checked> بطاقة (Paymob)</label>
                   <label class="check"><input type="radio" name="paymentMethod" value="cod"> الدفع عند الاستلام</label>
                   <label class="check"><input type="radio" name="paymentMethod" value="fawry"> Fawry</label>
+                  <label class="check" id="checkout-easycash-wrap" hidden><input type="radio" name="paymentMethod" value="easycash"> Easy Cash</label>
                 </fieldset>
                 <button>إتمام الطلب</button>
               </form>
               <div id="checkout-result" class="hint-box">نتيجة الطلب ستظهر هنا.</div>
+              <section id="store-track-section" class="store-track-section hint-box" hidden>
+                <strong>متابعة طلب</strong>
+                <form id="store-track-form" class="form-stack">
+                  <label>رقم الطلب<input name="orderId" required placeholder="UUID"></label>
+                  <label>موبايل العميل<input name="phone" required></label>
+                  <button type="submit">بحث</button>
+                </form>
+                <div id="store-track-result"></div>
+              </section>
                 </aside>
               </div>
             </div>
@@ -1389,6 +1434,15 @@
           </form>
           <button type="button" class="secondary" id="customer-orders-button">عرض طلباتي</button>
           <ul id="customer-orders" class="list"></ul>
+          <section class="store-track-inline">
+            <strong>تتبع طلب</strong>
+            <form id="customer-track-form" class="form-stack">
+              <label>رقم الطلب<input name="orderId" required></label>
+              <label>موبايل<input name="phone" required></label>
+              <button type="submit">متابعة</button>
+            </form>
+            <div id="customer-track-result" class="hint-box"></div>
+          </section>
         </aside>
         <div id="store-account-backdrop" class="store-account-backdrop" hidden aria-hidden="true"></div>
         <button type="button" id="store-cart-fab" class="store-cart-fab" hidden aria-label="فتح السلة">
@@ -1662,6 +1716,6 @@
       <footer id="app-modal-foot" class="app-modal-foot" hidden></footer>
     </div>
   </dialog>
-  <script src="/app.js?v=2026070205"></script>
+  <script src="/app.js?v=2026070216"></script>
 </body>
 </html>

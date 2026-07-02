@@ -24,7 +24,7 @@ const orderBodySchema = z.object({
   customerEmail: z.string().email().optional(),
   shippingAddress: z.string().optional(),
   governorate: z.string().min(1).optional(),
-  paymentMethod: z.enum(["paymob", "cod", "fawry"]).optional(),
+  paymentMethod: z.enum(["paymob", "cod", "fawry", "easycash"]).optional(),
   couponCode: z.string().max(64).optional(),
   items: z.array(z.object({ productId: z.string().uuid(), quantity: z.number().int().positive() })).min(1),
 });
@@ -168,9 +168,9 @@ export async function handleCreateStoreOrder(deps: Deps, request: FastifyRequest
       `INSERT INTO orders (
          tenant_id, customer_id, total_cents, subtotal_cents, shipping_fee_cents, discount_cents,
          coupon_code, governorate, payment_method, customer_name, customer_phone, customer_email, shipping_address,
-         payment_provider, payment_status, status
+         payment_provider, payment_status, status, tracking_token
        )
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$9,$14,$15)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$9,$14,$15, gen_random_uuid())
        RETURNING *`,
       [
         tenant.id,
@@ -206,6 +206,10 @@ export async function handleCreateStoreOrder(deps: Deps, request: FastifyRequest
     );
     await client.query("COMMIT");
 
+    const trackingUrl = order.rows[0].tracking_token
+      ? deps.absoluteUrl(request, `/store/${tenantSlug}/track/${order.rows[0].tracking_token}`)
+      : null;
+
     const notifyOrder = (checkoutUrl?: string | null) => {
       void notifyNewStoreOrder(deps.pool, {
         tenantId: tenant.id as string,
@@ -215,6 +219,7 @@ export async function handleCreateStoreOrder(deps: Deps, request: FastifyRequest
         customerPhone: parsed.customerPhone,
         customerEmail: parsed.customerEmail ?? null,
         checkoutUrl: checkoutUrl ?? null,
+        trackingUrl,
       }).catch((err) => deps.log.error({ err }, "order notification failed"));
     };
 
@@ -222,6 +227,7 @@ export async function handleCreateStoreOrder(deps: Deps, request: FastifyRequest
       notifyOrder();
       return reply.code(201).send({
         order: order.rows[0],
+        trackingUrl,
         payment: {
           status: "cod_pending",
           provider: "cod",
@@ -235,10 +241,32 @@ export async function handleCreateStoreOrder(deps: Deps, request: FastifyRequest
       notifyOrder();
       return reply.code(201).send({
         order: order.rows[0],
+        trackingUrl,
         payment: {
           status: "fawry_pending",
           provider: "fawry",
           message: "تم إنشاء الطلب. سيتواصل معك فريق المتجر بكود Fawry للدفع أو يمكنك الدفع عند الاستلام حسب سياسة المتجر.",
+        },
+        quote: { subtotalCents: subtotal, discountCents, shippingFeeCents, codFeeCents, totalCents },
+      });
+    }
+
+    if (paymentMethod === "easycash") {
+      const easycash = await deps.pool.query(
+        `SELECT * FROM tenant_payment_credentials WHERE tenant_id = $1 AND provider = 'easycash' AND is_enabled = true`,
+        [tenant.id],
+      );
+      if (!easycash.rows[0]) {
+        return reply.code(400).send({ message: "Easy Cash غير مفعّل لهذا المتجر." });
+      }
+      notifyOrder();
+      return reply.code(201).send({
+        order: order.rows[0],
+        trackingUrl,
+        payment: {
+          status: "easycash_pending",
+          provider: "easycash",
+          message: "تم إنشاء الطلب. سيتواصل معك المتجر برابط الدفع عبر Easy Cash أو يؤكد الطلب يدويًا.",
         },
         quote: { subtotalCents: subtotal, discountCents, shippingFeeCents, codFeeCents, totalCents },
       });
@@ -252,6 +280,7 @@ export async function handleCreateStoreOrder(deps: Deps, request: FastifyRequest
       notifyOrder();
       return reply.code(201).send({
         order: order.rows[0],
+        trackingUrl,
         payment: { status: "pending", provider: "manual_until_paymob_connected", message: "ادفع يدوياً أو تواصل مع المتجر." },
         quote: { subtotalCents: subtotal, discountCents, shippingFeeCents, codFeeCents, totalCents },
       });
@@ -312,6 +341,7 @@ export async function handleCreateStoreOrder(deps: Deps, request: FastifyRequest
     notifyOrder(checkoutUrl);
     return reply.code(201).send({
       order: updatedOrder.rows[0],
+      trackingUrl,
       payment: { status: "redirect_required", provider: "paymob", checkoutUrl },
       quote: { subtotalCents: subtotal, discountCents, shippingFeeCents, codFeeCents, totalCents },
     });

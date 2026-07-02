@@ -161,6 +161,9 @@ class StoreApi {
     required String customerPhone,
     String? customerEmail,
     String? shippingAddress,
+    String? governorate,
+    String? couponCode,
+    String? paymentMethod,
     required List<CartLine> items,
   }) async {
     final payload = {
@@ -168,6 +171,9 @@ class StoreApi {
       'customerPhone': customerPhone,
       if (customerEmail != null && customerEmail.isNotEmpty) 'customerEmail': customerEmail,
       if (shippingAddress != null && shippingAddress.isNotEmpty) 'shippingAddress': shippingAddress,
+      if (governorate != null && governorate.isNotEmpty) 'governorate': governorate,
+      if (couponCode != null && couponCode.isNotEmpty) 'couponCode': couponCode,
+      if (paymentMethod != null && paymentMethod.isNotEmpty) 'paymentMethod': paymentMethod,
       'items': items.map((l) => {'productId': l.product.id, 'quantity': l.quantity}).toList(),
     };
     final data = await _decode(

@@ -123,6 +123,9 @@ class StoreSession extends ChangeNotifier {
     required String phone,
     String? email,
     String? address,
+    String? governorate,
+    String? couponCode,
+    String? paymentMethod,
   }) async {
     if (store == null || cart.isEmpty) {
       throw StoreApiException('السلة فارغة.');
@@ -133,6 +136,9 @@ class StoreSession extends ChangeNotifier {
       customerPhone: phone,
       customerEmail: email,
       shippingAddress: address,
+      governorate: governorate,
+      couponCode: couponCode,
+      paymentMethod: paymentMethod,
       items: cart,
     );
     clearCart();

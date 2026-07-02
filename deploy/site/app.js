@@ -331,12 +331,32 @@ let storefrontSearchTimer = null;
 function getStoreSlugFromUrl() {
   const params = new URLSearchParams(window.location.search);
   if (params.has("store")) return (params.get("store") || "").trim();
+  const trackMatch = window.location.pathname.match(/^\/store\/([^/]+)\/track\//);
+  if (trackMatch?.[1]) return decodeURIComponent(trackMatch[1]).trim();
   const match = window.location.pathname.match(/^\/store\/([^\/?#]+)/);
   if (match?.[1]) return decodeURIComponent(match[1]).trim();
   if (window.location.hash.startsWith("#store/")) {
-    return window.location.hash.slice("#store/".length).split(/[?&#]/)[0].trim();
+    return window.location.hash.slice("#store/".length).split(/[?&#/]/)[0].trim();
   }
   return "";
+}
+
+function getTrackTokenFromUrl() {
+  const match = window.location.pathname.match(/^\/store\/[^/]+\/track\/([^/?#]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]).trim() : "";
+}
+
+const ORDER_STATUS_LABELS = {
+  pending: "قيد الانتظار",
+  confirmed: "مؤكد",
+  processing: "قيد التجهيز",
+  shipped: "تم الشحن",
+  delivered: "تم التسليم",
+  cancelled: "ملغي",
+};
+
+function orderStatusLabel(status) {
+  return ORDER_STATUS_LABELS[String(status || "").toLowerCase()] || status || "-";
 }
 
 function isStoreClientMode() {
@@ -1415,12 +1435,18 @@ function effectivePriceCents(product) {
 
 function parseStoreSettingsClient(raw) {
   const defaults = {
-    paymentMethods: { paymob: true, cod: true, fawry: false },
+    paymentMethods: { paymob: true, cod: true, fawry: false, easycash: false },
     codFeeCents: 0,
     freeShippingMinCents: 0,
     shippingRates: [],
     metaPixelId: "",
     gtmId: "",
+    customDomain: "",
+    merchantWhatsAppPhone: "",
+    notifyWhatsAppOnNewOrder: true,
+    notifyEmailOnStatusChange: true,
+    defaultCarrier: "manual",
+    reviewsEnabled: true,
   };
   if (!raw || typeof raw !== "object") return defaults;
   const pm = raw.paymentMethods || {};
@@ -1429,12 +1455,19 @@ function parseStoreSettingsClient(raw) {
       paymob: pm.paymob !== false,
       cod: pm.cod !== false,
       fawry: Boolean(pm.fawry),
+      easycash: Boolean(pm.easycash),
     },
     codFeeCents: Math.max(0, Math.round(Number(raw.codFeeCents) || 0)),
     freeShippingMinCents: Math.max(0, Math.round(Number(raw.freeShippingMinCents) || 0)),
     shippingRates: Array.isArray(raw.shippingRates) ? raw.shippingRates : [],
     metaPixelId: String(raw.metaPixelId || "").trim(),
     gtmId: String(raw.gtmId || "").trim(),
+    customDomain: String(raw.customDomain || "").trim(),
+    merchantWhatsAppPhone: String(raw.merchantWhatsAppPhone || "").trim(),
+    notifyWhatsAppOnNewOrder: raw.notifyWhatsAppOnNewOrder !== false,
+    notifyEmailOnStatusChange: raw.notifyEmailOnStatusChange !== false,
+    defaultCarrier: ["bosta", "aramex"].includes(String(raw.defaultCarrier)) ? raw.defaultCarrier : "manual",
+    reviewsEnabled: raw.reviewsEnabled !== false,
   };
 }
 
@@ -1841,6 +1874,7 @@ function fillCheckoutSettings(store) {
     payForm.paymob.checked = settings.paymentMethods.paymob;
     payForm.cod.checked = settings.paymentMethods.cod;
     payForm.fawry.checked = settings.paymentMethods.fawry;
+    if (payForm.easycash) payForm.easycash.checked = settings.paymentMethods.easycash;
     if (payForm.codFee) payForm.codFee.value = (settings.codFeeCents / 100).toFixed(2);
     if (payForm.freeShippingMin) payForm.freeShippingMin.value = settings.freeShippingMinCents ? (settings.freeShippingMinCents / 100).toFixed(2) : "0";
   }
@@ -1849,8 +1883,24 @@ function fillCheckoutSettings(store) {
     trackForm.metaPixelId.value = settings.metaPixelId || "";
     trackForm.gtmId.value = settings.gtmId || "";
   }
+  const notifyForm = $("notify-settings-form");
+  if (notifyForm) {
+    notifyForm.merchantWhatsAppPhone.value = settings.merchantWhatsAppPhone || "";
+    notifyForm.notifyWhatsAppOnNewOrder.checked = settings.notifyWhatsAppOnNewOrder;
+    notifyForm.notifyEmailOnStatusChange.checked = settings.notifyEmailOnStatusChange;
+    notifyForm.defaultCarrier.value = settings.defaultCarrier || "manual";
+  }
+  const domainForm = $("domain-settings-form");
+  if (domainForm) {
+    domainForm.customDomain.value = settings.customDomain || "";
+    const cnameHost = $("platform-cname-host");
+    if (cnameHost) cnameHost.textContent = window.location.host || "shope.easytecheg.net";
+  }
+  const reviewsForm = $("reviews-settings-form");
+  if (reviewsForm?.reviewsEnabled) reviewsForm.reviewsEnabled.checked = settings.reviewsEnabled;
   renderShippingRatesEditor(settings.shippingRates);
   void loadCouponsList();
+  void loadMerchantReviewsList();
 }
 
 function renderShippingRatesEditor(rates) {
@@ -1881,6 +1931,7 @@ async function saveCheckoutSettings(event) {
         paymob: form.paymob.checked,
         cod: form.cod.checked,
         fawry: form.fawry.checked,
+        easycash: form.easycash?.checked ?? false,
       },
       codFeeCents: parseMoneyToCents(form.codFee.value || 0),
       freeShippingMinCents: parseMoneyToCents(form.freeShippingMin.value || 0),
@@ -1913,6 +1964,77 @@ async function saveTrackingSettings(event) {
   });
   showMessage("تم حفظ أكواد التتبع.");
   fillCheckoutSettings(data.store);
+}
+
+async function saveNotifySettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = await api("/api/merchant/store", {
+    method: "PATCH",
+    body: JSON.stringify({
+      storeSettings: {
+        merchantWhatsAppPhone: form.merchantWhatsAppPhone.value.trim(),
+        notifyWhatsAppOnNewOrder: form.notifyWhatsAppOnNewOrder.checked,
+        notifyEmailOnStatusChange: form.notifyEmailOnStatusChange.checked,
+        defaultCarrier: form.defaultCarrier.value,
+      },
+    }),
+  });
+  showMessage("تم حفظ إعدادات الإشعارات.");
+  fillCheckoutSettings(data.store);
+}
+
+async function saveDomainSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = await api("/api/merchant/store", {
+    method: "PATCH",
+    body: JSON.stringify({ storeSettings: { customDomain: form.customDomain.value.trim() } }),
+  });
+  showMessage("تم حفظ الدومين المخصص.");
+  fillCheckoutSettings(data.store);
+}
+
+async function saveReviewsSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = await api("/api/merchant/store", {
+    method: "PATCH",
+    body: JSON.stringify({ storeSettings: { reviewsEnabled: form.reviewsEnabled.checked } }),
+  });
+  showMessage("تم حفظ إعدادات التقييمات.");
+  fillCheckoutSettings(data.store);
+}
+
+async function loadMerchantReviewsList() {
+  const list = $("merchant-reviews-list");
+  if (!list || !state.token) return;
+  try {
+    const data = await api("/api/merchant/reviews");
+    list.innerHTML =
+      (data.reviews || [])
+        .map(
+          (r) => `<li><strong>${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</strong> ${r.customer_name}<br><small>${r.title_ar || r.title_en} — ${r.status}</small><p>${escapeHtmlText(r.comment || "")}</p><span class="row-actions">${r.status === "pending" ? `<button class="mini-button success-button" data-review-publish="${r.id}">نشر</button>` : ""}<button class="mini-button danger-button" data-review-delete="${r.id}">حذف</button></span></li>`,
+        )
+        .join("") || "<li>لا توجد تقييمات بعد.</li>";
+    list.querySelectorAll("[data-review-publish]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await api(`/api/merchant/reviews/${btn.dataset.reviewPublish}`, { method: "PATCH", body: JSON.stringify({ status: "published" }) });
+        showMessage("تم نشر التقييم.");
+        await loadMerchantReviewsList();
+      });
+    });
+    list.querySelectorAll("[data-review-delete]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("حذف التقييم؟")) return;
+        await api(`/api/merchant/reviews/${btn.dataset.reviewDelete}`, { method: "DELETE", body: JSON.stringify({}) });
+        showMessage("تم حذف التقييم.");
+        await loadMerchantReviewsList();
+      });
+    });
+  } catch {
+    list.innerHTML = "<li>تعذر تحميل التقييمات.</li>";
+  }
 }
 
 async function loadCouponsList() {
@@ -1979,9 +2101,13 @@ function renderCheckoutPaymentMethods(checkout) {
   fieldset.querySelectorAll("label").forEach((label) => {
     const input = label.querySelector("input");
     const method = input?.value;
-    label.hidden = !pm[method];
+    if (method === "easycash") {
+      label.hidden = !pm.easycash;
+    } else {
+      label.hidden = !pm[method];
+    }
   });
-  const firstVisible = fieldset.querySelector('label:not([hidden]) input');
+  const firstVisible = fieldset.querySelector("label:not([hidden]) input");
   if (firstVisible) firstVisible.checked = true;
 }
 
@@ -2853,8 +2979,16 @@ function bindMerchantActions(scope = "all") {
   document.querySelectorAll("[data-order-status]").forEach((button) => {
     button.addEventListener("click", async () => {
       const [orderId, status] = button.dataset.orderStatus.split(":");
-      await api(`/api/merchant/orders/${orderId}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
-      showMessage(`تم تحديث الطلب إلى ${status}.`);
+      const payload = { status };
+      if (status === "shipped") {
+        const trackingNumber = prompt("رقم الشحنة (اختياري):")?.trim();
+        if (trackingNumber) {
+          payload.trackingNumber = trackingNumber;
+          payload.carrierCode = state.storeSettings?.defaultCarrier || "manual";
+        }
+      }
+      await api(`/api/merchant/orders/${orderId}/status`, { method: "PATCH", body: JSON.stringify(payload) });
+      showMessage(`تم تحديث الطلب إلى ${orderStatusLabel(status)}.`);
       await loadMerchantData();
     });
   });
@@ -2865,16 +2999,53 @@ function bindMerchantActions(scope = "all") {
       const title = $("order-dialog-title");
       const body = $("order-dialog-body");
       if (!dialog || !title || !body) return;
-      title.textContent = `طلب ${data.order.id}`;
+      const order = data.order;
+      const slug = state.tenantSlug || $("tenant-slug")?.value?.trim() || "";
+      const trackingUrl = order.tracking_token && slug ? `${window.location.origin}/store/${slug}/track/${order.tracking_token}` : "";
+      const carrierUrl = order.tracking_number
+        ? order.carrier_code === "bosta"
+          ? `https://bosta.co/tracking-shipments?shipmentNumber=${encodeURIComponent(order.tracking_number)}`
+          : order.carrier_code === "aramex"
+            ? `https://www.aramex.com/track/results?ShipmentNumber=${encodeURIComponent(order.tracking_number)}`
+            : null
+        : null;
+      title.textContent = `طلب ${order.id}`;
       body.innerHTML = `
         <div class="dialog-grid">
-          <div class="hint-box"><strong>العميل</strong><p>${data.order.customer_name || "-"}</p><small>${data.order.customer_phone || ""}</small></div>
-          <div class="hint-box"><strong>الإجمالي</strong><p>${money(data.order.total_cents)}</p><small>الدفع: ${data.order.payment_status || "-"}</small></div>
+          <div class="hint-box"><strong>العميل</strong><p>${order.customer_name || "-"}</p><small>${order.customer_phone || ""}</small></div>
+          <div class="hint-box"><strong>الإجمالي</strong><p>${money(order.total_cents)}</p><small>الدفع: ${order.payment_status || "-"} · ${orderStatusLabel(order.status)}</small></div>
         </div>
         <div class="hint-box"><strong>العناصر</strong><p>${data.items
           .map((item) => `${item.title} × ${item.quantity} = ${money(item.total_cents)}`)
           .join("<br>")}</p></div>
+        <form id="order-shipping-form" class="form-stack">
+          <label>رقم الشحنة<input name="trackingNumber" value="${escapeHtmlText(order.tracking_number || "")}"></label>
+          <label>شركة الشحن
+            <select name="carrierCode">
+              <option value="manual"${order.carrier_code === "manual" || !order.carrier_code ? " selected" : ""}>يدوي</option>
+              <option value="bosta"${order.carrier_code === "bosta" ? " selected" : ""}>Bosta</option>
+              <option value="aramex"${order.carrier_code === "aramex" ? " selected" : ""}>Aramex</option>
+            </select>
+          </label>
+          <button type="submit">حفظ بيانات الشحن</button>
+        </form>
+        ${trackingUrl ? `<p class="hint-inline"><a href="${trackingUrl}" target="_blank" rel="noopener">رابط متابعة للعميل</a></p>` : ""}
+        ${carrierUrl ? `<p class="hint-inline"><a href="${carrierUrl}" target="_blank" rel="noopener">تتبع على موقع الشركة</a></p>` : ""}
       `;
+      $("order-shipping-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        await api(`/api/merchant/orders/${order.id}/shipping`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            trackingNumber: fd.get("trackingNumber") || undefined,
+            carrierCode: fd.get("carrierCode") || "manual",
+          }),
+        });
+        showMessage("تم حفظ بيانات الشحن.");
+        dialog.close();
+        await loadMerchantData();
+      });
       dialog.showModal();
     });
   });
@@ -2921,8 +3092,49 @@ async function applyStoreDeepLink() {
   try {
     setView("storefront");
     await loadStorefront();
+    const token = getTrackTokenFromUrl();
+    if (token) await loadPublicTrackByToken(slug, token);
+    else if (isStoreClientMode()) $("store-track-section")?.removeAttribute("hidden");
   } catch (error) {
     showMessage(error.message || String(error), true);
+  }
+}
+
+function renderTrackResult(data, container) {
+  if (!container || !data?.order) return;
+  const o = data.order;
+  const items = (o.items || []).map((item) => `${item.title} × ${item.quantity}`).join("<br>");
+  container.innerHTML = `
+    <div class="hint-box">
+      <strong>حالة الطلب: ${orderStatusLabel(o.status)}</strong>
+      <p>رقم الطلب: ${o.id}</p>
+      <p>الإجمالي: ${money(o.totalCents)}</p>
+      ${o.trackingNumber ? `<p>رقم الشحنة: ${escapeHtmlText(o.trackingNumber)}</p>` : ""}
+      ${items ? `<p>${items}</p>` : ""}
+      ${o.carrierTrackingUrl ? `<p><a class="button" href="${o.carrierTrackingUrl}" target="_blank" rel="noopener">تتبع على موقع الشحن</a></p>` : ""}
+    </div>`;
+}
+
+async function loadPublicTrackByToken(slug, token) {
+  const data = await api(`/api/store/${slug}/track/${token}`);
+  renderTrackResult(data, $("store-track-result"));
+  $("store-track-section")?.removeAttribute("hidden");
+  setStoreAccountOpen(true);
+}
+
+async function submitStoreTrack(event, resultEl) {
+  event.preventDefault();
+  const slug = $("tenant-slug")?.value?.trim() || getStoreSlugFromUrl();
+  if (!slug) return showMessage("حمّل المتجر أولًا.", true);
+  const fd = new FormData(event.currentTarget);
+  try {
+    const data = await api(`/api/store/${slug}/track`, {
+      method: "POST",
+      body: JSON.stringify({ orderId: fd.get("orderId"), phone: fd.get("phone") }),
+    });
+    renderTrackResult(data, resultEl || $("store-track-result"));
+  } catch (error) {
+    showMessage(error.message, true);
   }
 }
 
@@ -3032,10 +3244,11 @@ async function placeOrder(event) {
   };
   const data = await api(`/api/store/${slug}/orders`, { method: "POST", body: JSON.stringify(payload) });
   const payMsg = data.payment?.message || data.payment?.status || "";
+  const trackLink = data.trackingUrl ? `<p><a class="button secondary" href="${data.trackingUrl}">متابعة الطلب</a></p>` : "";
   showMessage(`تم إنشاء الطلب: ${data.order.id}`);
   $("checkout-result").innerHTML = `<strong>تم إنشاء الطلب بنجاح</strong><p>رقم الطلب: ${data.order.id}</p><p>حالة الدفع: ${data.payment.status}</p>${payMsg ? `<p>${payMsg}</p>` : ""}${
     data.payment.checkoutUrl ? `<p><a class="button" href="${data.payment.checkoutUrl}" target="_blank" rel="noopener">ادفع الآن عبر Paymob</a></p>` : ""
-  }`;
+  }${trackLink}`;
   state.cart = [];
   renderCart();
   if (!["platform_owner", "platform_admin"].includes(state.role)) await loadMerchantData();
@@ -3104,8 +3317,12 @@ async function loadCustomerOrders() {
   try {
     const data = await customerApi("/api/customer/orders");
     $("customer-orders").innerHTML =
-      data.orders.map((order) => `<li><strong>${money(order.total_cents)}</strong><span>${order.status} - ${order.payment_status}</span></li>`).join("") ||
-      "<li>لا توجد طلبات لهذا العميل بعد.</li>";
+      data.orders
+        .map(
+          (order) =>
+            `<li><strong>${money(order.total_cents)}</strong><span>${orderStatusLabel(order.status)} — ${order.payment_status}</span>${order.tracking_url ? `<br><a href="${order.tracking_url}">متابعة الطلب</a>` : order.trackingUrl ? `<br><a href="${order.trackingUrl}">متابعة الطلب</a>` : ""}${order.carrierTrackingUrl ? `<br><a href="${order.carrierTrackingUrl}" target="_blank" rel="noopener">تتبع الشحنة</a>` : ""}</li>`,
+        )
+        .join("") || "<li>لا توجد طلبات لهذا العميل بعد.</li>";
   } catch (error) {
     showMessage(error.message, true);
   }
@@ -3158,13 +3375,51 @@ function initStorefrontDelegation() {
     const slug = $("tenant-slug").value.trim();
     const data = await api(`/api/store/${slug}/products/${viewBtn.dataset.viewProduct}`);
     const variants = Array.isArray(data.product.variants) ? data.product.variants : [];
+    let reviewsHtml = "";
+    if (state.checkoutConfig?.reviewsEnabled !== false) {
+      try {
+        const reviewsData = await api(`/api/store/${slug}/products/${data.product.slug}/reviews`);
+        const reviewItems = (reviewsData.reviews || [])
+          .slice(0, 5)
+          .map((r) => `<li><strong>${"★".repeat(r.rating)}</strong> ${escapeHtmlText(r.customer_name)}<br><small>${escapeHtmlText(r.comment || "")}</small></li>`)
+          .join("");
+        reviewsHtml = `<div class="product-reviews"><strong>التقييمات${reviewsData.averageRating ? ` (${reviewsData.averageRating}/5)` : ""}</strong><ul class="list">${reviewItems || "<li>لا توجد تقييمات بعد.</li>"}</ul>
+          <form class="form-stack product-review-form" data-review-product="${data.product.slug}">
+            <label>اسمك<input name="customerName" required></label>
+            <label>التقييم<select name="rating"><option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option></select></label>
+            <label>تعليق<textarea name="comment"></textarea></label>
+            <button type="submit">إرسال تقييم</button>
+          </form></div>`;
+      } catch {
+        reviewsHtml = "";
+      }
+    }
     $("product-detail").innerHTML = `${productMediaHtml(data.product)}<strong>${data.product.title_ar}</strong><p>${data.product.description || "لا يوجد وصف."}</p><div class="price-stack">${productPriceHtml(data.product)}</div><p>${data.product.stock_quantity} في المخزون</p>${
       variants.length
         ? `<div class="variant-pills">${variants
             .map((variant) => `<span>${variant.type || "نوع"} ${variant.color || ""}${variant.extraPriceCents ? ` + ${money(variant.extraPriceCents)}` : ""}${variant.stockQuantity !== null && variant.stockQuantity !== undefined ? ` - مخزون ${variant.stockQuantity}` : ""}</span>`)
             .join("")}</div>`
         : ""
-    }`;
+    }${reviewsHtml}`;
+    $("product-detail")?.querySelector(".product-review-form")?.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const form = ev.currentTarget;
+      const fd = new FormData(form);
+      try {
+        const res = await api(`/api/store/${slug}/products/${form.dataset.reviewProduct}/reviews`, {
+          method: "POST",
+          body: JSON.stringify({
+            customerName: fd.get("customerName"),
+            rating: Number(fd.get("rating")),
+            comment: fd.get("comment") || undefined,
+          }),
+        });
+        showMessage(res.message || "تم إرسال التقييم.");
+        form.reset();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
     if (isStoreClientMode()) {
       document.body.classList.add("store-product-detail-open");
       setStoreCartOpen(true);
@@ -4076,6 +4331,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("checkout-settings-form")?.addEventListener("submit", saveCheckoutSettings);
   $("shipping-rates-form")?.addEventListener("submit", saveShippingRates);
   $("tracking-settings-form")?.addEventListener("submit", saveTrackingSettings);
+  $("notify-settings-form")?.addEventListener("submit", saveNotifySettings);
+  $("domain-settings-form")?.addEventListener("submit", saveDomainSettings);
+  $("reviews-settings-form")?.addEventListener("submit", saveReviewsSettings);
+  $("store-track-form")?.addEventListener("submit", (e) => submitStoreTrack(e, $("store-track-result")));
+  $("customer-track-form")?.addEventListener("submit", (e) => submitStoreTrack(e, $("customer-track-result")));
   $("coupon-form")?.addEventListener("submit", createCoupon);
   $("order-form")?.addEventListener("change", () => void updateCheckoutQuote());
   $("checkout-coupon")?.addEventListener("blur", () => void updateCheckoutQuote());

@@ -17,9 +17,9 @@ import {
   syncProductToAccounting,
   upsertAccountingLink,
 } from "./accounting-integration.js";
-import { emailNotificationsConfigured, notifyNewStoreOrder } from "./notifications.js";
+import { emailNotificationsConfigured, notifyNewStoreOrder, notifyOrderStatusChange } from "./notifications.js";
 import { handleCreateStoreOrder, handleStoreCheckoutQuote } from "./create-store-order.js";
-import { parseStoreSettings, publicCheckoutConfig } from "./store-settings.js";
+import { carrierTrackingUrl, parseStoreSettings, publicCheckoutConfig } from "./store-settings.js";
 
 const { Pool } = pg;
 
@@ -666,6 +666,27 @@ async function migrate() {
       created_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE (tenant_id, code)
     );
+
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_token uuid;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_number text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS carrier_code text;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipped_at timestamptz;
+
+    CREATE TABLE IF NOT EXISTS product_reviews (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      product_id uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      customer_name text NOT NULL,
+      customer_phone text,
+      rating int NOT NULL CHECK (rating >= 1 AND rating <= 5),
+      comment text,
+      status text NOT NULL DEFAULT 'pending',
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_product_reviews_product_status ON product_reviews (product_id, status);
+  `);
+  await pool.query(`
+    UPDATE orders SET tracking_token = gen_random_uuid() WHERE tracking_token IS NULL
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS platform_settings (
@@ -1303,18 +1324,36 @@ app.get("/api/merchant/orders/:orderId", async (request, reply) => {
 app.patch("/api/merchant/orders/:orderId/status", async (request, reply) => {
   const user = requireMerchantUser(request);
   const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
-  const body = z.object({ status: z.enum(["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]) }).parse(request.body);
+  const body = z
+    .object({
+      status: z.enum(["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"]),
+      trackingNumber: z.string().max(128).optional(),
+      carrierCode: z.enum(["manual", "bosta", "aramex"]).optional(),
+    })
+    .parse(request.body);
   const paymentStatus = body.status === "cancelled" ? "failed" : undefined;
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    const tenantRes = await client.query(`SELECT slug FROM tenants WHERE id = $1`, [user.tenantId]);
+    const tenantSlug = tenantRes.rows[0]?.slug as string | undefined;
     const result = await client.query(
       `UPDATE orders
        SET status = $3,
-           payment_status = coalesce($4, payment_status)
+           payment_status = coalesce($4, payment_status),
+           tracking_number = CASE WHEN $5::text IS NOT NULL THEN $5 ELSE tracking_number END,
+           carrier_code = CASE WHEN $6::text IS NOT NULL THEN $6 ELSE carrier_code END,
+           shipped_at = CASE WHEN $3 = 'shipped' AND shipped_at IS NULL THEN now() ELSE shipped_at END
        WHERE id = $1 AND tenant_id = $2
        RETURNING *`,
-      [params.orderId, user.tenantId, body.status, paymentStatus ?? null],
+      [
+        params.orderId,
+        user.tenantId,
+        body.status,
+        paymentStatus ?? null,
+        body.trackingNumber?.trim() || null,
+        body.carrierCode ?? null,
+      ],
     );
     if (!result.rows[0]) {
       await client.query("ROLLBACK");
@@ -1324,13 +1363,107 @@ app.patch("/api/merchant/orders/:orderId/status", async (request, reply) => {
       await restoreOrderStock(client, params.orderId);
     }
     await client.query("COMMIT");
-    return { order: result.rows[0] };
+    const order = result.rows[0];
+    const trackingUrl =
+      order.tracking_token && tenantSlug
+        ? absoluteUrl(request, `/store/${tenantSlug}/track/${order.tracking_token}`)
+        : null;
+    if (["shipped", "delivered", "confirmed", "processing", "cancelled"].includes(body.status)) {
+      void notifyOrderStatusChange(pool, {
+        tenantId: user.tenantId,
+        orderId: order.id as string,
+        status: body.status,
+        customerName: order.customer_name as string,
+        customerEmail: order.customer_email as string | null,
+        customerPhone: order.customer_phone as string | null,
+        trackingNumber: order.tracking_number as string | null,
+        carrierCode: order.carrier_code as string | null,
+        trackingUrl,
+      }).catch((err) => app.log.error({ err }, "order status notification failed"));
+    }
+    return {
+      order,
+      trackingUrl,
+      carrierTrackingUrl: carrierTrackingUrl(order.carrier_code as string | null, order.tracking_number as string | null),
+    };
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
     throw error;
   } finally {
     client.release();
   }
+});
+
+app.patch("/api/merchant/orders/:orderId/shipping", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const params = z.object({ orderId: z.string().uuid() }).parse(request.params);
+  const body = z
+    .object({
+      trackingNumber: z.string().max(128).optional(),
+      carrierCode: z.enum(["manual", "bosta", "aramex"]).optional(),
+      status: z.enum(["shipped", "delivered", "processing"]).optional(),
+    })
+    .parse(request.body);
+  const result = await pool.query(
+    `UPDATE orders
+     SET tracking_number = coalesce($3, tracking_number),
+         carrier_code = coalesce($4, carrier_code),
+         status = coalesce($5, status),
+         shipped_at = CASE WHEN coalesce($5, status) = 'shipped' AND shipped_at IS NULL THEN now() ELSE shipped_at END
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [params.orderId, user.tenantId, body.trackingNumber?.trim() || null, body.carrierCode ?? null, body.status ?? null],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Order not found" });
+  const order = result.rows[0];
+  const tenantRes = await pool.query(`SELECT slug FROM tenants WHERE id = $1`, [user.tenantId]);
+  const tenantSlug = tenantRes.rows[0]?.slug as string | undefined;
+  const trackingUrl =
+    order.tracking_token && tenantSlug ? absoluteUrl(request, `/store/${tenantSlug}/track/${order.tracking_token}`) : null;
+  return {
+    order,
+    trackingUrl,
+    carrierTrackingUrl: carrierTrackingUrl(order.carrier_code as string | null, order.tracking_number as string | null),
+  };
+});
+
+app.get("/api/merchant/reviews", async (request) => {
+  const user = requireMerchantUser(request);
+  const query = z.object({ status: z.enum(["pending", "published", "rejected"]).optional() }).parse(request.query);
+  const result = await pool.query(
+    `SELECT reviews.*, products.title_ar, products.title_en
+     FROM product_reviews reviews
+     JOIN products ON products.id = reviews.product_id
+     WHERE reviews.tenant_id = $1
+       AND ($2::text IS NULL OR reviews.status = $2)
+     ORDER BY reviews.created_at DESC
+     LIMIT 100`,
+    [user.tenantId, query.status ?? null],
+  );
+  return { reviews: result.rows };
+});
+
+app.patch("/api/merchant/reviews/:reviewId", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const params = z.object({ reviewId: z.string().uuid() }).parse(request.params);
+  const body = z.object({ status: z.enum(["pending", "published", "rejected"]) }).parse(request.body);
+  const result = await pool.query(
+    `UPDATE product_reviews SET status = $3 WHERE id = $1 AND tenant_id = $2 RETURNING *`,
+    [params.reviewId, user.tenantId, body.status],
+  );
+  if (!result.rows[0]) return reply.code(404).send({ message: "Review not found" });
+  return { review: result.rows[0] };
+});
+
+app.delete("/api/merchant/reviews/:reviewId", async (request, reply) => {
+  const user = requireMerchantUser(request);
+  const params = z.object({ reviewId: z.string().uuid() }).parse(request.params);
+  const result = await pool.query(`DELETE FROM product_reviews WHERE id = $1 AND tenant_id = $2 RETURNING id`, [
+    params.reviewId,
+    user.tenantId,
+  ]);
+  if (!result.rows[0]) return reply.code(404).send({ message: "Review not found" });
+  return reply.code(204).send();
 });
 
 app.get("/api/merchant/payment-providers", async (request) => {
@@ -1618,6 +1751,7 @@ app.patch("/api/merchant/store", async (request) => {
               paymob: z.boolean().optional(),
               cod: z.boolean().optional(),
               fawry: z.boolean().optional(),
+              easycash: z.boolean().optional(),
             })
             .optional(),
           codFeeCents: z.number().int().nonnegative().optional(),
@@ -1634,6 +1768,12 @@ app.patch("/api/merchant/store", async (request) => {
             .optional(),
           metaPixelId: z.string().max(64).optional(),
           gtmId: z.string().max(64).optional(),
+          customDomain: z.string().max(253).optional(),
+          merchantWhatsAppPhone: z.string().max(32).optional(),
+          notifyWhatsAppOnNewOrder: z.boolean().optional(),
+          notifyEmailOnStatusChange: z.boolean().optional(),
+          defaultCarrier: z.enum(["manual", "bosta", "aramex"]).optional(),
+          reviewsEnabled: z.boolean().optional(),
         })
         .optional(),
     })
@@ -2021,14 +2161,23 @@ app.get("/api/customer/orders", async (request) => {
   const user = requireTenantUser(request);
   if (user.role !== "customer") throw httpError("Customer account required", 403);
   const me = await pool.query(`SELECT email, phone FROM users WHERE id = $1`, [user.userId]);
+  const tenantRes = await pool.query(`SELECT slug FROM tenants WHERE id = $1`, [user.tenantId]);
+  const tenantSlug = tenantRes.rows[0]?.slug as string | undefined;
   const result = await pool.query(
-    `SELECT * FROM orders
+    `SELECT id, status, payment_status, total_cents, created_at, tracking_token, tracking_number, carrier_code, shipped_at
+     FROM orders
      WHERE tenant_id = $1 AND (customer_email = $2 OR customer_phone = $3)
      ORDER BY created_at DESC
      LIMIT 25`,
     [user.tenantId, me.rows[0]?.email ?? null, me.rows[0]?.phone ?? null],
   );
-  return { orders: result.rows };
+  return {
+    orders: result.rows.map((order) => ({
+      ...order,
+      trackingUrl: order.tracking_token && tenantSlug ? `/store/${tenantSlug}/track/${order.tracking_token}` : null,
+      carrierTrackingUrl: carrierTrackingUrl(order.carrier_code as string | null, order.tracking_number as string | null),
+    })),
+  };
 });
 
 const storeOrderDeps = {
@@ -2053,6 +2202,121 @@ app.post("/api/store/:tenantSlug/checkout/quote", async (request, reply) => {
 app.post("/api/store/:tenantSlug/orders", async (request, reply) => {
   const params = z.object({ tenantSlug: z.string() }).parse(request.params);
   return handleCreateStoreOrder(storeOrderDeps, request, reply, params.tenantSlug, request.body);
+});
+
+function publicTrackPayload(
+  order: Record<string, unknown>,
+  items: Array<Record<string, unknown>>,
+  store: Record<string, unknown>,
+  absUrl: (path: string) => string,
+) {
+  const slug = String(store.slug || "");
+  const trackingUrl = order.tracking_token ? absUrl(`/store/${slug}/track/${order.tracking_token}`) : null;
+  return {
+    order: {
+      id: order.id,
+      status: order.status,
+      paymentStatus: order.payment_status,
+      totalCents: order.total_cents,
+      createdAt: order.created_at,
+      trackingNumber: order.tracking_number ?? null,
+      carrierCode: order.carrier_code ?? null,
+      shippedAt: order.shipped_at ?? null,
+      trackingUrl,
+      carrierTrackingUrl: carrierTrackingUrl(order.carrier_code as string | null, order.tracking_number as string | null),
+      items: items.map((item) => ({ title: item.title, quantity: item.quantity, totalCents: item.total_cents })),
+    },
+    store: { nameAr: store.name_ar, nameEn: store.name_en, slug: store.slug },
+  };
+}
+
+app.get("/api/store/:tenantSlug/track/:token", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string(), token: z.string().uuid() }).parse(request.params);
+  const tenantRes = await pool.query(`SELECT * FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [params.tenantSlug]);
+  const tenant = tenantRes.rows[0];
+  if (!tenant) return reply.code(404).send({ message: "Store not found" });
+  const orderRes = await pool.query(`SELECT * FROM orders WHERE tenant_id = $1 AND tracking_token = $2`, [tenant.id, params.token]);
+  const order = orderRes.rows[0];
+  if (!order) return reply.code(404).send({ message: "Order not found" });
+  const items = await pool.query(`SELECT title, quantity, total_cents FROM order_items WHERE order_id = $1 ORDER BY id`, [order.id]);
+  return publicTrackPayload(order, items.rows, tenant, (path) => absoluteUrl(request, path));
+});
+
+app.post("/api/store/:tenantSlug/track", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string() }).parse(request.params);
+  const body = z.object({ orderId: z.string().uuid(), phone: z.string().min(6) }).parse(request.body);
+  const tenantRes = await pool.query(`SELECT * FROM tenants WHERE slug = $1 AND status NOT IN ('suspended', 'expired')`, [params.tenantSlug]);
+  const tenant = tenantRes.rows[0];
+  if (!tenant) return reply.code(404).send({ message: "Store not found" });
+  const phoneDigits = body.phone.replace(/\D/g, "");
+  const orderRes = await pool.query(
+    `SELECT * FROM orders
+     WHERE tenant_id = $1 AND id = $2
+       AND regexp_replace(coalesce(customer_phone, ''), '\\D', '', 'g') LIKE $3`,
+    [tenant.id, body.orderId, `%${phoneDigits.slice(-10)}%`],
+  );
+  const order = orderRes.rows[0];
+  if (!order) return reply.code(404).send({ message: "لم يُعثر على الطلب. تحقق من رقم الطلب والموبايل." });
+  const items = await pool.query(`SELECT title, quantity, total_cents FROM order_items WHERE order_id = $1 ORDER BY id`, [order.id]);
+  return publicTrackPayload(order, items.rows, tenant, (path) => absoluteUrl(request, path));
+});
+
+app.get("/api/store/:tenantSlug/products/:productSlug/reviews", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string(), productSlug: z.string() }).parse(request.params);
+  const tenantRes = await pool.query(`SELECT id, store_settings FROM tenants WHERE slug = $1`, [params.tenantSlug]);
+  const tenant = tenantRes.rows[0];
+  if (!tenant) return reply.code(404).send({ message: "Store not found" });
+  const settings = parseStoreSettings(tenant.store_settings);
+  if (!settings.reviewsEnabled) return { reviews: [], averageRating: null, count: 0 };
+  const productRes = await pool.query(`SELECT id FROM products WHERE tenant_id = $1 AND slug = $2`, [tenant.id, params.productSlug]);
+  if (!productRes.rows[0]) return reply.code(404).send({ message: "Product not found" });
+  const result = await pool.query(
+    `SELECT id, customer_name, rating, comment, created_at
+     FROM product_reviews
+     WHERE product_id = $1 AND status = 'published'
+     ORDER BY created_at DESC
+     LIMIT 50`,
+    [productRes.rows[0].id],
+  );
+  const stats = await pool.query(
+    `SELECT round(avg(rating)::numeric, 1) AS avg_rating, count(*)::int AS count
+     FROM product_reviews WHERE product_id = $1 AND status = 'published'`,
+    [productRes.rows[0].id],
+  );
+  return {
+    reviews: result.rows,
+    averageRating: stats.rows[0]?.avg_rating ? Number(stats.rows[0].avg_rating) : null,
+    count: Number(stats.rows[0]?.count ?? 0),
+  };
+});
+
+app.post("/api/store/:tenantSlug/products/:productSlug/reviews", async (request, reply) => {
+  const params = z.object({ tenantSlug: z.string(), productSlug: z.string() }).parse(request.params);
+  const body = z
+    .object({
+      customerName: z.string().min(2).max(80),
+      customerPhone: z.string().max(32).optional(),
+      rating: z.number().int().min(1).max(5),
+      comment: z.string().max(2000).optional(),
+    })
+    .parse(request.body);
+  const tenantRes = await pool.query(`SELECT id, store_settings FROM tenants WHERE slug = $1`, [params.tenantSlug]);
+  const tenant = tenantRes.rows[0];
+  if (!tenant) return reply.code(404).send({ message: "Store not found" });
+  const settings = parseStoreSettings(tenant.store_settings);
+  if (!settings.reviewsEnabled) return reply.code(403).send({ message: "التقييمات غير مفعّلة في هذا المتجر." });
+  const productRes = await pool.query(`SELECT id FROM products WHERE tenant_id = $1 AND slug = $2 AND status = 'published'`, [
+    tenant.id,
+    params.productSlug,
+  ]);
+  if (!productRes.rows[0]) return reply.code(404).send({ message: "Product not found" });
+  const result = await pool.query(
+    `INSERT INTO product_reviews (tenant_id, product_id, customer_name, customer_phone, rating, comment, status)
+     VALUES ($1,$2,$3,$4,$5,$6,'pending')
+     RETURNING id, customer_name, rating, comment, status, created_at`,
+    [tenant.id, productRes.rows[0].id, body.customerName.trim(), body.customerPhone?.trim() || null, body.rating, body.comment?.trim() || null],
+  );
+  return reply.code(201).send({ review: result.rows[0], message: "شكرًا! سيظهر تقييمك بعد موافقة المتجر." });
 });
 
 app.post("/api/webhooks/paymob", async (request, reply) => {
