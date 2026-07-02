@@ -1359,3 +1359,273 @@ body[data-scope="merchant"] .merchant-side,
 body[data-scope="admin"] .admin-side {
   border-radius: 20px;
 }
+
+/* Phase 5: sidebar text consistency + billing page polish */
+body[data-scope="merchant"] .merchant-side-item,
+body[data-scope="admin"] .admin-side-item {
+  color: #e2e8f0 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item strong,
+body[data-scope="admin"] .admin-side-item strong {
+  color: #f8fafc !important;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+body[data-scope="merchant"] .merchant-side-item small,
+body[data-scope="admin"] .admin-side-item small {
+  color: #c7d2fe !important;
+  font-weight: 600;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+body[data-scope="merchant"] .merchant-side-item:hover,
+body[data-scope="admin"] .admin-side-item:hover {
+  background: var(--admin-sidebar-hover) !important;
+  border-color: transparent !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item.active,
+body[data-scope="admin"] .admin-side-item.active {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-primary-deep)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+
+body[data-scope="merchant"] .merchant-side-item.active strong,
+body[data-scope="merchant"] .merchant-side-item.active small,
+body[data-scope="admin"] .admin-side-item.active strong,
+body[data-scope="admin"] .admin-side-item.active small {
+  color: #fff !important;
+}
+
+body[data-scope="merchant"] .merchant-side-icon,
+body[data-scope="admin"] .admin-side-icon {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c7d2fe;
+}
+
+body[data-scope="merchant"] .merchant-side-item.active .merchant-side-icon,
+body[data-scope="admin"] .admin-side-item.active .admin-side-icon {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+body[data-scope="merchant"] .section-title,
+body[data-scope="admin"] .section-title {
+  color: #334155;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+body[data-scope="merchant"] .section-title--lg,
+body[data-scope="admin"] .section-title--lg {
+  font-size: 1.05rem;
+  margin-bottom: 14px;
+}
+
+body[data-scope="merchant"] .panel-heading h2,
+body[data-scope="merchant"] .panel-heading h3,
+body[data-scope="admin"] .panel-heading h2,
+body[data-scope="admin"] .panel-heading h3 {
+  color: var(--admin-text);
+}
+
+/* Billing / subscription page */
+.billing-page .billing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .billing-page .billing-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.billing-column {
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.billing-column--invoices {
+  background: #f8fafc;
+}
+
+body[data-scope="merchant"] .subscription-status-card,
+body[data-scope="admin"] .subscription-status-card {
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .subscription-status-card p,
+body[data-scope="admin"] .subscription-status-card p {
+  color: #475569 !important;
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+
+body[data-scope="merchant"] .subscription-status-card strong,
+body[data-scope="admin"] .subscription-status-card strong {
+  color: #0f172a;
+}
+
+body[data-scope="merchant"] .subscription-status-card.is-trial strong,
+body[data-scope="admin"] .subscription-status-card.is-trial strong {
+  color: #92400e;
+}
+
+body[data-scope="merchant"] .subscription-status-card.is-trial p,
+body[data-scope="admin"] .subscription-status-card.is-trial p {
+  color: #78350f !important;
+}
+
+body[data-scope="merchant"] .subscription-status-card.is-active strong,
+body[data-scope="admin"] .subscription-status-card.is-active strong {
+  color: #166534;
+}
+
+body[data-scope="merchant"] .subscription-status-card.is-active p,
+body[data-scope="admin"] .subscription-status-card.is-active p {
+  color: #14532d !important;
+}
+
+body[data-scope="merchant"] .subscription-status-card.is-danger strong,
+body[data-scope="admin"] .subscription-status-card.is-danger strong {
+  color: #991b1b;
+}
+
+body[data-scope="merchant"] .subscription-status-card.is-danger p,
+body[data-scope="admin"] .subscription-status-card.is-danger p {
+  color: #7f1d1d !important;
+}
+
+body[data-scope="merchant"] .subscription-status-card .provider-line strong,
+body[data-scope="admin"] .subscription-status-card .provider-line strong {
+  font-size: 1.05rem;
+}
+
+.billing-page .billing-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.billing-page .billing-form button {
+  width: 100%;
+  justify-self: stretch;
+}
+
+.billing-page .billing-hint {
+  margin-top: 16px;
+}
+
+body[data-scope="merchant"] .invoice-section,
+body[data-scope="admin"] .invoice-section {
+  margin-top: 14px;
+  padding-top: 0;
+  border-top: none;
+}
+
+body[data-scope="merchant"] .invoice-section-label,
+body[data-scope="admin"] .invoice-section-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+body[data-scope="merchant"] .invoice-list li,
+body[data-scope="admin"] .invoice-list li {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: #fff !important;
+  border: 1px solid var(--admin-line);
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .billing-column--invoices .invoice-list li,
+body[data-scope="admin"] .billing-column--invoices .invoice-list li {
+  background: #fff !important;
+}
+
+body[data-scope="merchant"] .invoice-list li strong,
+body[data-scope="admin"] .invoice-list li strong {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+body[data-scope="merchant"] .invoice-list li small,
+body[data-scope="admin"] .invoice-list li small {
+  color: #64748b !important;
+  font-weight: 600;
+}
+
+body[data-scope="merchant"] .invoice-list .provider-line,
+body[data-scope="admin"] .invoice-list .provider-line {
+  margin-bottom: 2px;
+}
+
+body[data-scope="merchant"] .plan-picker-card,
+body[data-scope="admin"] .plan-picker-card {
+  color: var(--admin-text);
+}
+
+body[data-scope="merchant"] .plan-picker-card strong,
+body[data-scope="admin"] .plan-picker-card strong {
+  color: #0f172a;
+}
+
+body[data-scope="merchant"] .merchant-subnav-item,
+body[data-scope="admin"] .merchant-subnav-item {
+  color: #64748b;
+  font-weight: 700;
+}
+
+body[data-scope="merchant"] .merchant-subnav-item.active,
+body[data-scope="admin"] .merchant-subnav-item.active {
+  color: var(--admin-primary-deep);
+  background: var(--admin-primary-soft);
+  border-color: #a5b4fc;
+}
+
+body[data-scope="merchant"] .mini-button,
+body[data-scope="merchant"] .invoice-pay-btn,
+body[data-scope="admin"] .mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: var(--admin-primary-deep);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  width: fit-content;
+}
+
+body[data-scope="merchant"] .mini-button:hover,
+body[data-scope="merchant"] .invoice-pay-btn:hover,
+body[data-scope="admin"] .mini-button:hover {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+}

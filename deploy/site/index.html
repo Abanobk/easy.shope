@@ -21,8 +21,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css?v=2026070204" />
-  <link rel="stylesheet" href="/design-system.css?v=2026070204" />
+  <link rel="stylesheet" href="/styles.css?v=2026070205" />
+  <link rel="stylesheet" href="/design-system.css?v=2026070205" />
 </head>
 <body data-scope="public" data-view="overview" data-auth-mode="register">
   <div class="app-shell">
@@ -394,14 +394,16 @@
               </dialog>
             </article>
 
-            <article class="panel merchant-tab" data-merchant-panel="billing">
-              <div class="panel-heading">
-                <span class="eyebrow">اشتراك المنصة</span>
-                <h2>اشتراك التاجر للمنصة</h2>
-                <p class="page-subtitle">اختر خطتك، ادفع عبر Paymob، ويتم تجديد اشتراك المتجر تلقائياً.</p>
+            <article class="panel merchant-tab billing-page" data-merchant-panel="billing">
+              <div class="page-head">
+                <div>
+                  <div class="breadcrumb">الحساب <span>/</span> اشتراك المنصة</div>
+                  <h2>اشتراك المنصة</h2>
+                  <p class="page-subtitle">اختر خطتك، ادفع عبر Paymob، ويتم تجديد اشتراك متجرك تلقائياً.</p>
+                </div>
               </div>
               <div class="billing-layout">
-                <div>
+                <div class="billing-column billing-column--plans">
                   <div id="subscription-status" class="subscription-status-card">اختر خطة لإنشاء فاتورة اشتراك.</div>
                   <h3 class="section-title">اختر الخطة</h3>
                   <div id="subscription-plans-grid" class="plans-grid" role="listbox" aria-label="خطط الاشتراك"></div>
@@ -409,19 +411,19 @@
                     <input type="hidden" id="planCode" name="planCode" value="">
                     <button type="submit" id="subscription-create-btn" disabled>إنشاء فاتورة اشتراك</button>
                   </form>
-                  <div class="hint-box">
+                  <div class="hint-box billing-hint">
                     <strong>الدفع الرسمي للمنصة</strong>
-                    <p>الفاتورة تُدفع عبر Paymob الخاص بالسوبر أدمن. بعد نجاح الدفع يتم تجديد الاشتراك تلقائيًا من webhook.</p>
+                    <p>الفاتورة تُدفع عبر Paymob. بعد نجاح الدفع يُجدَّد اشتراك متجرك تلقائياً.</p>
                   </div>
                 </div>
-                <div>
-                  <h3>فواتير الاشتراك</h3>
+                <div class="billing-column billing-column--invoices">
+                  <h3 class="section-title section-title--lg">فواتير الاشتراك</h3>
                   <div class="invoice-section">
-                    <strong class="section-title">مدفوعة</strong>
+                    <strong class="invoice-section-label">مدفوعة</strong>
                     <ul id="subscription-invoices-paid" class="list invoice-list"></ul>
                   </div>
                   <div class="invoice-section">
-                    <strong class="section-title">غير مدفوعة</strong>
+                    <strong class="invoice-section-label">غير مدفوعة</strong>
                     <ul id="subscription-invoices-open" class="list invoice-list"></ul>
                   </div>
                 </div>
@@ -1561,6 +1563,6 @@
       <footer id="app-modal-foot" class="app-modal-foot" hidden></footer>
     </div>
   </dialog>
-  <script src="/app.js?v=2026070204"></script>
+  <script src="/app.js?v=2026070205"></script>
 </body>
 </html>

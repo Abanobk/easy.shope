@@ -3091,7 +3091,7 @@ function renderBilling(store, invoices) {
   $("subscription-invoices-open").innerHTML =
     open
       .map(
-        (invoice) => `<li><div class="provider-line"><strong>${invoice.plan_name || invoice.plan_code}</strong>${statusBadge(invoice.status)}</div><small>${money(invoice.amount_cents)}</small><span><button class="mini-button" data-pay-invoice="${invoice.id}">دفع Paymob</button></span></li>`,
+        (invoice) => `<li><div class="provider-line"><strong>${invoice.plan_name || invoice.plan_code}</strong>${statusBadge(invoice.status)}</div><small>${money(invoice.amount_cents)}</small><button type="button" class="mini-button invoice-pay-btn" data-pay-invoice="${invoice.id}">دفع Paymob</button></li>`,
       )
       .join("") || "<li>لا توجد فواتير غير مدفوعة.</li>";
   document.querySelectorAll("[data-pay-invoice]").forEach((button) => {
